@@ -17,7 +17,8 @@ create table if not exists prospect_events (
   created_at     timestamptz not null default now()
 );
 alter table prospect_events enable row level security;
-create policy if not exists "Agency owns its prospect events"
+drop policy if exists "Agency owns its prospect events" on prospect_events;
+create policy "Agency owns its prospect events"
   on prospect_events for all
   using (agency_id in (select id from agencies where user_id = auth.uid()))
   with check (agency_id in (select id from agencies where user_id = auth.uid()));
@@ -40,7 +41,8 @@ create table if not exists prospects (
   created_at       timestamptz not null default now()
 );
 alter table prospects enable row level security;
-create policy if not exists "Agency owns its prospects"
+drop policy if exists "Agency owns its prospects" on prospects;
+create policy "Agency owns its prospects"
   on prospects for all
   using (agency_id in (select id from agencies where user_id = auth.uid()))
   with check (agency_id in (select id from agencies where user_id = auth.uid()));
@@ -75,7 +77,8 @@ create table if not exists competition_data (
   scraped_at        timestamptz not null default now()
 );
 alter table competition_data enable row level security;
-create policy if not exists "Agency owns its competition data"
+drop policy if exists "Agency owns its competition data" on competition_data;
+create policy "Agency owns its competition data"
   on competition_data for all
   using (agency_id in (select id from agencies where user_id = auth.uid()))
   with check (agency_id in (select id from agencies where user_id = auth.uid()));
