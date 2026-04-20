@@ -1,7 +1,7 @@
 'use client'
 
 import { Agency } from '@/types'
-import { supabase } from '@/lib/supabase'
+import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { useRouter } from 'next/navigation'
 
 interface TopbarProps {
@@ -12,6 +12,7 @@ export default function Topbar({ agency }: TopbarProps) {
   const router = useRouter()
 
   async function handleLogout() {
+    const supabase = createSupabaseBrowserClient()
     await supabase.auth.signOut()
     router.push('/auth/login')
   }

@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
 import { createSupabaseServerClient } from '@/lib/supabase'
 import { fetchAgencyTone } from '@/lib/tone-fetcher'
 
 export async function POST(req: NextRequest) {
   try {
-    const cookieStore = cookies()
-    const supabase = createSupabaseServerClient(cookieStore)
+    const supabase = createSupabaseServerClient()
 
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
@@ -19,7 +17,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'url krävs' }, { status: 400 })
     }
 
-    const toneProfile = await fetchAgencyTone(url, user.id)
+    const toneProfile = await fetchAgencyTone(url, user.id, supabase)
     return NextResponse.json({ tone_profile: toneProfile })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Okänt fel'

@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
 import { createSupabaseServerClient } from '@/lib/supabase'
 import { generateAllChannels } from '@/lib/content-generator'
 import { Agency, PropertyObject } from '@/types'
 
 export async function POST(req: NextRequest) {
   try {
-    const cookieStore = cookies()
-    const supabase = createSupabaseServerClient(cookieStore)
+    const supabase = createSupabaseServerClient()
 
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
@@ -41,7 +39,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Byrå hittades inte' }, { status: 404 })
     }
 
-    const results = await generateAllChannels(object as PropertyObject, agency as Agency)
+    const results = await generateAllChannels(object as PropertyObject, agency as Agency, supabase)
     return NextResponse.json({ results })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Okänt fel'

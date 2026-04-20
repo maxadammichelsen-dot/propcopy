@@ -1,11 +1,15 @@
 import { anthropic, MODEL } from './anthropic'
-import { supabase } from './supabase'
 import { ToneProfile } from '@/types'
+import type { SupabaseClient } from '@supabase/supabase-js'
 
-export async function fetchAgencyTone(url: string, userId: string): Promise<ToneProfile> {
+export async function fetchAgencyTone(
+  url: string,
+  userId: string,
+  supabase: SupabaseClient
+): Promise<ToneProfile> {
   const html = await fetchHtml(url)
   const toneProfile = await extractToneWithClaude(html, url)
-  await upsertAgency(url, userId, toneProfile)
+  await upsertAgency(url, userId, toneProfile, supabase)
   return toneProfile
 }
 
@@ -17,7 +21,6 @@ async function fetchHtml(url: string): Promise<string> {
   })
   if (!res.ok) throw new Error(`Kunde inte hämta ${url}: ${res.status}`)
   const html = await res.text()
-  // Strip scripts/styles and truncate to keep prompt lean
   return html
     .replace(/<script[\s\S]*?<\/script>/gi, '')
     .replace(/<style[\s\S]*?<\/style>/gi, '')
@@ -65,7 +68,12 @@ ${text}`,
   }
 }
 
-async function upsertAgency(url: string, userId: string, toneProfile: ToneProfile) {
+async function upsertAgency(
+  url: string,
+  userId: string,
+  toneProfile: ToneProfile,
+  supabase: SupabaseClient
+) {
   const { error } = await supabase
     .from('agencies')
     .upsert(

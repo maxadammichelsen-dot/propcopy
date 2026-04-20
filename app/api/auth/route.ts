@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
 import { createSupabaseServerClient } from '@/lib/supabase'
 
 export async function POST(req: NextRequest) {
-  const cookieStore = cookies()
-  const supabase = createSupabaseServerClient(cookieStore)
+  const supabase = createSupabaseServerClient()
   const { action, email, password, agency_name, agency_url } = await req.json()
 
   if (action === 'login') {

@@ -1,6 +1,6 @@
 import { anthropic, MODEL } from './anthropic'
-import { supabase } from './supabase'
 import { Agency, Channel, GenerateResult, PropertyObject } from '@/types'
+import type { SupabaseClient } from '@supabase/supabase-js'
 
 const CHANNEL_PROMPTS: Record<Channel, (obj: PropertyObject, tone: string) => string> = {
   hemnet: (obj, tone) => `
@@ -88,7 +88,8 @@ TEXT:
 
 export async function generateAllChannels(
   object: PropertyObject,
-  agency: Agency
+  agency: Agency,
+  supabase: SupabaseClient
 ): Promise<GenerateResult[]> {
   const toneString = agency.tone_profile?.tags?.join(', ') ?? 'professionell, varm'
   const channels: Channel[] = ['hemnet', 'hemnet_raket', 'meta', 'mail', 'website']
@@ -97,7 +98,7 @@ export async function generateAllChannels(
     channels.map((channel) => generateChannel(channel, object, toneString))
   )
 
-  await saveToSupabase(object.id, results)
+  await saveToSupabase(object.id, results, supabase)
   return results
 }
 
@@ -118,7 +119,7 @@ async function generateChannel(
   return { channel, content, char_count: content.length }
 }
 
-async function saveToSupabase(objectId: string, results: GenerateResult[]) {
+async function saveToSupabase(objectId: string, results: GenerateResult[], supabase: SupabaseClient) {
   const rows = results.map((r) => ({
     object_id: objectId,
     channel: r.channel,

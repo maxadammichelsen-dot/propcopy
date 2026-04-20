@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
+import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { Agency, PropertyObject } from '@/types'
 import Topbar from '@/components/Topbar'
 import Sidebar from '@/components/Sidebar'
@@ -21,6 +21,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     async function bootstrap() {
+      const supabase = createSupabaseBrowserClient()
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
         router.push('/auth/login')

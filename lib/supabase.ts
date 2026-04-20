@@ -1,19 +1,19 @@
-import { createClient } from '@supabase/supabase-js'
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
-
-export function createSupabaseServerClient(cookieStore?: {
-  get: (name: string) => { value: string } | undefined
-}) {
-  const { createServerClient } = require('@supabase/ssr')
+export function createSupabaseServerClient() {
+  const cookieStore = cookies()
   return createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
-      get(name: string) {
-        return cookieStore?.get(name)?.value
+      get(name) {
+        return cookieStore.get(name)?.value
       },
+      // no-op: route handlers can't set cookies on the request
+      set() {},
+      remove() {},
     },
   })
 }
