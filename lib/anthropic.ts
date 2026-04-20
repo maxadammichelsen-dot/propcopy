@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 
-export const MODEL = 'claude-sonnet-4-20250514'
+export const MODEL = 'claude-sonnet-4-6'
 
 // Lazy singleton – defers instantiation until first use so missing
 // ANTHROPIC_API_KEY during build/module-load won't crash route registration

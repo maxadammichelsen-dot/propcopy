@@ -42,6 +42,7 @@ export async function POST(req: NextRequest) {
     const results = await generateAllChannels(object as PropertyObject, agency as Agency, supabase)
     return NextResponse.json({ results })
   } catch (err) {
+    console.error('[/api/generate]', err)
     const message = err instanceof Error ? err.message : 'Okänt fel'
     return NextResponse.json({ error: message }, { status: 500 })
   }
