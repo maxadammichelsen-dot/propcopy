@@ -75,3 +75,34 @@ export interface LocationArgument {
   category: LocationCategory
   source: string
 }
+
+export interface DashboardStats {
+  active_objects: number
+  avg_days_on_market: number
+  needs_action: number
+  texts_this_month: number
+}
+
+export interface ObjectHealth {
+  id: string
+  address: string
+  area: string
+  status: 'draft' | 'active' | 'sold'
+  health_score: number
+  days_on_market: number
+  issues: string[]
+}
+
+export interface ActionItem {
+  id: string
+  priority: 'high' | 'medium' | 'low'
+  icon: string
+  title: string
+  description: string
+  object_id?: string
+}
+
+export interface PerformancePoint {
+  month: string
+  texts_generated: number
+}

@@ -9,16 +9,17 @@ import Sidebar from '@/components/Sidebar'
 import ObjectDetail from '@/components/ObjectDetail'
 import NewObjectForm from '@/components/NewObjectForm'
 import ToneView from '@/components/ToneView'
+import DashboardHome from '@/components/DashboardHome'
 import BrandProvider from '@/components/BrandProvider'
 
-type View = 'detail' | 'new' | 'tone'
+type View = 'home' | 'detail' | 'new' | 'tone'
 
 export default function DashboardPage() {
   const router = useRouter()
   const [agency, setAgency] = useState<Agency | null>(null)
   const [objects, setObjects] = useState<PropertyObject[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [view, setView] = useState<View>('detail')
+  const [view, setView] = useState<View>('home')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -40,7 +41,6 @@ export default function DashboardPage() {
       const objectsData = await objectsRes.json()
       const objs: PropertyObject[] = objectsData.objects ?? []
       setObjects(objs)
-      if (objs.length > 0) setSelectedId(objs[0].id)
 
       setLoading(false)
     }
@@ -61,6 +61,11 @@ export default function DashboardPage() {
   function handleSelectObject(id: string) {
     setSelectedId(id)
     setView('detail')
+  }
+
+  function handleHome() {
+    setView('home')
+    setSelectedId(null)
   }
 
   function handleToneUpdated(profile: ToneProfile) {
@@ -94,10 +99,17 @@ export default function DashboardPage() {
           onSelect={handleSelectObject}
           onNewObject={handleNewObject}
           onTone={() => setView('tone')}
+          onHome={handleHome}
         />
 
         <main className="flex-1 overflow-hidden">
-          {view === 'new' ? (
+          {view === 'home' ? (
+            <DashboardHome
+              agency={agency}
+              onSelectObject={handleSelectObject}
+              onNewObject={handleNewObject}
+            />
+          ) : view === 'new' ? (
             <NewObjectForm
               onCreated={handleObjectCreated}
               onCancel={() => setView('detail')}
