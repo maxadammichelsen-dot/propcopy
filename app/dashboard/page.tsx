@@ -12,9 +12,10 @@ import ToneView from '@/components/ToneView'
 import DashboardHome from '@/components/DashboardHome'
 import CompetitionView from '@/components/CompetitionView'
 import ProspectsView from '@/components/ProspectsView'
+import FollowupView from '@/components/FollowupView'
 import BrandProvider from '@/components/BrandProvider'
 
-type View = 'home' | 'detail' | 'new' | 'tone' | 'competition' | 'prospects'
+type View = 'home' | 'detail' | 'new' | 'tone' | 'competition' | 'prospects' | 'followup'
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -80,6 +81,11 @@ export default function DashboardPage() {
     setSelectedId(null)
   }
 
+  function handleFollowup() {
+    setView('followup')
+    setSelectedId(null)
+  }
+
   function handleToneUpdated(profile: ToneProfile) {
     setAgency((prev) => prev ? { ...prev, tone_profile: profile } : prev)
   }
@@ -114,6 +120,7 @@ export default function DashboardPage() {
           onHome={handleHome}
           onCompetition={handleCompetition}
           onProspects={handleProspects}
+          onFollowup={handleFollowup}
         />
 
         <main className="flex-1 overflow-hidden">
@@ -128,6 +135,8 @@ export default function DashboardPage() {
             <CompetitionView />
           ) : view === 'prospects' ? (
             <ProspectsView agency={agency} />
+          ) : view === 'followup' ? (
+            <FollowupView />
           ) : view === 'new' ? (
             <NewObjectForm
               onCreated={handleObjectCreated}
