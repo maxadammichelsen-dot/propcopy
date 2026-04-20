@@ -106,3 +106,28 @@ export interface PerformancePoint {
   month: string
   texts_generated: number
 }
+
+export interface CompetitionAreaData {
+  area: string
+  refreshed_at: string
+  market_count: number
+  avg_price: number
+  avg_days_on_market: number
+  price_trend: 'rising' | 'stable' | 'falling'
+  our_objects: {
+    id: string
+    address: string
+    price: number
+    size: number
+    type: string
+  }[]
+  price_diff_pct: number | null
+  listings: {
+    address: string
+    object_type: string
+    price: number
+    days_on_market: number
+    competitor_agency: string
+  }[]
+  insight: string
+}

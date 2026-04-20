@@ -11,6 +11,7 @@ interface SidebarProps {
   onNewObject: () => void
   onTone: () => void
   onHome: () => void
+  onCompetition: () => void
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -34,15 +35,17 @@ export default function Sidebar({
   onNewObject,
   onTone,
   onHome,
+  onCompetition,
 }: SidebarProps) {
   const hasTone = !!agency?.tone_profile?.tags?.length
   const toneActive = currentView === 'tone'
   const homeActive = currentView === 'home'
+  const competitionActive = currentView === 'competition'
 
   return (
     <aside className="w-64 shrink-0 border-r border-[#2a2a2a] flex flex-col bg-[#111111]">
-      {/* Overview */}
-      <div className="p-3 border-b border-[#2a2a2a]">
+      {/* Quick nav */}
+      <div className="p-3 border-b border-[#2a2a2a] space-y-1">
         <button
           onClick={onHome}
           className={`w-full flex items-center gap-2.5 px-3 py-2 rounded transition-colors border ${
@@ -54,6 +57,19 @@ export default function Sidebar({
           <span className="text-sm leading-none">◈</span>
           <span className={`text-xs font-medium ${homeActive ? 'text-[#b8965a]' : 'text-[#888]'}`}>
             Översikt
+          </span>
+        </button>
+        <button
+          onClick={onCompetition}
+          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded transition-colors border ${
+            competitionActive
+              ? 'bg-[#b8965a0d] border-[#b8965a33]'
+              : 'border-transparent hover:bg-[#1a1a1a]'
+          }`}
+        >
+          <span className="text-sm leading-none">◎</span>
+          <span className={`text-xs font-medium ${competitionActive ? 'text-[#b8965a]' : 'text-[#888]'}`}>
+            Marknad
           </span>
         </button>
       </div>
