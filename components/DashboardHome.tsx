@@ -14,9 +14,10 @@ interface DashboardHomeProps {
   agency: Agency | null
   onSelectObject: (id: string) => void
   onNewObject: () => void
+  onProspects?: () => void
 }
 
-export default function DashboardHome({ agency, onSelectObject, onNewObject }: DashboardHomeProps) {
+export default function DashboardHome({ agency, onSelectObject, onNewObject, onProspects }: DashboardHomeProps) {
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -67,7 +68,7 @@ export default function DashboardHome({ agency, onSelectObject, onNewObject }: D
         </div>
         <div className="space-y-4">
           <ActionItems items={data.action_items} onSelectObject={onSelectObject} />
-          <ProspectsList />
+          <ProspectsList onProspects={onProspects} />
           <PerformanceChart data={data.performance} />
         </div>
       </div>
@@ -257,7 +258,7 @@ function ActionItems({
 
 // ─── Prospects placeholder ────────────────────────────────────
 
-function ProspectsList() {
+function ProspectsList({ onProspects }: { onProspects?: () => void }) {
   return (
     <div className="rounded-lg border border-[#2a2a2a] bg-[#1a1a1a] p-5">
       <p className="text-[10px] uppercase tracking-widest text-[#555] mb-3">Varma spekulanter</p>
@@ -274,9 +275,18 @@ function ProspectsList() {
           </div>
         ))}
       </div>
-      <p className="text-[10px] text-[#444] leading-relaxed">
+      <p className="text-[10px] text-[#444] leading-relaxed mb-2">
         Installera spårningspixeln för att se aktiva spekulanter i realtid.
       </p>
+      {onProspects && (
+        <button
+          onClick={onProspects}
+          className="text-[10px] transition-opacity hover:opacity-80"
+          style={{ color: 'var(--brand-primary, #b8965a)' }}
+        >
+          Konfigurera →
+        </button>
+      )}
     </div>
   )
 }
