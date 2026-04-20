@@ -8,12 +8,11 @@ export function createSupabaseServerClient() {
   const cookieStore = cookies()
   return createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
-      get(name) {
-        return cookieStore.get(name)?.value
+      getAll() {
+        return cookieStore.getAll()
       },
-      // no-op: route handlers can't set cookies on the request
-      set() {},
-      remove() {},
+      // Route handlers can't mutate request cookies – middleware handles rotation
+      setAll() {},
     },
   })
 }
