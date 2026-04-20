@@ -11,6 +11,7 @@ export interface Agency {
 export interface ToneProfile {
   tags: string[]
   agency_name: string
+  examples?: string[]
 }
 
 export interface BrandColors {
@@ -47,4 +48,21 @@ export interface GenerateResult {
   channel: Channel
   content: string
   char_count: number
+}
+
+export type LocationCategory =
+  | 'transport'
+  | 'nature'
+  | 'education'
+  | 'shopping'
+  | 'view'
+  | 'recreation'
+  | 'other'
+
+export interface LocationArgument {
+  id: string
+  icon: string
+  text: string
+  category: LocationCategory
+  source: string
 }

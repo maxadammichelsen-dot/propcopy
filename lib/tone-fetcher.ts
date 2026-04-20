@@ -33,7 +33,7 @@ async function fetchHtml(url: string): Promise<string> {
 async function extractToneWithClaude(text: string, url: string): Promise<ToneProfile> {
   const message = await anthropic.messages.create({
     model: MODEL,
-    max_tokens: 256,
+    max_tokens: 512,
     messages: [
       {
         role: 'user',
@@ -42,10 +42,13 @@ async function extractToneWithClaude(text: string, url: string): Promise<TonePro
 Returnera ENBART ett JSON-objekt med exakt detta format – inga kommentarer, inget annat:
 {
   "agency_name": "<byråns officiella namn>",
-  "tags": ["<ton1>", "<ton2>", "<ton3>", "<ton4>", "<ton5>", "<ton6>"]
+  "tags": ["<ton1>", "<ton2>", "<ton3>", "<ton4>", "<ton5>", "<ton6>"],
+  "examples": ["<faktisk fras/mening från texten som exemplifierar tonen>", "<citat 2>", "<citat 3>"]
 }
 
-Tonalitetsord ska vara svenska adjektiv som beskriver kommunikationsstilen (t.ex. "exklusiv", "personlig", "diskret", "professionell", "varm", "sofistikerad").
+Regler:
+- tags: 6 svenska adjektiv som beskriver kommunikationsstilen (t.ex. "exklusiv", "personlig", "diskret")
+- examples: 3 faktiska fraser eller meningar direkt från texten – specificera gärna materialval, platsbeskrivningar eller känsloord som byråns copywriters använder
 
 Hemsidetext:
 ${text}`,
@@ -65,6 +68,7 @@ ${text}`,
   return {
     agency_name: parsed.agency_name,
     tags: parsed.tags.slice(0, 6),
+    examples: Array.isArray(parsed.examples) ? parsed.examples.slice(0, 5) : [],
   }
 }
 

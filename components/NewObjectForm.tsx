@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
+import LocationCard from './LocationCard'
 
 interface NewObjectFormProps {
   onCreated: (object: any) => void
@@ -20,9 +21,24 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const detailsRef = useRef<HTMLTextAreaElement>(null)
 
   function update(field: string, value: string) {
     setForm((f) => ({ ...f, [field]: value }))
+  }
+
+  function appendDetail(text: string) {
+    setForm((f) => {
+      const current = f.details.trim()
+      const separator = current ? '\n' : ''
+      return { ...f, details: current + separator + text }
+    })
+    // Scroll textarea to bottom so user sees the new line
+    setTimeout(() => {
+      if (detailsRef.current) {
+        detailsRef.current.scrollTop = detailsRef.current.scrollHeight
+      }
+    }, 50)
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -58,6 +74,7 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
       </div>
 
       <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-5">
+        {/* Address + Area */}
         <div className="grid grid-cols-2 gap-4">
           <div className="col-span-2">
             <label className="block text-[10px] text-[#888] uppercase tracking-widest mb-1.5">
@@ -72,7 +89,7 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
             />
           </div>
 
-          <div>
+          <div className="col-span-2">
             <label className="block text-[10px] text-[#888] uppercase tracking-widest mb-1.5">
               Område
             </label>
@@ -81,10 +98,20 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
               value={form.area}
               onChange={(e) => update('area', e.target.value)}
               className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded px-4 py-2.5 text-sm text-[#f0ece4] focus:outline-none focus:border-[#b8965a] transition-colors"
-              placeholder="Linnéstaden"
+              placeholder="Linnéstaden, Göteborg"
             />
           </div>
+        </div>
 
+        {/* Location analysis – auto-triggers when address + area are filled */}
+        <LocationCard
+          address={form.address}
+          area={form.area}
+          onInclude={appendDetail}
+        />
+
+        {/* Type + Size + Price */}
+        <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-[10px] text-[#888] uppercase tracking-widest mb-1.5">
               Typ
@@ -115,7 +142,7 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
             />
           </div>
 
-          <div>
+          <div className="col-span-2">
             <label className="block text-[10px] text-[#888] uppercase tracking-widest mb-1.5">
               Utgångspris (kr)
             </label>
@@ -129,17 +156,19 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
           </div>
         </div>
 
+        {/* Details */}
         <div>
           <label className="block text-[10px] text-[#888] uppercase tracking-widest mb-1.5">
             Detaljer & säljargument
           </label>
           <textarea
+            ref={detailsRef}
             required
             rows={6}
             value={form.details}
             onChange={(e) => update('details', e.target.value)}
             className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded px-4 py-2.5 text-sm text-[#f0ece4] focus:outline-none focus:border-[#b8965a] transition-colors resize-none"
-            placeholder="3 rok, ljus och luftig, nyrenoverat kök 2023, parkett i alla rum, balkong mot innergård, parkeringsplats ingår, nära kollektivtrafik..."
+            placeholder="3 rok, ljus och luftig, nyrenoverat kök 2023, parkett i alla rum... Klicka på platsargumenten ovan för att lägga till dem här."
           />
         </div>
 

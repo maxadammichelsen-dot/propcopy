@@ -3,13 +3,14 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
-import { Agency, PropertyObject } from '@/types'
+import { Agency, PropertyObject, ToneProfile } from '@/types'
 import Topbar from '@/components/Topbar'
 import Sidebar from '@/components/Sidebar'
 import ObjectDetail from '@/components/ObjectDetail'
 import NewObjectForm from '@/components/NewObjectForm'
+import ToneView from '@/components/ToneView'
 
-type View = 'detail' | 'new'
+type View = 'detail' | 'new' | 'tone'
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -61,6 +62,10 @@ export default function DashboardPage() {
     setView('detail')
   }
 
+  function handleToneUpdated(profile: ToneProfile) {
+    setAgency((prev) => prev ? { ...prev, tone_profile: profile } : prev)
+  }
+
   const selectedObject = objects.find((o) => o.id === selectedId) ?? null
 
   if (loading) {
@@ -82,8 +87,11 @@ export default function DashboardPage() {
         <Sidebar
           objects={objects}
           selectedId={selectedId}
+          currentView={view}
+          agency={agency}
           onSelect={handleSelectObject}
           onNewObject={handleNewObject}
+          onTone={() => setView('tone')}
         />
 
         <main className="flex-1 overflow-hidden">
@@ -92,6 +100,8 @@ export default function DashboardPage() {
               onCreated={handleObjectCreated}
               onCancel={() => setView('detail')}
             />
+          ) : view === 'tone' && agency ? (
+            <ToneView agency={agency} onToneUpdated={handleToneUpdated} />
           ) : selectedObject ? (
             <ObjectDetail object={selectedObject} agency={agency} />
           ) : (
