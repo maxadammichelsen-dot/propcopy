@@ -16,7 +16,7 @@ export async function fetchAgencyTone(
 async function fetchHtml(url: string): Promise<string> {
   const normalized = url.startsWith('http') ? url : `https://${url}`
   const res = await fetch(normalized, {
-    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; PropCopy/1.0)' },
+    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Estatio/1.0)' },
     signal: AbortSignal.timeout(10000),
   })
   if (!res.ok) throw new Error(`Kunde inte hämta ${url}: ${res.status}`)

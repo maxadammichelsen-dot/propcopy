@@ -1,4 +1,4 @@
-# PropCopy
+# Estatio
 
 AI-driven white-label SaaS for Swedish real estate agencies. Paste a property address and get polished, channel-ready marketing copy in seconds — ads, social posts, email campaigns — tuned to the agency's own tone of voice.
 
@@ -38,7 +38,7 @@ AI-driven white-label SaaS for Swedish real estate agencies. Paste a property ad
 
 ```bash
 git clone <repo>
-cd propcopy
+cd estatio
 npm install
 ```
 

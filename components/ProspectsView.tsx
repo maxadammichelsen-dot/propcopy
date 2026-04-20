@@ -55,7 +55,7 @@ export default function ProspectsView({ agency }: ProspectsViewProps) {
       .catch(() => setLoading(false))
   }, [])
 
-  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://app.propcopy.se'
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://app.estatio.se'
   const snippet = agency?.id
     ? `<script src="${origin}/track.js" data-agency="${agency.id}" async></script>`
     : `<script src="${origin}/track.js" data-agency="DITT_AGENCY_ID" async></script>`

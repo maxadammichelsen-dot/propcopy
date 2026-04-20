@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "PropCopy – AI-driven objektmarknadsföring",
+  title: "Estatio – AI-driven objektmarknadsföring",
   description: "Generera professionella objekttexter för alla kanaler på sekunder.",
 };
 

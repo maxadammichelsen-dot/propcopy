@@ -31,7 +31,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-[#111111] px-4">
       <div className="w-full max-w-sm">
         <div className="mb-10 text-center">
-          <h1 className="font-serif text-4xl text-[#f0ece4] tracking-tight mb-2">PropCopy</h1>
+          <h1 className="font-serif text-4xl text-[#f0ece4] tracking-tight mb-2">Estatio</h1>
           <p className="text-sm text-[#888] font-light">Logga in på ditt konto</p>
         </div>
 

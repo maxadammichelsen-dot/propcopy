@@ -42,7 +42,7 @@ export async function GET() {
           priority: 'high' as ActionPriority,
           icon: '🏠',
           title: 'Skapa ditt första objekt',
-          description: 'Kom igång med PropCopy och generera dina första texter',
+          description: 'Kom igång med Estatio och generera dina första texter',
         }],
         performance: buildPerformanceData([]),
       })
@@ -131,7 +131,7 @@ function buildActionItems(health: ObjectHealthRow[], totalObjects: number) {
       priority: 'high' as ActionPriority,
       icon: '🏠',
       title: 'Skapa ditt första objekt',
-      description: 'Kom igång med PropCopy och generera dina första texter',
+      description: 'Kom igång med Estatio och generera dina första texter',
     }]
   }
 

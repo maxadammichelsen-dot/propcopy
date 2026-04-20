@@ -1,4 +1,4 @@
-/* PropCopy Tracking Pixel v1 – embed with:
+/* Estatio Tracking Pixel v1 – embed with:
    <script src="https://your-app.com/track.js" data-agency="AGENCY_ID" async></script>
    Optional: data-object="OBJECT_ID" for listing-level tracking */
 (function () {

@@ -45,7 +45,7 @@ export default function Topbar({ agency }: TopbarProps) {
           </div>
         ) : (
           <span className="font-serif text-xl text-[#f0ece4] tracking-tight">
-            {agency?.name ?? 'PropCopy'}
+            {agency?.name ?? 'Estatio'}
           </span>
         )}
 
@@ -68,7 +68,7 @@ export default function Topbar({ agency }: TopbarProps) {
         )}
       </div>
 
-      {/* Right: PropCopy wordmark + logout */}
+      {/* Right: Estatio wordmark + logout */}
       <div className="flex items-center gap-4">
         {/* Brand color swatch – subtle visual indicator */}
         {agency?.brand_colors?.primary && (
@@ -85,7 +85,7 @@ export default function Topbar({ agency }: TopbarProps) {
               ))}
           </div>
         )}
-        <span className="text-[10px] uppercase tracking-widest text-[#333]">PropCopy</span>
+        <span className="text-[10px] uppercase tracking-widest text-[#333]">Estatio</span>
         <button
           onClick={handleLogout}
           className="text-xs text-[#555] hover:text-[#f0ece4] transition-colors"

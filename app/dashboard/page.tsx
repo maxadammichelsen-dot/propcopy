@@ -163,7 +163,7 @@ export default function DashboardPage() {
 function EmptyState({ onNewObject }: { onNewObject: () => void }) {
   return (
     <div className="h-full flex flex-col items-center justify-center text-center px-8">
-      <h2 className="font-serif text-4xl text-[#f0ece4] mb-3">Välkommen till PropCopy</h2>
+      <h2 className="font-serif text-4xl text-[#f0ece4] mb-3">Välkommen till Estatio</h2>
       <p className="text-[#555] text-sm max-w-xs leading-relaxed mb-8">
         Skapa ditt första objekt och generera professionella marknadsföringstexter för alla kanaler på sekunder.
       </p>

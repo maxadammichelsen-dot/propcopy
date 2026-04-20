@@ -18,7 +18,7 @@ export async function scrapeAgency(url: string): Promise<ScrapedAgencyData> {
   let html = ''
   try {
     const res = await fetch(normalized, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; PropCopy/1.0)' },
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Estatio/1.0)' },
       signal: AbortSignal.timeout(12000),
     })
     if (res.ok) html = await res.text()
