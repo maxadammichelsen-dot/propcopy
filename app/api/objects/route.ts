@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase'
+import { createSupabaseAdminClient } from '@/lib/supabase-admin'
 
 export async function GET() {
   try {
@@ -51,21 +52,33 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Obligatoriska fält saknas' }, { status: 400 })
     }
 
-    // Get agency
-    const { data: agency, error: agencyError } = await supabase
+    // Get agency, or create one automatically if missing
+    let agencyId: string
+    const { data: existingAgency } = await supabase
       .from('agencies')
       .select('id')
       .eq('user_id', user.id)
       .single()
 
-    if (agencyError || !agency) {
-      return NextResponse.json({ error: 'Byrå saknas – skapa byrå först' }, { status: 400 })
+    if (existingAgency) {
+      agencyId = existingAgency.id
+    } else {
+      const admin = createSupabaseAdminClient()
+      const { data: newAgency, error: createErr } = await admin
+        .from('agencies')
+        .insert({ user_id: user.id, name: 'Min byrå', url: '' })
+        .select('id')
+        .single()
+      if (createErr || !newAgency) {
+        return NextResponse.json({ error: 'Kunde inte skapa byrå' }, { status: 500 })
+      }
+      agencyId = newAgency.id
     }
 
     const { data: object, error } = await supabase
       .from('objects')
       .insert({
-        agency_id: agency.id,
+        agency_id: agencyId,
         address,
         area,
         type,

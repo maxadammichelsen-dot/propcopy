@@ -26,24 +26,30 @@ export default function RegisterPage() {
     setError('')
 
     const supabase = createSupabaseBrowserClient()
+
+    // Step 1: client-side signUp so session cookies are set correctly
     const { data, error: signUpError } = await supabase.auth.signUp({
       email: form.email,
       password: form.password,
     })
-
     if (signUpError) {
       setError(signUpError.message)
       setLoading(false)
       return
     }
 
+    // Step 2: create agency server-side via admin client (bypasses RLS,
+    // works even when email confirmation is required and session is null)
     if (data.user) {
-      await supabase.from('agencies').insert({
-        user_id: data.user.id,
-        name: form.agency_name,
-        url: form.agency_url,
-        tone_profile: null,
-        brand_colors: null,
+      await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'setup_agency',
+          user_id: data.user.id,
+          agency_name: form.agency_name,
+          agency_url: form.agency_url,
+        }),
       })
     }
 
