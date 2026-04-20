@@ -4,8 +4,17 @@ export interface Agency {
   url: string
   tone_profile: ToneProfile | null
   brand_colors: BrandColors | null
+  logo_url: string | null
+  scraped_data: ScrapedData | null
   created_at: string
   user_id: string
+}
+
+export interface ScrapedData {
+  phone: string | null
+  og_description: string | null
+  agents: string[]
+  scraped_at: string
 }
 
 export interface ToneProfile {

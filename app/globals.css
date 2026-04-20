@@ -8,6 +8,13 @@
   --background: #111111;
   --foreground: #f0ece4;
   --gold: #b8965a;
+
+  /* Brand variables – overridden at runtime by BrandProvider */
+  --brand-primary: #b8965a;
+  --brand-primary-light: #d4b07a;
+  --brand-primary-dim: #b8965a33;
+  --brand-secondary: #8a6f3e;
+  --brand-accent: #b8965a;
 }
 
 @layer base {

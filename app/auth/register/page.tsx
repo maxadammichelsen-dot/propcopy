@@ -5,6 +5,13 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 
+const LOADING_STEPS = [
+  'Skapar konto…',
+  'Förbereder din byrå…',
+  'Hämtar varumärkesdata…',
+  'Nästan klart…',
+]
+
 export default function RegisterPage() {
   const router = useRouter()
   const [form, setForm] = useState({
@@ -15,6 +22,7 @@ export default function RegisterPage() {
   })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [loadingStep, setLoadingStep] = useState(0)
 
   function update(field: string, value: string) {
     setForm((f) => ({ ...f, [field]: value }))
@@ -24,10 +32,11 @@ export default function RegisterPage() {
     e.preventDefault()
     setLoading(true)
     setError('')
+    setLoadingStep(0)
 
     const supabase = createSupabaseBrowserClient()
 
-    // Step 1: client-side signUp so session cookies are set correctly
+    // Step 1 – create auth user (session cookies set via createBrowserClient)
     const { data, error: signUpError } = await supabase.auth.signUp({
       email: form.email,
       password: form.password,
@@ -38,9 +47,11 @@ export default function RegisterPage() {
       return
     }
 
-    // Step 2: create agency server-side via admin client (bypasses RLS,
-    // works even when email confirmation is required and session is null)
+    // Steps 2–3 – create agency + auto-scrape branding server-side
+    // (admin client bypasses RLS, works regardless of email confirmation)
+    setLoadingStep(1)
     if (data.user) {
+      setLoadingStep(2)
       await fetch('/api/auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -53,6 +64,7 @@ export default function RegisterPage() {
       })
     }
 
+    setLoadingStep(3)
     router.push('/dashboard')
   }
 
@@ -64,80 +76,109 @@ export default function RegisterPage() {
           <p className="text-sm text-[#888] font-light">Skapa ett konto för din byrå</p>
         </div>
 
-        <form onSubmit={handleRegister} className="space-y-4">
-          <div>
-            <label className="block text-xs text-[#888] uppercase tracking-widest mb-1.5">
-              Byråns namn
-            </label>
-            <input
-              type="text"
-              required
-              value={form.agency_name}
-              onChange={(e) => update('agency_name', e.target.value)}
-              className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded px-4 py-3 text-sm text-[#f0ece4] focus:outline-none focus:border-[#b8965a] transition-colors"
-              placeholder="Svärdegård Kullbo & Co"
-            />
+        {loading ? (
+          <div className="flex flex-col items-center gap-6 py-8">
+            <div className="w-8 h-8 border-2 border-[#2a2a2a] border-t-[var(--brand-accent,#b8965a)] rounded-full animate-spin" />
+            <div className="space-y-2 w-full">
+              {LOADING_STEPS.map((step, i) => (
+                <div
+                  key={step}
+                  className="flex items-center gap-3 transition-opacity duration-300"
+                  style={{ opacity: i <= loadingStep ? 1 : 0.2 }}
+                >
+                  <div className="w-4 h-4 flex items-center justify-center shrink-0">
+                    {i < loadingStep ? (
+                      <span className="text-[var(--brand-accent,#b8965a)] text-sm">✓</span>
+                    ) : i === loadingStep ? (
+                      <div className="w-2.5 h-2.5 border border-[var(--brand-accent,#b8965a)] border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <div className="w-1.5 h-1.5 rounded-full bg-[#333]" />
+                    )}
+                  </div>
+                  <span className={`text-sm ${i < loadingStep ? 'text-[#555]' : i === loadingStep ? 'text-[#f0ece4]' : 'text-[#333]'}`}>
+                    {step}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
+        ) : (
+          <form onSubmit={handleRegister} className="space-y-4">
+            <div>
+              <label className="block text-xs text-[#888] uppercase tracking-widest mb-1.5">
+                Byråns namn
+              </label>
+              <input
+                type="text"
+                required
+                value={form.agency_name}
+                onChange={(e) => update('agency_name', e.target.value)}
+                className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded px-4 py-3 text-sm text-[#f0ece4] focus:outline-none focus:border-[var(--brand-accent,#b8965a)] transition-colors"
+                placeholder="Svärdegård Kullbo & Co"
+              />
+            </div>
 
-          <div>
-            <label className="block text-xs text-[#888] uppercase tracking-widest mb-1.5">
-              Byråns hemsida
-            </label>
-            <input
-              type="text"
-              value={form.agency_url}
-              onChange={(e) => update('agency_url', e.target.value)}
-              className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded px-4 py-3 text-sm text-[#f0ece4] focus:outline-none focus:border-[#b8965a] transition-colors"
-              placeholder="svardegardkullbo.se"
-            />
-          </div>
+            <div>
+              <label className="block text-xs text-[#888] uppercase tracking-widest mb-1.5">
+                Byråns hemsida
+              </label>
+              <input
+                type="text"
+                value={form.agency_url}
+                onChange={(e) => update('agency_url', e.target.value)}
+                className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded px-4 py-3 text-sm text-[#f0ece4] focus:outline-none focus:border-[var(--brand-accent,#b8965a)] transition-colors"
+                placeholder="svardegardkullbo.se"
+              />
+            </div>
 
-          <div>
-            <label className="block text-xs text-[#888] uppercase tracking-widest mb-1.5">
-              E-post
-            </label>
-            <input
-              type="email"
-              required
-              value={form.email}
-              onChange={(e) => update('email', e.target.value)}
-              className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded px-4 py-3 text-sm text-[#f0ece4] focus:outline-none focus:border-[#b8965a] transition-colors"
-              placeholder="namn@byrå.se"
-            />
-          </div>
+            <div>
+              <label className="block text-xs text-[#888] uppercase tracking-widest mb-1.5">
+                E-post
+              </label>
+              <input
+                type="email"
+                required
+                value={form.email}
+                onChange={(e) => update('email', e.target.value)}
+                className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded px-4 py-3 text-sm text-[#f0ece4] focus:outline-none focus:border-[var(--brand-accent,#b8965a)] transition-colors"
+                placeholder="namn@byrå.se"
+              />
+            </div>
 
-          <div>
-            <label className="block text-xs text-[#888] uppercase tracking-widest mb-1.5">
-              Lösenord
-            </label>
-            <input
-              type="password"
-              required
-              minLength={8}
-              value={form.password}
-              onChange={(e) => update('password', e.target.value)}
-              className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded px-4 py-3 text-sm text-[#f0ece4] focus:outline-none focus:border-[#b8965a] transition-colors"
-              placeholder="Minst 8 tecken"
-            />
-          </div>
+            <div>
+              <label className="block text-xs text-[#888] uppercase tracking-widest mb-1.5">
+                Lösenord
+              </label>
+              <input
+                type="password"
+                required
+                minLength={8}
+                value={form.password}
+                onChange={(e) => update('password', e.target.value)}
+                className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded px-4 py-3 text-sm text-[#f0ece4] focus:outline-none focus:border-[var(--brand-accent,#b8965a)] transition-colors"
+                placeholder="Minst 8 tecken"
+              />
+            </div>
 
-          {error && <p className="text-red-400 text-sm">{error}</p>}
+            {error && <p className="text-red-400 text-sm">{error}</p>}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-[#b8965a] hover:bg-[#d4b07a] text-[#111111] font-medium py-3 rounded text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? 'Skapar konto…' : 'Skapa konto'}
-          </button>
-        </form>
+            <button
+              type="submit"
+              className="w-full bg-[var(--brand-accent,#b8965a)] hover:opacity-90 text-[#111111] font-medium py-3 rounded text-sm transition-opacity"
+            >
+              Skapa konto
+            </button>
+          </form>
+        )}
 
-        <p className="mt-6 text-center text-sm text-[#555]">
-          Har du redan konto?{' '}
-          <Link href="/auth/login" className="text-[#b8965a] hover:text-[#d4b07a] transition-colors">
-            Logga in
-          </Link>
-        </p>
+        {!loading && (
+          <p className="mt-6 text-center text-sm text-[#555]">
+            Har du redan konto?{' '}
+            <Link href="/auth/login" className="text-[var(--brand-accent,#b8965a)] hover:opacity-80 transition-opacity">
+              Logga in
+            </Link>
+          </p>
+        )}
       </div>
     </div>
   )

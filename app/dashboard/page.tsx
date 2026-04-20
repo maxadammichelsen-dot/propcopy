@@ -9,6 +9,7 @@ import Sidebar from '@/components/Sidebar'
 import ObjectDetail from '@/components/ObjectDetail'
 import NewObjectForm from '@/components/NewObjectForm'
 import ToneView from '@/components/ToneView'
+import BrandProvider from '@/components/BrandProvider'
 
 type View = 'detail' | 'new' | 'tone'
 
@@ -80,6 +81,7 @@ export default function DashboardPage() {
   }
 
   return (
+    <BrandProvider agency={agency}>
     <div className="min-h-screen bg-[#111111] flex flex-col">
       <Topbar agency={agency} />
 
@@ -101,7 +103,11 @@ export default function DashboardPage() {
               onCancel={() => setView('detail')}
             />
           ) : view === 'tone' && agency ? (
-            <ToneView agency={agency} onToneUpdated={handleToneUpdated} />
+            <ToneView
+              agency={agency}
+              onToneUpdated={handleToneUpdated}
+              onAgencyUpdated={setAgency}
+            />
           ) : selectedObject ? (
             <ObjectDetail object={selectedObject} agency={agency} />
           ) : (
@@ -110,6 +116,7 @@ export default function DashboardPage() {
         </main>
       </div>
     </div>
+    </BrandProvider>
   )
 }
 
