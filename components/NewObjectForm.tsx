@@ -33,7 +33,6 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
       const separator = current ? '\n' : ''
       return { ...f, details: current + separator + text }
     })
-    // Scroll textarea to bottom so user sees the new line
     setTimeout(() => {
       if (detailsRef.current) {
         detailsRef.current.scrollTop = detailsRef.current.scrollHeight
@@ -67,130 +66,144 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
   }
 
   return (
-    <div className="h-full flex flex-col">
-      <div className="p-6 border-b border-[#2a2a2a]">
-        <h2 className="font-serif text-2xl text-[#f0ece4]">Nytt objekt</h2>
-        <p className="text-xs text-[#555] mt-1">Fyll i objektets uppgifter</p>
+    <div className="h-full overflow-y-auto">
+
+      {/* Header */}
+      <div className="border-b border-line px-8 py-6">
+        <h2 className="font-display text-[36px] leading-[0.95] tracking-[-0.02em] text-ink">
+          Nytt objekt.
+        </h2>
+        <p className="font-data text-[11px] text-mute tracking-snug mt-2">
+          Fyll i uppgifterna — texter genereras automatiskt efter sparandet
+        </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-5">
-        {/* Address + Area */}
-        <div className="grid grid-cols-2 gap-4">
-          <div className="col-span-2">
-            <label className="block text-[10px] text-[#888] uppercase tracking-widest mb-1.5">
-              Adress
-            </label>
+      {/* Two-col: form left, location note right */}
+      <form
+        onSubmit={handleSubmit}
+        className="grid grid-cols-1 lg:grid-cols-[1fr_300px] divide-y lg:divide-y-0 lg:divide-x divide-line"
+      >
+        {/* Left: form fields */}
+        <div className="px-8 py-6 space-y-6">
+
+          <FormField label="Adress">
             <input
               required
               value={form.address}
               onChange={(e) => update('address', e.target.value)}
-              className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded px-4 py-2.5 text-sm text-[#f0ece4] focus:outline-none focus:border-[#b8965a] transition-colors"
+              className="w-full bg-transparent border-b border-line focus:border-ink outline-none py-2 text-[15px] text-ink placeholder:text-mute-2 transition-colors"
               placeholder="Storgatan 12, 3 tr"
             />
-          </div>
+          </FormField>
 
-          <div className="col-span-2">
-            <label className="block text-[10px] text-[#888] uppercase tracking-widest mb-1.5">
-              Område
-            </label>
+          <FormField label="Område">
             <input
               required
               value={form.area}
               onChange={(e) => update('area', e.target.value)}
-              className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded px-4 py-2.5 text-sm text-[#f0ece4] focus:outline-none focus:border-[#b8965a] transition-colors"
+              className="w-full bg-transparent border-b border-line focus:border-ink outline-none py-2 text-[15px] text-ink placeholder:text-mute-2 transition-colors"
               placeholder="Linnéstaden, Göteborg"
             />
-          </div>
-        </div>
+          </FormField>
 
-        {/* Location analysis – auto-triggers when address + area are filled */}
-        <LocationCard
-          address={form.address}
-          area={form.area}
-          onInclude={appendDetail}
-        />
+          <div className="grid grid-cols-2 gap-6">
+            <FormField label="Typ">
+              <select
+                value={form.type}
+                onChange={(e) => update('type', e.target.value)}
+                className="w-full bg-transparent border-b border-line focus:border-ink outline-none py-2 text-[15px] text-ink transition-colors appearance-none cursor-pointer"
+              >
+                {PROPERTY_TYPES.map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+            </FormField>
 
-        {/* Type + Size + Price */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-[10px] text-[#888] uppercase tracking-widest mb-1.5">
-              Typ
-            </label>
-            <select
-              value={form.type}
-              onChange={(e) => update('type', e.target.value)}
-              className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded px-4 py-2.5 text-sm text-[#f0ece4] focus:outline-none focus:border-[#b8965a] transition-colors"
-            >
-              {PROPERTY_TYPES.map((t) => (
-                <option key={t} value={t}>{t}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-[10px] text-[#888] uppercase tracking-widest mb-1.5">
-              Storlek (kvm)
-            </label>
-            <input
-              required
-              type="number"
-              min="1"
-              value={form.size}
-              onChange={(e) => update('size', e.target.value)}
-              className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded px-4 py-2.5 text-sm text-[#f0ece4] focus:outline-none focus:border-[#b8965a] transition-colors"
-              placeholder="85"
-            />
+            <FormField label="Storlek (kvm)">
+              <input
+                required
+                type="number"
+                min="1"
+                value={form.size}
+                onChange={(e) => update('size', e.target.value)}
+                className="w-full bg-transparent border-b border-line focus:border-ink outline-none py-2 text-[15px] text-ink placeholder:text-mute-2 transition-colors"
+                placeholder="85"
+              />
+            </FormField>
           </div>
 
-          <div className="col-span-2">
-            <label className="block text-[10px] text-[#888] uppercase tracking-widest mb-1.5">
-              Utgångspris (kr)
-            </label>
+          <FormField label="Utgångspris (kr)">
             <input
               required
               value={form.price}
               onChange={(e) => update('price', e.target.value)}
-              className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded px-4 py-2.5 text-sm text-[#f0ece4] focus:outline-none focus:border-[#b8965a] transition-colors"
+              className="w-full bg-transparent border-b border-line focus:border-ink outline-none py-2 text-[15px] text-ink placeholder:text-mute-2 transition-colors"
               placeholder="4 950 000"
             />
+          </FormField>
+
+          <FormField label="Detaljer & säljargument">
+            <textarea
+              ref={detailsRef}
+              required
+              rows={7}
+              value={form.details}
+              onChange={(e) => update('details', e.target.value)}
+              className="w-full bg-transparent border border-line rounded-lg focus:border-ink outline-none px-3 py-3 text-[14px] text-ink placeholder:text-mute-2 transition-colors resize-none mt-1"
+              placeholder={"3 rok, ljus och luftig, nyrenoverat kök 2023, parkett i alla rum...\n\nKlicka på platsargumenten till höger för att lägga till dem."}
+            />
+          </FormField>
+
+          {error && (
+            <p className="font-data text-[11px] text-accent tracking-snug">{error}</p>
+          )}
+
+          <div className="flex items-center gap-4 pt-2">
+            <button
+              type="submit"
+              disabled={loading}
+              className="bg-ink text-bg px-6 py-2.5 rounded-full text-[13px] font-medium hover:opacity-80 transition-opacity disabled:opacity-40"
+            >
+              {loading ? 'Sparar…' : 'Spara objekt'}
+            </button>
+            <button
+              type="button"
+              onClick={onCancel}
+              className="font-data text-[11px] text-mute hover:text-ink transition-colors tracking-snug"
+            >
+              Avbryt
+            </button>
           </div>
         </div>
 
-        {/* Details */}
-        <div>
-          <label className="block text-[10px] text-[#888] uppercase tracking-widest mb-1.5">
-            Detaljer & säljargument
-          </label>
-          <textarea
-            ref={detailsRef}
-            required
-            rows={6}
-            value={form.details}
-            onChange={(e) => update('details', e.target.value)}
-            className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded px-4 py-2.5 text-sm text-[#f0ece4] focus:outline-none focus:border-[#b8965a] transition-colors resize-none"
-            placeholder="3 rok, ljus och luftig, nyrenoverat kök 2023, parkett i alla rum... Klicka på platsargumenten ovan för att lägga till dem här."
+        {/* Right: location analysis */}
+        <div className="px-6 py-6">
+          <p className="font-data text-[10px] text-mute tracking-[0.02em] uppercase mb-4">
+            Platsanalys
+          </p>
+          <LocationCard
+            address={form.address}
+            area={form.area}
+            onInclude={appendDetail}
           />
-        </div>
-
-        {error && <p className="text-red-400 text-sm">{error}</p>}
-
-        <div className="flex gap-3 pt-2">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="flex-1 py-2.5 border border-[#2a2a2a] rounded text-sm text-[#555] hover:text-[#f0ece4] hover:border-[#444] transition-colors"
-          >
-            Avbryt
-          </button>
-          <button
-            type="submit"
-            disabled={loading}
-            className="flex-1 py-2.5 bg-[#b8965a] hover:bg-[#d4b07a] text-[#111111] rounded text-sm font-medium transition-colors disabled:opacity-50"
-          >
-            {loading ? 'Sparar…' : 'Spara objekt'}
-          </button>
+          {!form.address && !form.area && (
+            <p className="font-data text-[10px] text-mute-2 tracking-snug leading-relaxed">
+              Fyll i adress och område — platsen analyseras automatiskt.
+            </p>
+          )}
         </div>
       </form>
+    </div>
+  )
+}
+
+function FormField({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="font-data text-[10px] text-mute tracking-[0.02em] uppercase block mb-1">
+        {label}
+      </label>
+      {children}
     </div>
   )
 }

@@ -104,47 +104,54 @@ export default function LocationCard({ address, area, onInclude }: LocationCardP
   if (status === 'idle') return null
 
   return (
-    <div className="rounded-lg border border-[#2a2a2a] bg-[#161616] overflow-hidden">
+    <div className="border border-line rounded-lg overflow-hidden bg-bg">
+
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-[#2a2a2a]">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-line bg-tint">
         <div className="flex items-center gap-2">
-          <span className="text-xs text-[#b8965a]">◆</span>
-          <p className="text-xs font-medium text-[#f0ece4]">Platsanalys</p>
-          <span className="text-[10px] text-[#444]">·</span>
-          <span className="text-[10px] text-[#555]">{area}</span>
+          <span className="text-accent text-[11px]">◆</span>
+          <p className="font-data text-[11px] text-ink font-medium">Platsanalys</p>
+          {area && (
+            <>
+              <span className="text-mute-2 text-[10px]">·</span>
+              <span className="font-data text-[10px] text-mute truncate max-w-[80px]">{area}</span>
+            </>
+          )}
         </div>
         {status === 'running' && (
-          <div className="w-3 h-3 border border-[#2a2a2a] border-t-[#b8965a] rounded-full animate-spin" />
+          <div className="w-3 h-3 border border-line border-t-accent rounded-full animate-spin shrink-0" />
         )}
         {status === 'done' && (
-          <span className="text-[10px] text-[#555]">
-            {included.size} av {args.length} inkluderade
+          <span className="font-data text-[10px] text-mute shrink-0">
+            {included.size}/{args.length}
           </span>
         )}
       </div>
 
       {/* Steps */}
       {(status === 'running' || status === 'done') && (
-        <div className="px-4 py-3 flex gap-4 flex-wrap">
+        <div className="px-4 py-3 space-y-1.5">
           {STEPS.map((stepFn, i) => {
             const done = completedSteps > i
             const active = completedSteps === i && status === 'running'
             return (
               <div
                 key={i}
-                className="flex items-center gap-1.5 transition-opacity duration-300"
+                className="flex items-center gap-2 transition-opacity duration-300"
                 style={{ opacity: completedSteps >= i ? 1 : 0.25 }}
               >
-                <div className="w-3 h-3 flex items-center justify-center">
+                <div className="w-3 h-3 flex items-center justify-center shrink-0">
                   {done ? (
-                    <span className="text-[#b8965a] text-[10px]">✓</span>
+                    <span className="text-accent text-[10px]">✓</span>
                   ) : active ? (
-                    <div className="w-2.5 h-2.5 border border-[#b8965a] border-t-transparent rounded-full animate-spin" />
+                    <div className="w-2.5 h-2.5 border border-line border-t-accent rounded-full animate-spin" />
                   ) : (
-                    <div className="w-1 h-1 rounded-full bg-[#333]" />
+                    <div className="w-1 h-1 rounded-full bg-line-2" />
                   )}
                 </div>
-                <span className={`text-[10px] ${done ? 'text-[#555]' : active ? 'text-[#ccc]' : 'text-[#333]'}`}>
+                <span className={`font-data text-[10px] tracking-snug ${
+                  done ? 'text-mute-2' : active ? 'text-ink-2' : 'text-mute-2'
+                }`}>
                   {stepFn(area)}
                 </span>
               </div>
@@ -153,16 +160,15 @@ export default function LocationCard({ address, area, onInclude }: LocationCardP
         </div>
       )}
 
-      {/* Error */}
       {status === 'error' && (
-        <p className="px-4 py-3 text-xs text-red-400">{error}</p>
+        <p className="px-4 py-3 font-data text-[11px] text-accent">{error}</p>
       )}
 
       {/* Arguments */}
       {status === 'done' && args.length > 0 && (
-        <div className="border-t border-[#1e1e1e]">
-          <p className="px-4 pt-3 pb-2 text-[10px] uppercase tracking-widest text-[#444]">
-            Föreslagna säljargument – klicka för att inkludera i detaljer
+        <div className="border-t border-line">
+          <p className="px-4 pt-3 pb-2 font-data text-[10px] uppercase tracking-[0.02em] text-mute">
+            Klicka för att inkludera
           </p>
           <div className="px-3 pb-3 space-y-1">
             {args.map((arg, i) => {
@@ -171,39 +177,31 @@ export default function LocationCard({ address, area, onInclude }: LocationCardP
                 <button
                   key={arg.id}
                   onClick={() => handleToggle(arg)}
-                  className="w-full flex items-start gap-3 px-3 py-2.5 rounded-md text-left transition-all duration-200 group"
+                  className="w-full flex items-start gap-3 px-3 py-2.5 rounded-md text-left transition-all duration-200 hover:bg-tint"
                   style={{
                     opacity: i < visibleArgs ? 1 : 0,
                     transform: i < visibleArgs ? 'translateY(0)' : 'translateY(6px)',
-                    transition: `opacity 0.3s ease ${i * 0.05}s, transform 0.3s ease ${i * 0.05}s, background-color 0.15s`,
-                    backgroundColor: isIncluded ? '#b8965a0f' : 'transparent',
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!isIncluded) e.currentTarget.style.backgroundColor = '#ffffff08'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = isIncluded ? '#b8965a0f' : 'transparent'
+                    transition: `opacity 0.3s ease ${i * 0.05}s, transform 0.3s ease ${i * 0.05}s`,
+                    backgroundColor: isIncluded ? 'var(--accent-tint)' : undefined,
                   }}
                 >
                   <span className="text-base leading-none mt-0.5 shrink-0">{arg.icon}</span>
                   <span
-                    className={`text-xs leading-relaxed flex-1 transition-colors ${
-                      isIncluded ? 'text-[#d4b07a]' : 'text-[#888] group-hover:text-[#bbb]'
+                    className={`font-data text-[11px] leading-relaxed flex-1 tracking-snug transition-colors ${
+                      isIncluded ? 'text-ink' : 'text-mute'
                     }`}
                   >
                     {arg.text}
                   </span>
                   <div className="shrink-0 flex items-center gap-2 mt-0.5">
-                    <span className="text-[9px] text-[#333]">{arg.source}</span>
+                    <span className="font-data text-[9px] text-mute-2">{arg.source}</span>
                     <div
                       className={`w-4 h-4 rounded-full border flex items-center justify-center transition-all ${
-                        isIncluded
-                          ? 'border-[#b8965a] bg-[#b8965a]'
-                          : 'border-[#333] bg-transparent'
+                        isIncluded ? 'border-accent bg-accent' : 'border-line-2'
                       }`}
                     >
                       {isIncluded && (
-                        <span className="text-[8px] text-[#111] font-bold leading-none">✓</span>
+                        <span className="text-[8px] text-bg font-bold leading-none">✓</span>
                       )}
                     </div>
                   </div>
