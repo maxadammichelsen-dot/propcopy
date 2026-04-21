@@ -16,12 +16,6 @@ interface SidebarProps {
   onFollowup: () => void
 }
 
-const STATUS_COLORS: Record<string, string> = {
-  draft:  'var(--mute-2)',
-  active: 'var(--ink)',
-  sold:   'var(--mute-2)',
-}
-
 const STATUS_DOT: Record<string, string> = {
   draft:  'var(--line-2)',
   active: 'var(--accent)',
@@ -38,35 +32,66 @@ export default function Sidebar({
   onTone,
 }: SidebarProps) {
   return (
-    <aside className="w-56 shrink-0 border-r border-line flex flex-col bg-tint">
-
+    <aside
+      style={{
+        width: '220px',
+        flexShrink: 0,
+        borderRight: '1px solid var(--line)',
+        display: 'flex',
+        flexDirection: 'column',
+        background: 'var(--bg)',
+        overflowY: 'hidden',
+      }}
+    >
       {/* New object */}
-      <div className="p-4 border-b border-line">
+      <div style={{ padding: '10px 10px 8px', borderBottom: '1px solid var(--line)' }}>
         <button
           onClick={onNewObject}
-          className="w-full flex items-center justify-between px-3 py-2 rounded-full bg-ink text-bg text-[12px] font-medium hover:opacity-80 transition-opacity"
+          style={{
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '7px 12px',
+            borderRadius: '6px',
+            background: 'var(--ink)',
+            color: '#fff',
+            fontSize: '12.5px',
+            fontWeight: 500,
+            border: 'none',
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+            letterSpacing: '-0.005em',
+          }}
         >
           <span>Nytt objekt</span>
-          <span className="font-data text-[14px] leading-none">+</span>
+          <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '14px', lineHeight: 1 }}>+</span>
         </button>
       </div>
 
       {/* Column headers */}
-      <div className="px-4 py-2 border-b border-line flex justify-between">
-        <span className="font-data text-[10px] text-mute uppercase tracking-[0.02em]">Adress</span>
-        <span className="font-data text-[10px] text-mute uppercase tracking-[0.02em]">Dagar</span>
+      <div
+        style={{
+          padding: '6px 12px',
+          borderBottom: '1px solid var(--line)',
+          display: 'flex',
+          justifyContent: 'space-between',
+        }}
+      >
+        <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '10px', color: 'var(--mute)', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Adress</span>
+        <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '10px', color: 'var(--mute)', textTransform: 'uppercase', letterSpacing: '0.02em' }}>d</span>
       </div>
 
       {/* Object list */}
-      <div className="flex-1 overflow-y-auto">
+      <div style={{ flex: 1, overflowY: 'auto' }}>
         {objects.length === 0 ? (
-          <div className="px-4 py-8 text-center">
-            <p className="font-data text-[11px] text-mute-2 tracking-snug leading-relaxed">
+          <div style={{ padding: '24px 12px', textAlign: 'center' }}>
+            <p style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11px', color: 'var(--mute-2)', lineHeight: 1.5 }}>
               Inga objekt ännu
             </p>
           </div>
         ) : (
-          <ul>
+          <ul style={{ listStyle: 'none' }}>
             {objects.map((obj, i) => {
               const isActive = selectedId === obj.id && currentView === 'detail'
               const daysOnMarket = Math.floor(
@@ -76,42 +101,81 @@ export default function Sidebar({
                 <li key={obj.id}>
                   <button
                     onClick={() => onSelect(obj.id)}
-                    className={[
-                      'w-full text-left px-4 py-3 flex items-start gap-2.5',
-                      'border-b border-line transition-colors border-l-2',
-                      isActive
-                        ? 'bg-bg border-l-accent'
-                        : 'hover:bg-bg/60 border-l-transparent',
-                    ].join(' ')}
+                    style={{
+                      width: '100%',
+                      textAlign: 'left',
+                      padding: '8px 12px',
+                      display: 'grid',
+                      gridTemplateColumns: 'auto 1fr auto',
+                      gap: '8px',
+                      alignItems: 'center',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontSize: '13px',
+                      color: isActive ? 'var(--ink)' : 'var(--ink-2)',
+                      fontWeight: isActive ? 500 : 400,
+                      background: isActive ? 'var(--tint)' : 'none',
+                      border: 'none',
+                      boxShadow: 'inset 0 -1px 0 var(--line)',
+                      transition: 'background 0.1s',
+                      fontFamily: 'inherit',
+                    }}
+                    onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'var(--tint)' }}
+                    onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'none' }}
                   >
-                    {/* Row number */}
-                    <span className="font-data text-[10px] text-mute-2 pt-[3px] tabular-nums w-5 shrink-0">
-                      {String(i + 1).padStart(2, '0')}
-                    </span>
+                    {/* Status dot */}
+                    <span
+                      style={{
+                        width: '5px',
+                        height: '5px',
+                        borderRadius: '50%',
+                        background: STATUS_DOT[obj.status],
+                        flexShrink: 0,
+                      }}
+                    />
 
-                    {/* Address + area */}
-                    <div className="flex-1 min-w-0">
+                    {/* Address */}
+                    <div style={{ minWidth: 0 }}>
                       <p
-                        className="text-[13px] font-medium truncate leading-snug"
-                        style={{ color: STATUS_COLORS[obj.status] }}
+                        style={{
+                          fontSize: '13px',
+                          fontWeight: isActive ? 500 : 400,
+                          color: isActive ? 'var(--ink)' : 'var(--ink-2)',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          lineHeight: 1.3,
+                        }}
                       >
                         {obj.address}
                       </p>
-                      <p className="font-data text-[10px] text-mute truncate mt-0.5 tracking-snug">
+                      <p
+                        style={{
+                          fontFamily: "'Geist Mono', monospace",
+                          fontSize: '10px',
+                          color: 'var(--mute)',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          marginTop: '1px',
+                        }}
+                      >
                         {obj.area}
                       </p>
                     </div>
 
-                    {/* Days + dot */}
-                    <div className="flex flex-col items-end gap-1 shrink-0 pt-[2px]">
-                      <span className="font-data text-[11px] text-mute tabular-nums">
-                        {daysOnMarket}d
-                      </span>
-                      <span
-                        className="w-[5px] h-[5px] rounded-full"
-                        style={{ background: STATUS_DOT[obj.status] }}
-                      />
-                    </div>
+                    {/* Days */}
+                    <span
+                      style={{
+                        fontFamily: "'Geist Mono', monospace",
+                        fontSize: '11px',
+                        color: 'var(--mute)',
+                        fontVariantNumeric: 'tabular-nums',
+                        flexShrink: 0,
+                      }}
+                    >
+                      {daysOnMarket}d
+                    </span>
                   </button>
                 </li>
               )
@@ -120,21 +184,56 @@ export default function Sidebar({
         )}
       </div>
 
-      {/* Tone status footer */}
-      <div className="border-t border-line p-3">
+      {/* Tone footer */}
+      <div style={{ borderTop: '1px solid var(--line)', padding: '8px' }}>
         <button
           onClick={onTone}
-          className="w-full text-left px-3 py-2 rounded hover:bg-bg/80 transition-colors"
+          style={{
+            width: '100%',
+            textAlign: 'left',
+            padding: '8px 12px',
+            borderRadius: '6px',
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+            transition: 'background 0.1s',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'var(--tint)' }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'none' }}
         >
-          <p className="font-data text-[10px] text-mute tracking-[0.02em] uppercase mb-1">
+          <p
+            style={{
+              fontFamily: "'Geist Mono', monospace",
+              fontSize: '10px',
+              color: 'var(--mute)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.02em',
+              marginBottom: '3px',
+            }}
+          >
             Tonalitet
           </p>
-          <div className="flex items-center gap-1.5">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span
-              className="w-[5px] h-[5px] rounded-full shrink-0"
-              style={{ background: agency?.tone_profile ? 'var(--accent)' : 'var(--line-2)' }}
+              style={{
+                width: '5px',
+                height: '5px',
+                borderRadius: '50%',
+                background: agency?.tone_profile ? 'var(--accent)' : 'var(--line-2)',
+                flexShrink: 0,
+              }}
             />
-            <p className="font-data text-[11px] text-ink-2 truncate tracking-snug">
+            <p
+              style={{
+                fontFamily: "'Geist Mono', monospace",
+                fontSize: '11px',
+                color: 'var(--ink-2)',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
               {agency?.tone_profile?.tags?.slice(0, 2).join(', ') ?? 'Ej konfigurerad'}
             </p>
           </div>
