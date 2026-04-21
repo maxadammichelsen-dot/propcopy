@@ -104,15 +104,15 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
         >
           Nytt objekt
         </span>
-        <div style={{ display: 'flex', gap: '6px' }}>
+        <div style={{ display: 'flex', gap: '3px' }}>
           {STEP_LABELS.map((_, i) => (
             <span
               key={i}
               style={{
-                width: '6px',
-                height: '6px',
-                borderRadius: '50%',
-                background: i < step ? 'var(--ink)' : 'var(--line-2)',
+                width: '22px',
+                height: '2px',
+                borderRadius: '1px',
+                background: i < step - 1 ? 'var(--ink)' : i === step - 1 ? 'var(--accent)' : 'var(--line-2)',
                 transition: 'background 0.2s',
               }}
             />
@@ -228,8 +228,8 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
                   color: 'var(--ink)',
                   fontFamily: 'inherit',
                 }}
-                onFocus={e => (e.currentTarget.style.borderColor = 'var(--ink)')}
-                onBlur={e => (e.currentTarget.style.borderColor = 'var(--line)')}
+                onFocus={e => { e.currentTarget.style.borderColor = 'var(--ink)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(10,10,9,0.04)' }}
+                onBlur={e => { e.currentTarget.style.borderColor = 'var(--line)'; e.currentTarget.style.boxShadow = 'none' }}
               />
             </div>
 
@@ -240,8 +240,8 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
                   onChange={e => update('area', e.target.value)}
                   placeholder="Linnéstaden, Göteborg"
                   style={inputStyle}
-                  onFocus={e => (e.currentTarget.style.borderColor = 'var(--ink)')}
-                  onBlur={e => (e.currentTarget.style.borderColor = 'var(--line)')}
+                  onFocus={e => { e.currentTarget.style.borderColor = 'var(--ink)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(10,10,9,0.04)' }}
+                  onBlur={e => { e.currentTarget.style.borderColor = 'var(--line)'; e.currentTarget.style.boxShadow = 'none' }}
                 />
               </FieldWrap>
               <FieldWrap label="Objektstyp">
@@ -264,8 +264,8 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
                   onChange={e => update('size', e.target.value)}
                   placeholder="85"
                   style={inputStyle}
-                  onFocus={e => (e.currentTarget.style.borderColor = 'var(--ink)')}
-                  onBlur={e => (e.currentTarget.style.borderColor = 'var(--line)')}
+                  onFocus={e => { e.currentTarget.style.borderColor = 'var(--ink)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(10,10,9,0.04)' }}
+                  onBlur={e => { e.currentTarget.style.borderColor = 'var(--line)'; e.currentTarget.style.boxShadow = 'none' }}
                 />
               </FieldWrap>
               <FieldWrap label="Utgångspris (kr)">
@@ -274,8 +274,8 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
                   onChange={e => update('price', e.target.value)}
                   placeholder="4 950 000"
                   style={inputStyle}
-                  onFocus={e => (e.currentTarget.style.borderColor = 'var(--ink)')}
-                  onBlur={e => (e.currentTarget.style.borderColor = 'var(--line)')}
+                  onFocus={e => { e.currentTarget.style.borderColor = 'var(--ink)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(10,10,9,0.04)' }}
+                  onBlur={e => { e.currentTarget.style.borderColor = 'var(--line)'; e.currentTarget.style.boxShadow = 'none' }}
                 />
               </FieldWrap>
             </div>
@@ -326,8 +326,8 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
                   lineHeight: 1.6,
                   transition: 'border-color 0.15s',
                 }}
-                onFocus={e => (e.currentTarget.style.borderColor = 'var(--ink)')}
-                onBlur={e => (e.currentTarget.style.borderColor = 'var(--line)')}
+                onFocus={e => { e.currentTarget.style.borderColor = 'var(--ink)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(10,10,9,0.04)' }}
+                onBlur={e => { e.currentTarget.style.borderColor = 'var(--line)'; e.currentTarget.style.boxShadow = 'none' }}
               />
             </div>
           </div>
@@ -366,25 +366,31 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
                       {ch.desc}
                     </p>
                   </div>
+                  {/* Toggle 32×18 */}
                   <span
                     style={{
-                      width: '20px',
-                      height: '20px',
-                      borderRadius: '50%',
-                      border: `1.5px solid ${active ? 'var(--ink)' : 'var(--line-2)'}`,
-                      background: active ? 'var(--ink)' : 'transparent',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
+                      width: '32px',
+                      height: '18px',
+                      borderRadius: '100px',
+                      background: active ? 'var(--accent)' : 'var(--line-2)',
+                      position: 'relative',
                       flexShrink: 0,
-                      transition: 'all 0.15s',
+                      transition: 'background 0.15s',
+                      display: 'inline-block',
                     }}
                   >
-                    {active && (
-                      <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
-                        <path d="M1 4L3.5 6.5L9 1" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    )}
+                    <span
+                      style={{
+                        position: 'absolute',
+                        top: '2px',
+                        width: '14px',
+                        height: '14px',
+                        borderRadius: '50%',
+                        background: '#fff',
+                        transition: 'transform 0.15s',
+                        transform: active ? 'translateX(16px)' : 'translateX(2px)',
+                      }}
+                    />
                   </span>
                 </button>
               )
@@ -503,37 +509,41 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
           {error}
         </span>
 
+        {/* .btn — back/cancel */}
         <button
           type="button"
           onClick={step === 1 ? onCancel : () => { setStep(s => s - 1); setError('') }}
           style={{
-            fontFamily: "'Geist Mono', monospace",
-            fontSize: '12px',
-            color: 'var(--mute)',
-            background: 'none',
-            border: 'none',
+            padding: '8px 14px',
+            border: '1px solid var(--line)',
+            borderRadius: '6px',
+            fontSize: '13px',
+            fontWeight: 500,
+            color: 'var(--ink-2)',
+            background: 'var(--bg)',
             cursor: 'pointer',
             letterSpacing: '-0.01em',
-            padding: '8px 12px',
+            fontFamily: 'inherit',
           }}
         >
           {step === 1 ? 'Avbryt' : '← Tillbaka'}
         </button>
 
+        {/* .btn.accent — next/submit */}
         <button
           type="button"
           onClick={step < 4 ? () => { if (canAdvance()) setStep(s => s + 1) } : handleSubmit}
           disabled={!canAdvance() || loading}
           style={{
-            padding: '8px 16px',
-            background: canAdvance() && !loading ? 'var(--ink)' : 'var(--line)',
-            color: canAdvance() && !loading ? '#fff' : 'var(--mute)',
-            border: 'none',
+            padding: '8px 14px',
+            border: `1px solid ${canAdvance() && !loading ? 'var(--accent)' : 'var(--line)'}`,
             borderRadius: '6px',
             fontSize: '13px',
             fontWeight: 500,
+            background: canAdvance() && !loading ? 'var(--accent)' : 'var(--line)',
+            color: canAdvance() && !loading ? '#fff' : 'var(--mute)',
             cursor: canAdvance() && !loading ? 'pointer' : 'default',
-            transition: 'background 0.15s',
+            transition: 'background 0.15s, border-color 0.15s',
             letterSpacing: '-0.01em',
             fontFamily: 'inherit',
           }}
