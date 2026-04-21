@@ -51,7 +51,17 @@ export interface GeneratedContent {
   created_at: string
 }
 
-export type Channel = 'hemnet' | 'hemnet_raket' | 'meta' | 'mail' | 'website'
+export type Channel =
+  | 'hemnet'
+  | 'hemnet_raket'
+  | 'meta'
+  | 'mail'
+  | 'website'
+  | 'booli'
+  | 'boneo'
+  | 'boneo_kommande'
+  | 'hjem'
+  | 'bovision'
 
 export interface GenerateResult {
   channel: Channel

@@ -9,17 +9,18 @@ interface ObjectDetailProps {
   agency: Agency | null
 }
 
-const ALL_CHANNELS: Channel[] = ['hemnet', 'hemnet_raket', 'meta', 'mail', 'website']
+const ALL_CHANNELS: Channel[] = [
+  'hemnet', 'hemnet_raket', 'meta', 'mail', 'website',
+  'booli', 'boneo', 'boneo_kommande', 'hjem', 'bovision',
+]
+
+const EMPTY_RESULTS = Object.fromEntries(
+  ALL_CHANNELS.map((c) => [c, null])
+) as Record<Channel, GenerateResult | null>
 
 export default function ObjectDetail({ object, agency }: ObjectDetailProps) {
   const [activeChannels, setActiveChannels] = useState<Set<Channel>>(new Set(ALL_CHANNELS))
-  const [results, setResults] = useState<Record<Channel, GenerateResult | null>>({
-    hemnet: null,
-    hemnet_raket: null,
-    meta: null,
-    mail: null,
-    website: null,
-  })
+  const [results, setResults] = useState<Record<Channel, GenerateResult | null>>(EMPTY_RESULTS)
   const [generating, setGenerating] = useState(false)
   const [error, setError] = useState('')
 
@@ -49,9 +50,7 @@ export default function ObjectDetail({ object, agency }: ObjectDetailProps) {
       return
     }
 
-    const resultMap: Record<Channel, GenerateResult | null> = {
-      hemnet: null, hemnet_raket: null, meta: null, mail: null, website: null,
-    }
+    const resultMap: Record<Channel, GenerateResult | null> = { ...EMPTY_RESULTS }
     for (const r of data.results as GenerateResult[]) {
       resultMap[r.channel] = r
     }

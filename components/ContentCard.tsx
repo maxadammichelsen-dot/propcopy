@@ -11,11 +11,16 @@ interface ContentCardProps {
 }
 
 const CHANNEL_META: Record<Channel, { label: string; maxChars: number; description: string }> = {
-  hemnet: { label: 'Hemnet', maxChars: 1875, description: 'Rubrik + säljtext' },
-  hemnet_raket: { label: 'Hemnet Raket', maxChars: 450, description: 'Hook + komprimerad text' },
-  meta: { label: 'Meta Ads', maxChars: 430, description: 'Hook + primary text + CTA' },
-  mail: { label: 'E-post', maxChars: 900, description: 'Ämnesrad + brödtext' },
-  website: { label: 'Hemsida', maxChars: 2500, description: 'Poetisk beskrivning' },
+  hemnet:         { label: 'Hemnet',          maxChars: 1875, description: 'Rubrik + säljtext' },
+  hemnet_raket:   { label: 'Hemnet Raket',    maxChars: 450,  description: 'Hook + komprimerad text' },
+  meta:           { label: 'Meta Ads',         maxChars: 430,  description: 'Hook + primary text + CTA' },
+  mail:           { label: 'E-post',           maxChars: 900,  description: 'Ämnesrad + brödtext' },
+  website:        { label: 'Hemsida',          maxChars: 2500, description: 'Poetisk beskrivning' },
+  booli:          { label: 'Booli',            maxChars: 2075, description: 'Rubrik + faktabaserad beskrivning' },
+  boneo:          { label: 'Boneo',            maxChars: 1875, description: 'Rubrik + säljtext' },
+  boneo_kommande: { label: 'Boneo Kommande',   maxChars: 460,  description: 'Teaser för förhandsvisning' },
+  hjem:           { label: 'Hjem',             maxChars: 965,  description: 'Rubrik + skandinavisk direkttext' },
+  bovision:       { label: 'Bovision',         maxChars: 1575, description: 'Rubrik + unika särdrag' },
 }
 
 export default function ContentCard({ channel, result, isActive, onToggle }: ContentCardProps) {

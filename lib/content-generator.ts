@@ -84,6 +84,106 @@ Skriv en längre, flytande och atmosfärisk beskrivning (300–500 ord) som mål
 
 TEXT:
 [text]`,
+
+  booli: (obj, tone) => `
+Du skriver en Booli-annons på svenska. Booli är en datadriven portal – texten ska vara faktabaserad, tydlig och saklig. Byrån har tonalitet: ${tone}.
+
+Objekt:
+- Adress: ${obj.address}, ${obj.area}
+- Typ: ${obj.type}
+- Storlek: ${obj.size} kvm
+- Pris: ${formatPrice(obj.price)} kr
+- Detaljer: ${obj.details}
+
+Skriv:
+1. RUBRIK (max 75 tecken) – konkret och informativ, lyft det viktigaste faktumet
+2. BESKRIVNING (max 2000 tecken) – börja med nyckeldata (storlek, rum, år, drift), följt av en faktaorienterad genomgång av bostadens planlösning och skick. Avsluta med läge och kommunikationer. Undvik poetiska svepningar – var precis och trovärdig.
+
+Format:
+RUBRIK: [rubrik]
+
+BESKRIVNING:
+[text]`,
+
+  boneo: (obj, tone) => `
+Du skriver en Boneo-annons på svenska. Byrån har tonalitet: ${tone}.
+
+Objekt:
+- Adress: ${obj.address}, ${obj.area}
+- Typ: ${obj.type}
+- Storlek: ${obj.size} kvm
+- Pris: ${formatPrice(obj.price)} kr
+- Detaljer: ${obj.details}
+
+Skriv:
+1. RUBRIK (max 75 tecken) – säljande och specifik
+2. SÄLJTEXT (max 1800 tecken) – strukturerad med korta stycken. Poetisk ingress, rum-för-rum-beskrivning, avsluta med läge och livsstil.
+
+Format:
+RUBRIK: [rubrik]
+
+SÄLJTEXT:
+[text]`,
+
+  boneo_kommande: (obj, tone) => `
+Du skriver en "Kommande"-teaser för Boneo på svenska. Bostaden är ännu inte officiellt till salu – texten ska skapa nyfikenhet och få spekulanter att anmäla intresse. Byrån har tonalitet: ${tone}.
+
+Objekt:
+- Adress: ${obj.address}, ${obj.area}
+- Typ: ${obj.type}
+- Storlek: ${obj.size} kvm
+- Ungefärligt pris: ${formatPrice(obj.price)} kr
+- Detaljer: ${obj.details}
+
+Skriv:
+1. RUBRIK (max 60 tecken) – skapa förväntan utan att avslöja för mycket
+2. TEASERTEXT (max 400 tecken) – mystisk, lockande. Nämn area och typ, men håll tillbaka detaljer. Avsluta med en CTA som "Anmäl intresse redan idag".
+
+Format:
+RUBRIK: [rubrik]
+
+TEASERTEXT:
+[text]`,
+
+  hjem: (obj, tone) => `
+Du skriver en annons för Hjem – en skandinavisk portal med internationell räckvidd. Tonen ska vara direkt, modern och skandinavisk utan att vara pompös. Skriv på svenska. Byrån har tonalitet: ${tone}.
+
+Objekt:
+- Adress: ${obj.address}, ${obj.area}
+- Typ: ${obj.type}
+- Storlek: ${obj.size} kvm
+- Pris: ${formatPrice(obj.price)} kr
+- Detaljer: ${obj.details}
+
+Skriv:
+1. RUBRIK (max 65 tecken) – kort, slagkraftigt, skandinavisk känsla
+2. TEXT (max 900 tecken) – direkt och konkret. Presentera bostadens starka sidor på 3–4 meningar. Kortare stycken än en standard Hemnet-text. Internationellt tillgänglig ton.
+
+Format:
+RUBRIK: [rubrik]
+
+TEXT:
+[text]`,
+
+  bovision: (obj, tone) => `
+Du skriver en Bovision-annons på svenska. Fokus ska ligga på det som verkligen särskiljer bostaden – unika särdrag, karaktär och det som ingen annan liknande bostad i området har. Byrån har tonalitet: ${tone}.
+
+Objekt:
+- Adress: ${obj.address}, ${obj.area}
+- Typ: ${obj.type}
+- Storlek: ${obj.size} kvm
+- Pris: ${formatPrice(obj.price)} kr
+- Detaljer: ${obj.details}
+
+Skriv:
+1. RUBRIK (max 75 tecken) – lyfta det mest unika draget
+2. BESKRIVNING (max 1500 tecken) – börja med vad som gör just denna bostad speciell, beskriv sedan planlösning och skick med fokus på särdragen. Avsluta med läge.
+
+Format:
+RUBRIK: [rubrik]
+
+BESKRIVNING:
+[text]`,
 }
 
 export async function generateAllChannels(
@@ -92,7 +192,10 @@ export async function generateAllChannels(
   supabase: SupabaseClient
 ): Promise<GenerateResult[]> {
   const toneString = agency.tone_profile?.tags?.join(', ') ?? 'professionell, varm'
-  const channels: Channel[] = ['hemnet', 'hemnet_raket', 'meta', 'mail', 'website']
+  const channels: Channel[] = [
+    'hemnet', 'hemnet_raket', 'meta', 'mail', 'website',
+    'booli', 'boneo', 'boneo_kommande', 'hjem', 'bovision',
+  ]
 
   const results = await Promise.all(
     channels.map((channel) => generateChannel(channel, object, toneString))
@@ -109,9 +212,10 @@ async function generateChannel(
 ): Promise<GenerateResult> {
   const prompt = CHANNEL_PROMPTS[channel](object, tone)
 
+  const longChannels: Channel[] = ['website', 'booli', 'boneo', 'bovision']
   const message = await anthropic.messages.create({
     model: MODEL,
-    max_tokens: channel === 'website' ? 1024 : 512,
+    max_tokens: longChannels.includes(channel) ? 1024 : 512,
     messages: [{ role: 'user', content: prompt }],
   })
 
