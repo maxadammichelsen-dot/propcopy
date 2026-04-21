@@ -53,7 +53,16 @@ export default function ContentCard({ channel, result, isActive, onToggle }: Con
     <div className={`border-b border-line transition-opacity ${isActive ? 'opacity-100' : 'opacity-40'}`}>
 
       {/* Header row */}
-      <div className="flex items-center justify-between px-6 py-4">
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '12px 16px',
+          borderBottom: '1px solid var(--line)',
+          background: 'var(--tint-2)',
+        }}
+      >
         <div className="flex items-center gap-3">
 
           {/* Toggle */}
@@ -70,7 +79,7 @@ export default function ContentCard({ channel, result, isActive, onToggle }: Con
             />
           </button>
 
-          <ChannelBadge channel={channel} />
+          <ChannelBadge channel={channel} size={22} />
 
           <div>
             <p className="text-[13px] font-medium text-ink">{cfg.label}</p>
@@ -85,7 +94,7 @@ export default function ContentCard({ channel, result, isActive, onToggle }: Con
               <p className={`font-data text-[11px] tabular-nums ${overLimit ? 'text-accent' : 'text-mute'}`}>
                 {charCount} / {meta.maxChars}
               </p>
-              <div className="w-20 h-[2px] bg-line rounded-full mt-1 overflow-hidden">
+              <div className="w-20 bg-line rounded-full mt-1 overflow-hidden" style={{ height: '3px' }}>
                 <div
                   className="h-full rounded-full transition-all"
                   style={{
@@ -99,7 +108,18 @@ export default function ContentCard({ channel, result, isActive, onToggle }: Con
             {/* Copy */}
             <button
               onClick={handleCopy}
-              className="font-data text-[10px] uppercase tracking-[0.06em] text-mute hover:text-ink transition-colors px-3 py-1.5 border border-line rounded-full"
+              style={{
+                fontFamily: "'Geist Mono', monospace",
+                fontSize: '11.5px',
+                padding: '5px 10px',
+                background: copied ? 'var(--ok)' : 'var(--ink)',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                letterSpacing: '-0.01em',
+                transition: 'background 0.15s',
+              }}
             >
               {copied ? '✓ Kopierad' : 'Kopiera'}
             </button>
@@ -117,15 +137,39 @@ export default function ContentCard({ channel, result, isActive, onToggle }: Con
               <div className="space-y-3">
                 {hasStructure ? (
                   <>
-                    <p className="font-display text-[22px] leading-[1.1] tracking-[-0.02em] text-ink">
+                    <h2
+                      style={{
+                        fontSize: '20px',
+                        fontWeight: 600,
+                        letterSpacing: '-0.022em',
+                        lineHeight: 1.3,
+                        color: 'var(--ink)',
+                      }}
+                    >
                       {firstLine}
-                    </p>
-                    <p className="text-[13px] text-ink-2 leading-relaxed whitespace-pre-wrap">
+                    </h2>
+                    <p
+                      style={{
+                        fontSize: '13.5px',
+                        lineHeight: 1.65,
+                        color: 'var(--ink-2)',
+                        letterSpacing: '-0.003em',
+                        whiteSpace: 'pre-wrap',
+                      }}
+                    >
                       {rest}
                     </p>
                   </>
                 ) : (
-                  <p className="text-[13px] text-ink-2 leading-relaxed whitespace-pre-wrap">
+                  <p
+                    style={{
+                      fontSize: '13.5px',
+                      lineHeight: 1.65,
+                      color: 'var(--ink-2)',
+                      letterSpacing: '-0.003em',
+                      whiteSpace: 'pre-wrap',
+                    }}
+                  >
                     {result.content}
                   </p>
                 )}
