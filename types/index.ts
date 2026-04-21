@@ -128,6 +128,22 @@ export interface ActionItem {
   object_id?: string
 }
 
+export interface KeyInsightStrength {
+  argument: string
+  why: string
+}
+
+export interface KeyInsightRisk {
+  issue: string
+  how_to_handle: string
+}
+
+export interface KeyInsights {
+  strengths: KeyInsightStrength[]
+  risks: KeyInsightRisk[]
+  positioning: string
+}
+
 export interface PerformancePoint {
   month: string
   texts_generated: number

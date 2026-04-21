@@ -1,5 +1,5 @@
 import { anthropic, MODEL } from './anthropic'
-import { Agency, Channel, GenerateResult, PropertyObject } from '@/types'
+import { Agency, Channel, GenerateResult, KeyInsights, LocationArgument, PropertyObject } from '@/types'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 const MASTER_SYSTEM = `Du är världens bästa copywriter specialiserad på svensk fastighetsförsäljning. Du har skrivit tusentals objekttexter som resulterat i budgivningar 15-30% över utgångspris.
@@ -268,6 +268,45 @@ async function saveToSupabase(objectId: string, results: GenerateResult[], supab
 
   const { error } = await supabase.from('generated_content').insert(rows)
   if (error) throw new Error(`Supabase-fel vid sparande: ${error.message}`)
+}
+
+export async function generateKeyInsights(
+  object: PropertyObject,
+  locationArgs: LocationArgument[] = []
+): Promise<KeyInsights> {
+  const locationContext = locationArgs.length > 0
+    ? `\nPlatsargument: ${locationArgs.map(a => a.text).join(', ')}`
+    : ''
+
+  const prompt = `Analysera detta objekt och identifiera de 5 starkaste säljargumenten baserat på:
+- Vad som är genuint ovanligt för prisnivån
+- Vad köpare i detta segment värderar mest
+- Vad som riskerar att missförstås och behöver hanteras proaktivt
+
+Objekt:
+- Adress: ${object.address}, ${object.area}
+- Typ: ${object.type}
+- Storlek: ${object.size} kvm
+- Pris: ${formatPrice(object.price)} kr
+- Detaljer: ${object.details}${locationContext}
+
+Returnera ENBART giltig JSON utan markdown eller förklaringar:
+{
+  "strengths": [{ "argument": "string", "why": "string" }],
+  "risks": [{ "issue": "string", "how_to_handle": "string" }],
+  "positioning": "string"
+}`
+
+  const message = await anthropic.messages.create({
+    model: MODEL,
+    max_tokens: 1024,
+    system: MASTER_SYSTEM,
+    messages: [{ role: 'user', content: prompt }],
+  })
+
+  const raw = message.content[0].type === 'text' ? message.content[0].text.trim() : '{}'
+  const json = raw.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim()
+  return JSON.parse(json) as KeyInsights
 }
 
 function formatPrice(price: number): string {

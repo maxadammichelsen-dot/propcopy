@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
-import { Agency, Channel, GenerateResult, PropertyObject } from '@/types'
+import { useEffect, useState } from 'react'
+import { Agency, Channel, GenerateResult, KeyInsights, PropertyObject } from '@/types'
 import ContentCard from './ContentCard'
+import InsightsCard from './InsightsCard'
 import MetaPublishView from './MetaPublishView'
 import RevisionView from './RevisionView'
 
@@ -28,6 +29,22 @@ export default function ObjectDetail({ object, agency }: ObjectDetailProps) {
   const [results, setResults] = useState<Record<Channel, GenerateResult | null>>(EMPTY_RESULTS)
   const [generating, setGenerating] = useState(false)
   const [error, setError] = useState('')
+  const [insights, setInsights] = useState<KeyInsights | null>(null)
+  const [insightsLoading, setInsightsLoading] = useState(true)
+
+  useEffect(() => {
+    setInsights(null)
+    setInsightsLoading(true)
+    fetch('/api/keyinsights', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ object_id: object.id }),
+    })
+      .then(r => r.json())
+      .then(d => { if (d.insights) setInsights(d.insights) })
+      .catch(() => {})
+      .finally(() => setInsightsLoading(false))
+  }, [object.id])
 
   function toggleChannel(channel: Channel) {
     setActiveChannels((prev) => {
@@ -143,6 +160,7 @@ export default function ObjectDetail({ object, agency }: ObjectDetailProps) {
           )}
 
           <div className="flex-1 overflow-y-auto">
+            <InsightsCard insights={insights} loading={insightsLoading} />
             {generating ? (
               <div className="flex flex-col items-center justify-center py-20 text-center">
                 <div className="w-5 h-5 border-[1.5px] border-line border-t-accent rounded-full animate-spin mb-4" />
