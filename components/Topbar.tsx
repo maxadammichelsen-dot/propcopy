@@ -4,7 +4,7 @@ import { Agency } from '@/types'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { useRouter } from 'next/navigation'
 
-type View = 'home' | 'detail' | 'new' | 'tone' | 'competition' | 'prospects' | 'followup' | 'revision'
+type View = 'home' | 'detail' | 'new' | 'tone' | 'competition' | 'prospects' | 'followup' | 'revision' | 'settings'
 
 interface TopbarProps {
   agency: Agency | null
@@ -14,6 +14,7 @@ interface TopbarProps {
   onProspects: () => void
   onFollowup: () => void
   onTone: () => void
+  onSettings: () => void
 }
 
 type HandlerKey = 'onHome' | 'onCompetition' | 'onProspects' | 'onFollowup' | 'onTone'
@@ -35,6 +36,7 @@ export default function Topbar({
   onProspects,
   onFollowup,
   onTone,
+  onSettings,
 }: TopbarProps) {
   const router = useRouter()
   const handlers = { onHome, onCompetition, onProspects, onFollowup, onTone }
@@ -85,11 +87,15 @@ export default function Topbar({
 
       {/* Right: agency + logout */}
       <div className="shrink-0 flex items-center gap-3">
-        {agency?.name && (
-          <span className="font-data text-[11px] text-mute tracking-snug hidden lg:block">
-            {agency.name}
-          </span>
-        )}
+        <button
+          onClick={onSettings}
+          className={[
+            'font-data text-[11px] tracking-snug transition-colors hidden lg:block',
+            currentView === 'settings' ? 'text-ink' : 'text-mute hover:text-ink',
+          ].join(' ')}
+        >
+          Min byrå
+        </button>
 
         <button
           onClick={handleLogout}
@@ -99,9 +105,12 @@ export default function Topbar({
         </button>
 
         {/* Avatar */}
-        <div className="w-[30px] h-[30px] rounded-full bg-ink text-bg flex items-center justify-center font-data text-[11px] font-medium tracking-snug shrink-0">
+        <button
+          onClick={onSettings}
+          className="w-[30px] h-[30px] rounded-full bg-ink text-bg flex items-center justify-center font-data text-[11px] font-medium tracking-snug shrink-0 hover:opacity-80 transition-opacity"
+        >
           {initials}
-        </div>
+        </button>
       </div>
     </header>
   )

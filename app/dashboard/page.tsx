@@ -14,13 +14,15 @@ import CompetitionView from '@/components/CompetitionView'
 import ProspectsView from '@/components/ProspectsView'
 import FollowupView from '@/components/FollowupView'
 import RevisionView from '@/components/RevisionView'
+import SettingsView from '@/components/SettingsView'
 import BrandProvider from '@/components/BrandProvider'
 
-type View = 'home' | 'detail' | 'new' | 'tone' | 'competition' | 'prospects' | 'followup' | 'revision'
+type View = 'home' | 'detail' | 'new' | 'tone' | 'competition' | 'prospects' | 'followup' | 'revision' | 'settings'
 
 export default function DashboardPage() {
   const router = useRouter()
   const [agency, setAgency] = useState<Agency | null>(null)
+  const [userEmail, setUserEmail] = useState('')
   const [objects, setObjects] = useState<PropertyObject[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [view, setView] = useState<View>('home')
@@ -34,6 +36,8 @@ export default function DashboardPage() {
         router.push('/auth/login')
         return
       }
+
+      if (user.email) setUserEmail(user.email)
 
       const [agencyRes, objectsRes] = await Promise.all([
         supabase.from('agencies').select('*').eq('user_id', user.id).single(),
@@ -92,6 +96,11 @@ export default function DashboardPage() {
     setSelectedId(null)
   }
 
+  function handleSettings() {
+    setView('settings')
+    setSelectedId(null)
+  }
+
   function handleToneUpdated(profile: ToneProfile) {
     setAgency((prev) => prev ? { ...prev, tone_profile: profile } : prev)
   }
@@ -124,6 +133,7 @@ export default function DashboardPage() {
         onProspects={handleProspects}
         onFollowup={handleFollowup}
         onTone={() => setView('tone')}
+        onSettings={handleSettings}
       />
 
       <div className="flex flex-1 overflow-hidden">
@@ -142,7 +152,13 @@ export default function DashboardPage() {
         />
 
         <main className="flex-1 overflow-hidden">
-          {view === 'home' ? (
+          {view === 'settings' && agency ? (
+            <SettingsView
+              agency={agency}
+              userEmail={userEmail}
+              onAgencyUpdated={setAgency}
+            />
+          ) : view === 'home' ? (
             <DashboardHome
               agency={agency}
               onSelectObject={handleSelectObject}
