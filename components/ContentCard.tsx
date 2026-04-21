@@ -9,6 +9,8 @@ interface ContentCardProps {
   result: GenerateResult | null
   isActive: boolean
   onToggle: () => void
+  objectId?: string
+  agencyId?: string
 }
 
 const CHANNEL_META: Record<Channel, { maxChars: number; description: string }> = {
@@ -24,8 +26,13 @@ const CHANNEL_META: Record<Channel, { maxChars: number; description: string }> =
   bovision:       { maxChars: 1575, description: 'Rubrik + unika särdrag' },
 }
 
-export default function ContentCard({ channel, result, isActive, onToggle }: ContentCardProps) {
+export default function ContentCard({ channel, result, isActive, onToggle, objectId, agencyId }: ContentCardProps) {
   const [copied, setCopied] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [editedText, setEditedText] = useState('')
+  const [feedbackSent, setFeedbackSent] = useState<'approved' | 'rejected' | 'edited' | null>(null)
+  const [sending, setSending] = useState(false)
+
   const meta = CHANNEL_META[channel]
   const cfg = CHANNEL_CONFIG[channel]
   const charCount = result?.char_count ?? 0
@@ -43,11 +50,41 @@ export default function ContentCard({ channel, result, isActive, onToggle }: Con
     setTimeout(() => setCopied(false), 2000)
   }
 
+  async function sendFeedback(action: 'approved' | 'rejected' | 'edited', editedVersion?: string) {
+    if (!result?.content || !objectId || !agencyId || sending) return
+    setSending(true)
+    try {
+      await fetch('/api/brain/learn', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          agency_id: agencyId,
+          object_id: objectId,
+          channel,
+          generated_text: result.content,
+          action,
+          edited_version: editedVersion ?? null,
+        }),
+      })
+      setFeedbackSent(action)
+      setEditing(false)
+    } finally {
+      setSending(false)
+    }
+  }
+
+  function startEdit() {
+    setEditedText(result?.content ?? '')
+    setEditing(true)
+  }
+
   // Treat first non-empty line as headline if there are subsequent lines
   const lines = result?.content?.split('\n') ?? []
   const firstLine = lines[0]?.trim() ?? ''
   const rest = lines.slice(1).join('\n').trim()
   const hasStructure = firstLine && rest
+
+  const showFeedback = !!result && isActive && !!objectId && !!agencyId && !feedbackSent
 
   return (
     <div className={`border-b border-line transition-opacity ${isActive ? 'opacity-100' : 'opacity-40'}`}>
@@ -135,7 +172,75 @@ export default function ContentCard({ channel, result, isActive, onToggle }: Con
           <div className="px-6 py-5">
             {result ? (
               <div className="space-y-3">
-                {hasStructure ? (
+                {editing ? (
+                  /* Edit mode */
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <textarea
+                      value={editedText}
+                      onChange={e => setEditedText(e.target.value)}
+                      style={{
+                        width: '100%',
+                        minHeight: '200px',
+                        fontSize: '13.5px',
+                        lineHeight: 1.65,
+                        color: 'var(--ink)',
+                        letterSpacing: '-0.003em',
+                        padding: '10px 12px',
+                        border: '1px solid var(--line)',
+                        borderRadius: '6px',
+                        background: 'var(--bg)',
+                        resize: 'vertical',
+                        fontFamily: 'inherit',
+                        outline: 'none',
+                      }}
+                      onFocus={e => {
+                        e.currentTarget.style.borderColor = 'var(--ink)'
+                        e.currentTarget.style.boxShadow = '0 0 0 3px rgba(10,10,9,0.04)'
+                      }}
+                      onBlur={e => {
+                        e.currentTarget.style.borderColor = 'var(--line)'
+                        e.currentTarget.style.boxShadow = 'none'
+                      }}
+                    />
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        onClick={() => sendFeedback('edited', editedText)}
+                        disabled={sending}
+                        style={{
+                          padding: '6px 12px',
+                          background: 'var(--ink)',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: '5px',
+                          fontSize: '12.5px',
+                          fontWeight: 500,
+                          cursor: sending ? 'default' : 'pointer',
+                          fontFamily: 'inherit',
+                          letterSpacing: '-0.005em',
+                          opacity: sending ? 0.5 : 1,
+                        }}
+                      >
+                        {sending ? 'Sparar…' : 'Spara redigering'}
+                      </button>
+                      <button
+                        onClick={() => setEditing(false)}
+                        style={{
+                          padding: '6px 12px',
+                          background: 'none',
+                          color: 'var(--ink-2)',
+                          border: '1px solid var(--line)',
+                          borderRadius: '5px',
+                          fontSize: '12.5px',
+                          cursor: 'pointer',
+                          fontFamily: 'inherit',
+                          letterSpacing: '-0.005em',
+                        }}
+                      >
+                        Avbryt
+                      </button>
+                    </div>
+                  </div>
+                ) : hasStructure ? (
                   <>
                     <h2
                       style={{
@@ -173,6 +278,77 @@ export default function ContentCard({ channel, result, isActive, onToggle }: Con
                     {result.content}
                   </p>
                 )}
+
+                {/* Feedback row */}
+                {showFeedback && !editing && (
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      paddingTop: '12px',
+                      borderTop: '1px solid var(--line)',
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontFamily: "'Geist Mono', monospace",
+                        fontSize: '10px',
+                        color: 'var(--mute)',
+                        marginRight: '4px',
+                        letterSpacing: '0.01em',
+                      }}
+                    >
+                      Feedback
+                    </span>
+                    <FeedbackBtn
+                      label="✓ Godkänn"
+                      title="Godkänn texten"
+                      onClick={() => sendFeedback('approved')}
+                      disabled={sending}
+                      variant="positive"
+                    />
+                    <FeedbackBtn
+                      label="✗ Avvisa"
+                      title="Avvisa texten"
+                      onClick={() => sendFeedback('rejected')}
+                      disabled={sending}
+                      variant="negative"
+                    />
+                    <FeedbackBtn
+                      label="✎ Redigera"
+                      title="Redigera och spara"
+                      onClick={startEdit}
+                      disabled={sending}
+                      variant="neutral"
+                    />
+                  </div>
+                )}
+
+                {/* Feedback confirmation */}
+                {feedbackSent && (
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      paddingTop: '12px',
+                      borderTop: '1px solid var(--line)',
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontFamily: "'Geist Mono', monospace",
+                        fontSize: '10px',
+                        color: feedbackSent === 'rejected' ? 'var(--accent)' : 'var(--ok)',
+                      }}
+                    >
+                      {feedbackSent === 'approved' && '✓ Godkänd — hjärnan lär sig'}
+                      {feedbackSent === 'rejected' && '✗ Avvisad — hjärnan noterar'}
+                      {feedbackSent === 'edited' && '✎ Redigering sparad — hjärnan analyserar'}
+                    </span>
+                  </div>
+                )}
               </div>
             ) : (
               <p className="font-data text-[11px] text-mute-2 tracking-snug">
@@ -207,6 +383,45 @@ export default function ContentCard({ channel, result, isActive, onToggle }: Con
         </div>
       )}
     </div>
+  )
+}
+
+function FeedbackBtn({
+  label, title, onClick, disabled, variant,
+}: {
+  label: string
+  title: string
+  onClick: () => void
+  disabled: boolean
+  variant: 'positive' | 'negative' | 'neutral'
+}) {
+  const colors = {
+    positive: { bg: 'rgba(34,197,94,0.08)', color: 'var(--ok)', border: 'rgba(34,197,94,0.2)' },
+    negative: { bg: 'rgba(239,68,68,0.07)', color: 'var(--accent)', border: 'rgba(239,68,68,0.18)' },
+    neutral:  { bg: 'var(--tint)', color: 'var(--ink-2)', border: 'var(--line)' },
+  }[variant]
+
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      style={{
+        fontFamily: "'Geist Mono', monospace",
+        fontSize: '10.5px',
+        padding: '4px 9px',
+        background: colors.bg,
+        color: colors.color,
+        border: `1px solid ${colors.border}`,
+        borderRadius: '4px',
+        cursor: disabled ? 'default' : 'pointer',
+        opacity: disabled ? 0.5 : 1,
+        letterSpacing: '-0.005em',
+        transition: 'opacity 0.1s',
+      }}
+    >
+      {label}
+    </button>
   )
 }
 

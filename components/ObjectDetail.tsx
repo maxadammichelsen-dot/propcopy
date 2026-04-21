@@ -179,6 +179,8 @@ export default function ObjectDetail({ object, agency }: ObjectDetailProps) {
                   result={results[channel]}
                   isActive={activeChannels.has(channel)}
                   onToggle={() => toggleChannel(channel)}
+                  objectId={object.id}
+                  agencyId={object.agency_id}
                 />
               ))
             )}
