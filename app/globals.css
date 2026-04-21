@@ -1,67 +1,155 @@
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ─── Design tokens ──────────────────────────────────────────── */
 :root {
-  --background: #111111;
-  --foreground: #f0ece4;
-  --gold: #b8965a;
+  --bg:           #FFFFFF;
+  --ink:          #0F0F0E;
+  --ink-2:        #2A2A28;
+  --mute:         #8A8A85;
+  --mute-2:       #BDBDB8;
+  --line:         #EDEDEA;
+  --line-2:       #D8D8D3;
+  --tint:         #F7F7F4;
+  --accent:       #FF3D00;
+  --accent-ink:   #FFFFFF;
+  --accent-tint:  #FFE8DF;
 
-  /* Brand variables – overridden at runtime by BrandProvider */
-  --brand-primary: #b8965a;
-  --brand-primary-light: #d4b07a;
-  --brand-primary-dim: #b8965a33;
-  --brand-secondary: #8a6f3e;
-  --brand-accent: #b8965a;
+  /* Brand overrides (set at runtime by BrandProvider for agency colours) */
+  --brand-primary:      #FF3D00;
+  --brand-primary-light: #ff6633;
+  --brand-primary-dim:  #FF3D0022;
+  --brand-secondary:    #0F0F0E;
+  --brand-accent:       #FF3D00;
 }
 
+/* ─── Base ───────────────────────────────────────────────────── */
 @layer base {
-  * {
+  *, *::before, *::after {
     box-sizing: border-box;
   }
 
   html {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    text-rendering: geometricPrecision;
+    font-size: 14px;
   }
 
   body {
-    background-color: var(--background);
-    color: var(--foreground);
-    font-family: "DM Sans", system-ui, sans-serif;
+    background-color: var(--bg);
+    color: var(--ink);
+    font-family: "Geist", system-ui, sans-serif;
+    font-weight: 400;
+    letter-spacing: -0.005em;
   }
 
-  h1, h2, h3, h4 {
-    font-family: "Cormorant Garamond", Georgia, serif;
+  /* Headings use display font */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: "Instrument Serif", Georgia, serif;
+    font-weight: 400;
+    letter-spacing: -0.032em;
+    line-height: 0.96;
   }
 
   ::selection {
-    background-color: #b8965a33;
-    color: #f0ece4;
+    background-color: var(--accent-tint);
+    color: var(--ink);
   }
 
-  ::-webkit-scrollbar {
-    width: 4px;
+  /* Scrollbar */
+  ::-webkit-scrollbar        { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track  { background: var(--tint); }
+  ::-webkit-scrollbar-thumb  { background: var(--line-2); border-radius: 2px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--mute-2); }
+}
+
+/* ─── Font utilities ─────────────────────────────────────────── */
+@layer utilities {
+  .font-display {
+    font-family: "Instrument Serif", Georgia, serif;
+    font-weight: 400;
+  }
+  .font-display-italic {
+    font-family: "Instrument Serif", Georgia, serif;
+    font-style: italic;
+    font-weight: 400;
+  }
+  .font-data {
+    font-family: "Geist Mono", ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+  .text-balance {
+    text-wrap: balance;
   }
 
-  ::-webkit-scrollbar-track {
-    background: #111111;
+  /* Live pulse dot */
+  .dot-live {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 0 rgba(255, 61, 0, 0.4);
+    animation: pulse-dot 1.8s infinite;
   }
 
-  ::-webkit-scrollbar-thumb {
-    background: #2a2a2a;
-    border-radius: 2px;
+  @keyframes pulse-dot {
+    0%   { box-shadow: 0 0 0 0 rgba(255, 61, 0, 0.5); }
+    70%  { box-shadow: 0 0 0 8px rgba(255, 61, 0, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(255, 61, 0, 0); }
   }
 
-  ::-webkit-scrollbar-thumb:hover {
-    background: #b8965a;
+  /* Cursor blink */
+  .cursor-blink {
+    display: inline-block;
+    width: 2px;
+    height: 1.1em;
+    background: var(--accent);
+    vertical-align: text-bottom;
+    animation: blink 1s steps(2) infinite;
+  }
+
+  @keyframes blink {
+    50% { opacity: 0; }
+  }
+
+  /* Spinner */
+  @keyframes spin-fast {
+    to { transform: rotate(360deg); }
+  }
+  .animate-spin-fast {
+    animation: spin-fast 0.8s linear infinite;
   }
 }
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
+/* ─── Estatio Logo ───────────────────────────────────────────── */
+@layer components {
+  .estatio-logo {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0;
+    line-height: 1;
+  }
+  .estatio-logo .part-estat {
+    font-family: "Instrument Serif", Georgia, serif;
+    font-weight: 400;
+    letter-spacing: -0.025em;
+  }
+  .estatio-logo .part-slash {
+    font-family: "Geist Mono", ui-monospace, monospace;
+    color: var(--accent);
+    letter-spacing: -0.04em;
+    margin: 0 1px;
+    transform: translateY(-1px);
+    display: inline-block;
+  }
+  .estatio-logo .part-io {
+    font-family: "Geist Mono", ui-monospace, monospace;
+    font-weight: 500;
+    letter-spacing: -0.04em;
   }
 }
