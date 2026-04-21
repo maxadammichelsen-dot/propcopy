@@ -156,6 +156,28 @@
   background: linear-gradient(90deg, var(--tint) 0%, transparent 100%) !important;
 }
 
+/* ─── Topbar icon button (.ibtn) ────────────────────────────── */
+.ibtn {
+  transition: background 0.12s;
+}
+.ibtn:hover {
+  background: var(--tint) !important;
+}
+
+/* ─── Card hover ─────────────────────────────────────────────── */
+.card-hover {
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.card-hover:hover {
+  border-color: var(--line-2) !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+
+/* ─── Chip hover ─────────────────────────────────────────────── */
+.chip-btn:hover {
+  background: var(--tint) !important;
+}
+
 /* ─── Estatio Logo ───────────────────────────────────────────── */
 @layer components {
   .estatio-logo {

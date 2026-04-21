@@ -17,12 +17,32 @@ interface TopbarProps {
   onSettings: () => void
 }
 
+function IcSettings() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+      <circle cx="7" cy="7" r="2.2" stroke="currentColor" strokeWidth="1.2"/>
+      <path d="M7 1.5V3M7 11v1.5M1.5 7H3M11 7h1.5M3.2 3.2l1.06 1.06M9.74 9.74l1.06 1.06M3.2 10.8l1.06-1.06M9.74 4.26l1.06-1.06"
+        stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+    </svg>
+  )
+}
+
+function IcLogout() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+      <path d="M5.5 2.5H3a1 1 0 00-1 1v7a1 1 0 001 1h2.5"
+        stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+      <path d="M9 4.5L12 7l-3 2.5M12 7H5.5"
+        stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  )
+}
+
 export default function Topbar({
   agency,
   currentView,
   onHome,
   onSettings,
-  // kept for API compatibility — navigation handled by DashboardHome right panel
   onCompetition: _oc,
   onProspects: _op,
   onFollowup: _of,
@@ -37,7 +57,7 @@ export default function Topbar({
   }
 
   const initials = agency?.name
-    ? agency.name.split(' ').slice(0, 2).map((w) => w[0]).join('').toUpperCase()
+    ? agency.name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
     : 'E'
 
   return (
@@ -54,7 +74,7 @@ export default function Topbar({
         flexShrink: 0,
       }}
     >
-      {/* ── Brand ─────────────────────────────────────── */}
+      {/* ── Brand ─────────────────────────────────────────── */}
       <button
         onClick={onHome}
         style={{
@@ -71,15 +91,15 @@ export default function Topbar({
         <span style={{ fontWeight: 600, fontSize: '15px', letterSpacing: '-0.02em', color: 'var(--ink)' }}>
           Estat
         </span>
-        <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '13px', color: '#FF3D00', margin: '0 1px' }}>
+        <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '13px', color: '#FF3D00', margin: '0 1px', letterSpacing: '-0.04em' }}>
           /
         </span>
-        <span style={{ fontFamily: "'Geist Mono', monospace", fontWeight: 500, fontSize: '13px', color: 'var(--ink)' }}>
+        <span style={{ fontFamily: "'Geist Mono', monospace", fontWeight: 500, fontSize: '13px', letterSpacing: '-0.04em', color: 'var(--ink)' }}>
           io
         </span>
       </button>
 
-      {/* ── Search / center ───────────────────────────── */}
+      {/* ── Search / center (.center) ─────────────────────── */}
       <div
         style={{
           display: 'flex',
@@ -88,14 +108,14 @@ export default function Topbar({
           padding: '5px 11px',
           background: 'var(--tint)',
           border: '1px solid var(--line)',
-          borderRadius: '6px',
+          borderRadius: 'var(--radius-sm)',
           minWidth: '260px',
         }}
       >
         <span
           style={{
             fontFamily: "'Geist Mono', monospace",
-            fontSize: '12px',
+            fontSize: '12.5px',
             color: 'var(--mute)',
             flex: 1,
             letterSpacing: '-0.01em',
@@ -120,46 +140,57 @@ export default function Topbar({
         </span>
       </div>
 
-      {/* ── Right ─────────────────────────────────────── */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+      {/* ── Right (.right) ────────────────────────────────── */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+
+        {/* Settings .ibtn */}
         <button
           onClick={onSettings}
-          style={{
-            fontFamily: "'Geist Mono', monospace",
-            fontSize: '11px',
-            color: currentView === 'settings' ? 'var(--ink)' : 'var(--mute)',
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            letterSpacing: '-0.01em',
-            padding: 0,
-          }}
-        >
-          Min byrå
-        </button>
-
-        <button
-          onClick={handleLogout}
-          style={{
-            fontFamily: "'Geist Mono', monospace",
-            fontSize: '11px',
-            color: 'var(--mute)',
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            letterSpacing: '-0.01em',
-            padding: 0,
-          }}
-        >
-          Logga ut
-        </button>
-
-        {/* Avatar (.av) */}
-        <button
-          onClick={onSettings}
+          className="ibtn"
+          title="Min byrå"
           style={{
             width: '28px',
             height: '28px',
+            borderRadius: '6px',
+            background: currentView === 'settings' ? 'var(--tint)' : 'none',
+            color: currentView === 'settings' ? 'var(--ink)' : 'var(--mute)',
+            border: 'none',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <IcSettings />
+        </button>
+
+        {/* Logout .ibtn */}
+        <button
+          onClick={handleLogout}
+          className="ibtn"
+          title="Logga ut"
+          style={{
+            width: '28px',
+            height: '28px',
+            borderRadius: '6px',
+            background: 'none',
+            color: 'var(--mute)',
+            border: 'none',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <IcLogout />
+        </button>
+
+        {/* Avatar .av */}
+        <button
+          onClick={onSettings}
+          style={{
+            width: '24px',
+            height: '24px',
             borderRadius: '50%',
             background: 'var(--ink)',
             color: '#fff',
@@ -172,7 +203,6 @@ export default function Topbar({
             border: 'none',
             cursor: 'pointer',
             flexShrink: 0,
-            letterSpacing: 0,
           }}
         >
           {initials}
