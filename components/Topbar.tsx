@@ -17,29 +17,18 @@ interface TopbarProps {
   onSettings: () => void
 }
 
-type HandlerKey = 'onHome' | 'onCompetition' | 'onProspects' | 'onFollowup' | 'onTone'
-
-const NAV: { label: string; views: View[]; action: HandlerKey }[] = [
-  { label: 'Idag',        views: ['home'],          action: 'onHome' },
-  { label: 'Objekt',      views: ['detail', 'new'], action: 'onHome' },
-  { label: 'Spekulanter', views: ['prospects'],     action: 'onProspects' },
-  { label: 'Uppföljning', views: ['followup'],      action: 'onFollowup' },
-  { label: 'Tonalitet',   views: ['tone'],          action: 'onTone' },
-  { label: 'Marknad',     views: ['competition'],   action: 'onCompetition' },
-]
-
 export default function Topbar({
   agency,
   currentView,
   onHome,
-  onCompetition,
-  onProspects,
-  onFollowup,
-  onTone,
   onSettings,
+  // kept for API compatibility — navigation handled by DashboardHome right panel
+  onCompetition: _oc,
+  onProspects: _op,
+  onFollowup: _of,
+  onTone: _ot,
 }: TopbarProps) {
   const router = useRouter()
-  const handlers = { onHome, onCompetition, onProspects, onFollowup, onTone }
 
   async function handleLogout() {
     const supabase = createSupabaseBrowserClient()
@@ -52,62 +41,139 @@ export default function Topbar({
     : 'E'
 
   return (
-    <header className="h-14 border-b border-line flex items-center px-6 gap-8 bg-bg shrink-0">
-
-      {/* Logo */}
-      <button onClick={onHome} className="estatio-logo shrink-0">
-        <span className="part-estat text-[22px]">Estat</span>
-        <span className="part-slash text-[15px]">/</span>
-        <span className="part-io text-[15px]">io</span>
+    <header
+      style={{
+        height: '48px',
+        display: 'grid',
+        gridTemplateColumns: 'auto 1fr auto',
+        alignItems: 'center',
+        padding: '0 14px',
+        gap: '16px',
+        borderBottom: '1px solid var(--line)',
+        background: 'var(--bg)',
+        flexShrink: 0,
+      }}
+    >
+      {/* ── Brand ─────────────────────────────────────── */}
+      <button
+        onClick={onHome}
+        style={{
+          display: 'flex',
+          alignItems: 'baseline',
+          gap: 0,
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+          padding: 0,
+          lineHeight: 1,
+        }}
+      >
+        <span style={{ fontWeight: 600, fontSize: '15px', letterSpacing: '-0.02em', color: 'var(--ink)' }}>
+          Estat
+        </span>
+        <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '13px', color: '#FF3D00', margin: '0 1px' }}>
+          /
+        </span>
+        <span style={{ fontFamily: "'Geist Mono', monospace", fontWeight: 500, fontSize: '13px', color: 'var(--ink)' }}>
+          io
+        </span>
       </button>
 
-      {/* Pill nav */}
-      <nav className="flex-1 flex justify-center">
-        <div className="flex gap-0.5 p-[3px] bg-tint rounded-full">
-          {NAV.map(({ label, views, action }) => {
-            const active = views.includes(currentView)
-            return (
-              <button
-                key={label}
-                onClick={handlers[action] as () => void}
-                className={[
-                  'px-4 py-[7px] rounded-full text-[13px] font-medium transition-all duration-150',
-                  'leading-none tracking-normal',
-                  active
-                    ? 'bg-bg text-ink shadow-[0_1px_2px_rgba(0,0,0,0.06),0_0_0_1px_var(--line)]'
-                    : 'text-mute hover:text-ink-2',
-                ].join(' ')}
-              >
-                {label}
-              </button>
-            )
-          })}
-        </div>
-      </nav>
+      {/* ── Search / center ───────────────────────────── */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '4px',
+          padding: '5px 11px',
+          background: 'var(--tint)',
+          border: '1px solid var(--line)',
+          borderRadius: '6px',
+          minWidth: '260px',
+        }}
+      >
+        <span
+          style={{
+            fontFamily: "'Geist Mono', monospace",
+            fontSize: '12px',
+            color: 'var(--mute)',
+            flex: 1,
+            letterSpacing: '-0.01em',
+          }}
+        >
+          Sök eller kommando
+        </span>
+        <span
+          style={{
+            fontFamily: "'Geist Mono', monospace",
+            fontSize: '10px',
+            color: 'var(--mute-2)',
+            padding: '2px 5px',
+            background: 'var(--bg)',
+            border: '1px solid var(--line)',
+            borderRadius: '4px',
+            lineHeight: 1,
+            flexShrink: 0,
+          }}
+        >
+          ⌘K
+        </span>
+      </div>
 
-      {/* Right: agency + logout */}
-      <div className="shrink-0 flex items-center gap-3">
+      {/* ── Right ─────────────────────────────────────── */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
         <button
           onClick={onSettings}
-          className={[
-            'font-data text-[11px] tracking-snug transition-colors hidden lg:block',
-            currentView === 'settings' ? 'text-ink' : 'text-mute hover:text-ink',
-          ].join(' ')}
+          style={{
+            fontFamily: "'Geist Mono', monospace",
+            fontSize: '11px',
+            color: currentView === 'settings' ? 'var(--ink)' : 'var(--mute)',
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            letterSpacing: '-0.01em',
+            padding: 0,
+          }}
         >
           Min byrå
         </button>
 
         <button
           onClick={handleLogout}
-          className="font-data text-[11px] text-mute hover:text-ink transition-colors tracking-snug"
+          style={{
+            fontFamily: "'Geist Mono', monospace",
+            fontSize: '11px',
+            color: 'var(--mute)',
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            letterSpacing: '-0.01em',
+            padding: 0,
+          }}
         >
           Logga ut
         </button>
 
-        {/* Avatar */}
+        {/* Avatar (.av) */}
         <button
           onClick={onSettings}
-          className="w-[30px] h-[30px] rounded-full bg-ink text-bg flex items-center justify-center font-data text-[11px] font-medium tracking-snug shrink-0 hover:opacity-80 transition-opacity"
+          style={{
+            width: '28px',
+            height: '28px',
+            borderRadius: '50%',
+            background: 'var(--ink)',
+            color: '#fff',
+            fontFamily: "'Geist Mono', monospace",
+            fontSize: '10px',
+            fontWeight: 500,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            border: 'none',
+            cursor: 'pointer',
+            flexShrink: 0,
+            letterSpacing: 0,
+          }}
         >
           {initials}
         </button>
