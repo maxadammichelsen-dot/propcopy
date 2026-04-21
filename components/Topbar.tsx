@@ -1,16 +1,43 @@
 'use client'
 
-import Image from 'next/image'
 import { Agency } from '@/types'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { useRouter } from 'next/navigation'
 
+type View = 'home' | 'detail' | 'new' | 'tone' | 'competition' | 'prospects' | 'followup'
+
 interface TopbarProps {
   agency: Agency | null
+  currentView: View
+  onHome: () => void
+  onCompetition: () => void
+  onProspects: () => void
+  onFollowup: () => void
+  onTone: () => void
 }
 
-export default function Topbar({ agency }: TopbarProps) {
+type HandlerKey = 'onHome' | 'onCompetition' | 'onProspects' | 'onFollowup' | 'onTone'
+
+const NAV: { label: string; views: View[]; action: HandlerKey }[] = [
+  { label: 'Idag',        views: ['home'],          action: 'onHome' },
+  { label: 'Objekt',      views: ['detail', 'new'], action: 'onHome' },
+  { label: 'Spekulanter', views: ['prospects'],     action: 'onProspects' },
+  { label: 'Uppföljning', views: ['followup'],      action: 'onFollowup' },
+  { label: 'Tonalitet',   views: ['tone'],          action: 'onTone' },
+  { label: 'Marknad',     views: ['competition'],   action: 'onCompetition' },
+]
+
+export default function Topbar({
+  agency,
+  currentView,
+  onHome,
+  onCompetition,
+  onProspects,
+  onFollowup,
+  onTone,
+}: TopbarProps) {
   const router = useRouter()
+  const handlers = { onHome, onCompetition, onProspects, onFollowup, onTone }
 
   async function handleLogout() {
     const supabase = createSupabaseBrowserClient()
@@ -18,80 +45,63 @@ export default function Topbar({ agency }: TopbarProps) {
     router.push('/auth/login')
   }
 
-  const hasBranding = !!(agency?.logo_url || agency?.brand_colors?.primary)
+  const initials = agency?.name
+    ? agency.name.split(' ').slice(0, 2).map((w) => w[0]).join('').toUpperCase()
+    : 'E'
 
   return (
-    <header className="h-16 border-b border-[#2a2a2a] flex items-center justify-between px-6 bg-[#111111] shrink-0">
-      {/* Left: logo or agency name */}
-      <div className="flex items-center gap-4">
-        {agency?.logo_url ? (
-          <div className="flex items-center gap-3">
-            <div className="relative h-8 w-32">
-              <Image
-                src={agency.logo_url}
-                alt={agency.name}
-                fill
-                className="object-contain object-left"
-                unoptimized
-              />
-            </div>
-            {/* Small branding indicator dot */}
-            {hasBranding && (
-              <span
-                className="w-1.5 h-1.5 rounded-full opacity-60"
-                style={{ backgroundColor: 'var(--brand-primary, #b8965a)' }}
-              />
-            )}
-          </div>
-        ) : (
-          <span className="font-serif text-xl text-[#f0ece4] tracking-tight">
-            {agency?.name ?? 'Estatio'}
+    <header className="h-14 border-b border-line flex items-center px-6 gap-8 bg-bg shrink-0">
+
+      {/* Logo */}
+      <button onClick={onHome} className="estatio-logo shrink-0">
+        <span className="part-estat text-[22px]">Estat</span>
+        <span className="part-slash text-[15px]">/</span>
+        <span className="part-io text-[15px]">io</span>
+      </button>
+
+      {/* Pill nav */}
+      <nav className="flex-1 flex justify-center">
+        <div className="flex gap-0.5 p-[3px] bg-tint rounded-full">
+          {NAV.map(({ label, views, action }) => {
+            const active = views.includes(currentView)
+            return (
+              <button
+                key={label}
+                onClick={handlers[action] as () => void}
+                className={[
+                  'px-4 py-[7px] rounded-full text-[13px] font-medium transition-all duration-150',
+                  'leading-none tracking-normal',
+                  active
+                    ? 'bg-bg text-ink shadow-[0_1px_2px_rgba(0,0,0,0.06),0_0_0_1px_var(--line)]'
+                    : 'text-mute hover:text-ink-2',
+                ].join(' ')}
+              >
+                {label}
+              </button>
+            )
+          })}
+        </div>
+      </nav>
+
+      {/* Right: agency + logout */}
+      <div className="shrink-0 flex items-center gap-3">
+        {agency?.name && (
+          <span className="font-data text-[11px] text-mute tracking-snug hidden lg:block">
+            {agency.name}
           </span>
         )}
 
-        {/* Tone tags */}
-        {agency?.tone_profile?.tags && (
-          <div className="hidden lg:flex items-center gap-1.5 ml-1">
-            {agency.tone_profile.tags.slice(0, 4).map((tag) => (
-              <span
-                key={tag}
-                className="text-[10px] uppercase tracking-widest rounded-full px-2 py-0.5 border"
-                style={{
-                  color: 'var(--brand-primary, #b8965a)',
-                  borderColor: 'var(--brand-primary-dim, #b8965a33)',
-                }}
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Right: Estatio wordmark + logout */}
-      <div className="flex items-center gap-4">
-        {/* Brand color swatch – subtle visual indicator */}
-        {agency?.brand_colors?.primary && (
-          <div className="hidden sm:flex items-center gap-1">
-            {[agency.brand_colors.primary, agency.brand_colors.secondary, agency.brand_colors.accent]
-              .filter(Boolean)
-              .map((color, i) => (
-                <div
-                  key={i}
-                  className="w-3 h-3 rounded-full border border-[#ffffff11]"
-                  style={{ backgroundColor: color! }}
-                  title={color!}
-                />
-              ))}
-          </div>
-        )}
-        <span className="text-[10px] uppercase tracking-widest text-[#333]">Estatio</span>
         <button
           onClick={handleLogout}
-          className="text-xs text-[#555] hover:text-[#f0ece4] transition-colors"
+          className="font-data text-[11px] text-mute hover:text-ink transition-colors tracking-snug"
         >
           Logga ut
         </button>
+
+        {/* Avatar */}
+        <div className="w-[30px] h-[30px] rounded-full bg-ink text-bg flex items-center justify-center font-data text-[11px] font-medium tracking-snug shrink-0">
+          {initials}
+        </div>
       </div>
     </header>
   )

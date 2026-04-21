@@ -94,10 +94,14 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#111111] flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-6 h-6 border-2 border-[#2a2a2a] border-t-[#b8965a] rounded-full animate-spin" />
-          <p className="text-[#555] text-sm">Laddar…</p>
+      <div className="min-h-screen bg-bg flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="estatio-logo">
+            <span className="part-estat text-[28px]">Estat</span>
+            <span className="part-slash text-[19px]">/</span>
+            <span className="part-io text-[19px]">io</span>
+          </div>
+          <div className="w-5 h-5 border-[1.5px] border-line border-t-accent rounded-full animate-spin" />
         </div>
       </div>
     )
@@ -105,8 +109,16 @@ export default function DashboardPage() {
 
   return (
     <BrandProvider agency={agency}>
-    <div className="min-h-screen bg-[#111111] flex flex-col">
-      <Topbar agency={agency} />
+    <div className="min-h-screen bg-bg flex flex-col">
+      <Topbar
+        agency={agency}
+        currentView={view}
+        onHome={handleHome}
+        onCompetition={handleCompetition}
+        onProspects={handleProspects}
+        onFollowup={handleFollowup}
+        onTone={() => setView('tone')}
+      />
 
       <div className="flex flex-1 overflow-hidden">
         <Sidebar
@@ -162,16 +174,20 @@ export default function DashboardPage() {
 
 function EmptyState({ onNewObject }: { onNewObject: () => void }) {
   return (
-    <div className="h-full flex flex-col items-center justify-center text-center px-8">
-      <h2 className="font-serif text-4xl text-[#f0ece4] mb-3">Välkommen till Estatio</h2>
-      <p className="text-[#555] text-sm max-w-xs leading-relaxed mb-8">
-        Skapa ditt första objekt och generera professionella marknadsföringstexter för alla kanaler på sekunder.
-      </p>
+    <div className="h-full flex flex-col items-center justify-center text-center px-8 gap-6">
+      <div>
+        <h2 className="font-display text-[44px] tracking-tightest leading-display text-ink mb-3">
+          Skapa ditt <em className="italic text-mute">första objekt.</em>
+        </h2>
+        <p className="font-data text-[13px] text-mute tracking-snug max-w-xs mx-auto leading-relaxed">
+          Generera professionella texter för alla kanaler på sekunder.
+        </p>
+      </div>
       <button
         onClick={onNewObject}
-        className="px-6 py-3 bg-[#b8965a] hover:bg-[#d4b07a] text-[#111111] rounded text-sm font-medium transition-colors"
+        className="bg-ink text-bg px-5 py-2.5 rounded-full text-[13px] font-medium hover:opacity-80 transition-opacity"
       >
-        Skapa första objektet
+        Nytt objekt →
       </button>
     </div>
   )
