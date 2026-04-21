@@ -1,0 +1,89 @@
+import { createSupabaseAdminClient } from './supabase-admin'
+
+interface BrainEntry {
+  category: string
+  key: string
+  value: string
+  confidence: number
+}
+
+function formatEntries(entries: BrainEntry[], minConfidence = 0): string {
+  return entries
+    .filter(e => e.confidence >= minConfidence)
+    .sort((a, b) => b.confidence - a.confidence)
+    .map(e => `• ${e.value}`)
+    .join('\n')
+}
+
+export async function buildBrainContext(agency_id: string): Promise<string> {
+  const supabase = createSupabaseAdminClient()
+  const { data, error } = await supabase
+    .from('agency_brain')
+    .select('category, key, value, confidence')
+    .eq('agency_id', agency_id)
+    .gte('confidence', 0.3)
+    .order('confidence', { ascending: false })
+
+  if (error || !data || data.length === 0) return ''
+
+  const by = (cat: string) => data.filter(e => e.category === cat)
+
+  const tone         = by('tone')
+  const winningTexts = by('winning_text')
+  const areaInsights = by('area_insight')
+  const buyerProfile = by('buyer_profile')
+  const feedback     = data.filter(e => e.category === 'feedback')
+  const positive     = feedback.filter(e => e.confidence >= 0.6)
+  const negative     = feedback.filter(e => e.confidence < 0.4)
+
+  const sections: string[] = []
+
+  if (tone.length > 0) {
+    sections.push(`TONALITET:\n${formatEntries(tone)}`)
+  }
+  if (winningTexts.length > 0) {
+    sections.push(`VINNANDE FORMULERINGAR:\n${formatEntries(winningTexts)}`)
+  }
+  if (areaInsights.length > 0) {
+    sections.push(`OMRÅDE-INSIKTER:\n${formatEntries(areaInsights)}`)
+  }
+  if (buyerProfile.length > 0) {
+    sections.push(`KÖPARPROFIL:\n${formatEntries(buyerProfile)}`)
+  }
+  if (positive.length > 0) {
+    sections.push(`ANVÄND ALLTID:\n${formatEntries(positive)}`)
+  }
+  if (negative.length > 0) {
+    sections.push(`UNDVIK ALLTID:\n${formatEntries(negative)}`)
+  }
+
+  if (sections.length === 0) return ''
+
+  return `\nBYRÅKONTEXT:\n${sections.join('\n\n')}\n\nAnvänd denna kontext för att anpassa texten specifikt till denna byrå. Generiska svar är inte acceptabla.`
+}
+
+export async function getBrainStats(agency_id: string): Promise<{
+  total: number
+  byCategory: Record<string, number>
+  topSignals: BrainEntry[]
+}> {
+  const supabase = createSupabaseAdminClient()
+  const { data } = await supabase
+    .from('agency_brain')
+    .select('category, key, value, confidence')
+    .eq('agency_id', agency_id)
+    .order('confidence', { ascending: false })
+
+  if (!data) return { total: 0, byCategory: {}, topSignals: [] }
+
+  const byCategory: Record<string, number> = {}
+  for (const e of data) {
+    byCategory[e.category] = (byCategory[e.category] ?? 0) + 1
+  }
+
+  return {
+    total: data.length,
+    byCategory,
+    topSignals: data.filter(e => e.category === 'tone').slice(0, 5),
+  }
+}
