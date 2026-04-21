@@ -11,23 +11,27 @@ interface ContentCardProps {
 }
 
 const CHANNEL_META: Record<Channel, { label: string; maxChars: number; description: string }> = {
-  hemnet:         { label: 'Hemnet',          maxChars: 1875, description: 'Rubrik + säljtext' },
-  hemnet_raket:   { label: 'Hemnet Raket',    maxChars: 450,  description: 'Hook + komprimerad text' },
-  meta:           { label: 'Meta Ads',         maxChars: 430,  description: 'Hook + primary text + CTA' },
-  mail:           { label: 'E-post',           maxChars: 900,  description: 'Ämnesrad + brödtext' },
-  website:        { label: 'Hemsida',          maxChars: 2500, description: 'Poetisk beskrivning' },
-  booli:          { label: 'Booli',            maxChars: 2075, description: 'Rubrik + faktabaserad beskrivning' },
-  boneo:          { label: 'Boneo',            maxChars: 1875, description: 'Rubrik + säljtext' },
-  boneo_kommande: { label: 'Boneo Kommande',   maxChars: 460,  description: 'Teaser för förhandsvisning' },
-  hjem:           { label: 'Hjem',             maxChars: 965,  description: 'Rubrik + skandinavisk direkttext' },
-  bovision:       { label: 'Bovision',         maxChars: 1575, description: 'Rubrik + unika särdrag' },
+  hemnet:         { label: 'Hemnet',         maxChars: 1875, description: 'Rubrik + säljtext' },
+  hemnet_raket:   { label: 'Hemnet Raket',   maxChars: 450,  description: 'Hook + komprimerad text' },
+  meta:           { label: 'Meta Ads',        maxChars: 430,  description: 'Hook + primary text + CTA' },
+  mail:           { label: 'E-post',          maxChars: 900,  description: 'Ämnesrad + brödtext' },
+  website:        { label: 'Hemsida',         maxChars: 2500, description: 'Poetisk beskrivning' },
+  booli:          { label: 'Booli',           maxChars: 2075, description: 'Rubrik + faktabaserad beskrivning' },
+  boneo:          { label: 'Boneo',           maxChars: 1875, description: 'Rubrik + säljtext' },
+  boneo_kommande: { label: 'Boneo Kommande',  maxChars: 460,  description: 'Teaser för förhandsvisning' },
+  hjem:           { label: 'Hjem',            maxChars: 965,  description: 'Rubrik + skandinavisk direkttext' },
+  bovision:       { label: 'Bovision',        maxChars: 1575, description: 'Rubrik + unika särdrag' },
 }
 
 export default function ContentCard({ channel, result, isActive, onToggle }: ContentCardProps) {
   const [copied, setCopied] = useState(false)
   const meta = CHANNEL_META[channel]
   const charCount = result?.char_count ?? 0
+  const wordCount = result?.content
+    ? result.content.trim().split(/\s+/).filter(Boolean).length
+    : 0
   const overLimit = charCount > meta.maxChars
+  const tooShort = !!result && charCount < meta.maxChars * 0.4
   const fillPct = Math.min((charCount / meta.maxChars) * 100, 100)
 
   async function handleCopy() {
@@ -37,53 +41,62 @@ export default function ContentCard({ channel, result, isActive, onToggle }: Con
     setTimeout(() => setCopied(false), 2000)
   }
 
+  // Treat first non-empty line as headline if there are subsequent lines
+  const lines = result?.content?.split('\n') ?? []
+  const firstLine = lines[0]?.trim() ?? ''
+  const rest = lines.slice(1).join('\n').trim()
+  const hasStructure = firstLine && rest
+
   return (
-    <div
-      className={`rounded-lg border transition-all ${
-        isActive
-          ? 'border-[#2a2a2a] bg-[#1a1a1a]'
-          : 'border-[#1e1e1e] bg-[#151515] opacity-60'
-      }`}
-    >
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-[#2a2a2a]">
+    <div className={`border-b border-line transition-opacity ${isActive ? 'opacity-100' : 'opacity-40'}`}>
+
+      {/* Header row */}
+      <div className="flex items-center justify-between px-6 py-4">
         <div className="flex items-center gap-3">
+
+          {/* Toggle */}
           <button
             onClick={onToggle}
-            className={`w-8 h-4 rounded-full transition-colors relative ${
-              isActive ? 'bg-[#b8965a]' : 'bg-[#2a2a2a]'
+            aria-label={isActive ? 'Inaktivera kanal' : 'Aktivera kanal'}
+            className={`w-8 h-[18px] rounded-full transition-colors relative shrink-0 ${
+              isActive ? 'bg-ink' : 'bg-line-2'
             }`}
           >
             <span
-              className={`absolute top-0.5 w-3 h-3 rounded-full bg-[#111111] transition-transform ${
-                isActive ? 'translate-x-4' : 'translate-x-0.5'
+              className={`absolute top-[3px] w-3 h-3 rounded-full bg-bg transition-transform ${
+                isActive ? 'translate-x-[17px]' : 'translate-x-[3px]'
               }`}
             />
           </button>
+
           <div>
-            <p className="text-sm text-[#f0ece4] font-medium">{meta.label}</p>
-            <p className="text-[10px] text-[#555]">{meta.description}</p>
+            <p className="text-[13px] font-medium text-ink">{meta.label}</p>
+            <p className="font-data text-[10px] text-mute tracking-snug">{meta.description}</p>
           </div>
         </div>
 
         {result && (
-          <div className="flex items-center gap-3">
-            <div className="text-right">
-              <p className={`text-xs font-mono ${overLimit ? 'text-red-400' : 'text-[#888]'}`}>
+          <div className="flex items-center gap-4 shrink-0">
+            {/* Char fill bar */}
+            <div className="text-right hidden sm:block">
+              <p className={`font-data text-[11px] tabular-nums ${overLimit ? 'text-accent' : 'text-mute'}`}>
                 {charCount} / {meta.maxChars}
               </p>
-              <div className="w-20 h-0.5 bg-[#2a2a2a] rounded-full mt-1 overflow-hidden">
+              <div className="w-20 h-[2px] bg-line rounded-full mt-1 overflow-hidden">
                 <div
-                  className={`h-full rounded-full transition-all ${
-                    overLimit ? 'bg-red-400' : 'bg-[#b8965a]'
-                  }`}
-                  style={{ width: `${fillPct}%` }}
+                  className="h-full rounded-full transition-all"
+                  style={{
+                    width: `${fillPct}%`,
+                    background: overLimit ? 'var(--accent)' : 'var(--ink)',
+                  }}
                 />
               </div>
             </div>
+
+            {/* Copy */}
             <button
               onClick={handleCopy}
-              className="text-[10px] uppercase tracking-widest text-[#555] hover:text-[#b8965a] transition-colors px-2 py-1 border border-[#2a2a2a] rounded"
+              className="font-data text-[10px] uppercase tracking-[0.06em] text-mute hover:text-ink transition-colors px-3 py-1.5 border border-line rounded-full"
             >
               {copied ? '✓ Kopierad' : 'Kopiera'}
             </button>
@@ -91,20 +104,84 @@ export default function ContentCard({ channel, result, isActive, onToggle }: Con
         )}
       </div>
 
-      {/* Content */}
+      {/* Expanded content */}
       {isActive && (
-        <div className="p-4">
-          {result ? (
-            <pre className="text-sm text-[#c8c4bc] whitespace-pre-wrap leading-relaxed font-sans">
-              {result.content}
-            </pre>
-          ) : (
-            <p className="text-[#444] text-sm italic">
-              Generera text för att se innehåll här
-            </p>
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_160px] divide-y lg:divide-y-0 lg:divide-x divide-line border-t border-line">
+
+          {/* Editorial text */}
+          <div className="px-6 py-5">
+            {result ? (
+              <div className="space-y-3">
+                {hasStructure ? (
+                  <>
+                    <p className="font-display text-[22px] leading-[1.1] tracking-[-0.02em] text-ink">
+                      {firstLine}
+                    </p>
+                    <p className="text-[13px] text-ink-2 leading-relaxed whitespace-pre-wrap">
+                      {rest}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-[13px] text-ink-2 leading-relaxed whitespace-pre-wrap">
+                    {result.content}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <p className="font-data text-[11px] text-mute-2 tracking-snug">
+                Aktivera kanalen och generera texter för att se innehåll här
+              </p>
+            )}
+          </div>
+
+          {/* Metrics rail */}
+          {result && (
+            <div className="px-5 py-5 space-y-5">
+              <MetricItem
+                label="Tecken"
+                value={charCount}
+                note={`/ ${meta.maxChars}`}
+                alert={overLimit}
+              />
+              <MetricItem label="Ord" value={wordCount} />
+
+              {overLimit && (
+                <p className="font-data text-[10px] text-accent tracking-snug leading-relaxed">
+                  {charCount - meta.maxChars} tecken över gränsen
+                </p>
+              )}
+              {tooShort && (
+                <p className="font-data text-[10px] text-mute-2 tracking-snug leading-relaxed">
+                  Texten kan vara kort för kanalen
+                </p>
+              )}
+            </div>
           )}
         </div>
       )}
+    </div>
+  )
+}
+
+function MetricItem({
+  label, value, note = '', alert = false,
+}: {
+  label: string; value: number; note?: string; alert?: boolean
+}) {
+  return (
+    <div>
+      <p className="font-data text-[10px] text-mute tracking-[0.02em] uppercase">{label}</p>
+      <div className="flex items-baseline gap-1 mt-0.5">
+        <span
+          className="font-data text-[20px] font-medium tabular-nums leading-none"
+          style={{ color: alert ? 'var(--accent)' : 'var(--ink)' }}
+        >
+          {value}
+        </span>
+        {note && (
+          <span className="font-data text-[10px] text-mute-2">{note}</span>
+        )}
+      </div>
     </div>
   )
 }
