@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Channel, GenerateResult } from '@/types'
+import ChannelBadge, { CHANNEL_CONFIG } from './ChannelBadge'
 
 interface ContentCardProps {
   channel: Channel
@@ -10,22 +11,23 @@ interface ContentCardProps {
   onToggle: () => void
 }
 
-const CHANNEL_META: Record<Channel, { label: string; maxChars: number; description: string }> = {
-  hemnet:         { label: 'Hemnet',         maxChars: 1875, description: 'Rubrik + säljtext' },
-  hemnet_raket:   { label: 'Hemnet Raket',   maxChars: 450,  description: 'Hook + komprimerad text' },
-  meta:           { label: 'Meta Ads',        maxChars: 430,  description: 'Hook + primary text + CTA' },
-  mail:           { label: 'E-post',          maxChars: 900,  description: 'Ämnesrad + brödtext' },
-  website:        { label: 'Hemsida',         maxChars: 2500, description: 'Poetisk beskrivning' },
-  booli:          { label: 'Booli',           maxChars: 2075, description: 'Rubrik + faktabaserad beskrivning' },
-  boneo:          { label: 'Boneo',           maxChars: 1875, description: 'Rubrik + säljtext' },
-  boneo_kommande: { label: 'Boneo Kommande',  maxChars: 460,  description: 'Teaser för förhandsvisning' },
-  hjem:           { label: 'Hjem',            maxChars: 965,  description: 'Rubrik + skandinavisk direkttext' },
-  bovision:       { label: 'Bovision',        maxChars: 1575, description: 'Rubrik + unika särdrag' },
+const CHANNEL_META: Record<Channel, { maxChars: number; description: string }> = {
+  hemnet:         { maxChars: 1875, description: 'Rubrik + säljtext' },
+  hemnet_raket:   { maxChars: 450,  description: 'Hook + komprimerad text' },
+  meta:           { maxChars: 430,  description: 'Hook + primary text + CTA' },
+  mail:           { maxChars: 900,  description: 'Ämnesrad + brödtext' },
+  website:        { maxChars: 2500, description: 'Poetisk beskrivning' },
+  booli:          { maxChars: 2075, description: 'Rubrik + faktabaserad beskrivning' },
+  boneo:          { maxChars: 1875, description: 'Rubrik + säljtext' },
+  boneo_kommande: { maxChars: 460,  description: 'Teaser för förhandsvisning' },
+  hjem:           { maxChars: 965,  description: 'Rubrik + skandinavisk direkttext' },
+  bovision:       { maxChars: 1575, description: 'Rubrik + unika särdrag' },
 }
 
 export default function ContentCard({ channel, result, isActive, onToggle }: ContentCardProps) {
   const [copied, setCopied] = useState(false)
   const meta = CHANNEL_META[channel]
+  const cfg = CHANNEL_CONFIG[channel]
   const charCount = result?.char_count ?? 0
   const wordCount = result?.content
     ? result.content.trim().split(/\s+/).filter(Boolean).length
@@ -58,9 +60,8 @@ export default function ContentCard({ channel, result, isActive, onToggle }: Con
           <button
             onClick={onToggle}
             aria-label={isActive ? 'Inaktivera kanal' : 'Aktivera kanal'}
-            className={`w-8 h-[18px] rounded-full transition-colors relative shrink-0 ${
-              isActive ? 'bg-ink' : 'bg-line-2'
-            }`}
+            className="w-8 h-[18px] rounded-full transition-colors relative shrink-0"
+            style={{ background: isActive ? cfg.color : 'var(--line-2)' }}
           >
             <span
               className={`absolute top-[3px] w-3 h-3 rounded-full bg-bg transition-transform ${
@@ -69,8 +70,10 @@ export default function ContentCard({ channel, result, isActive, onToggle }: Con
             />
           </button>
 
+          <ChannelBadge channel={channel} />
+
           <div>
-            <p className="text-[13px] font-medium text-ink">{meta.label}</p>
+            <p className="text-[13px] font-medium text-ink">{cfg.label}</p>
             <p className="font-data text-[10px] text-mute tracking-snug">{meta.description}</p>
           </div>
         </div>
@@ -87,7 +90,7 @@ export default function ContentCard({ channel, result, isActive, onToggle }: Con
                   className="h-full rounded-full transition-all"
                   style={{
                     width: `${fillPct}%`,
-                    background: overLimit ? 'var(--accent)' : 'var(--ink)',
+                    background: overLimit ? 'var(--accent)' : cfg.color,
                   }}
                 />
               </div>
