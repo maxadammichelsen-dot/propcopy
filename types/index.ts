@@ -1,3 +1,12 @@
+export interface SocialToneProfile {
+  tone_tags: string[]
+  voice: string
+  hashtags: string[]
+  keywords: string[]
+  formats: string[]
+  style_notes: string
+}
+
 export interface Agency {
   id: string
   name: string
@@ -6,6 +15,10 @@ export interface Agency {
   brand_colors: BrandColors | null
   logo_url: string | null
   scraped_data: ScrapedData | null
+  meta_access_token: string | null
+  meta_page_id: string | null
+  instagram_account_id: string | null
+  social_tone_profile: SocialToneProfile | null
   created_at: string
   user_id: string
 }
