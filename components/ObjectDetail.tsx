@@ -67,21 +67,24 @@ export default function ObjectDetail({ object, agency }: ObjectDetailProps) {
 
   return (
     <div className="flex flex-col h-full">
+
       {/* Object header */}
-      <div className="p-6 border-b border-[#2a2a2a]">
-        <div className="flex items-start justify-between">
-          <div>
-            <h2 className="font-serif text-3xl text-[#f0ece4] leading-tight">{object.address}</h2>
-            <p className="text-sm text-[#555] mt-1">
+      <div className="border-b border-line px-8 py-6 shrink-0">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <h2 className="font-display text-[32px] leading-[0.93] tracking-[-0.025em] text-ink truncate">
+              {object.address}
+            </h2>
+            <p className="font-data text-[11px] text-mute mt-1.5 tracking-snug">
               {object.area} · {object.type} · {object.size} kvm ·{' '}
               {new Intl.NumberFormat('sv-SE').format(object.price)} kr
             </p>
             {agency?.tone_profile?.tags && (
-              <div className="flex gap-2 mt-3 flex-wrap">
+              <div className="flex gap-1.5 mt-3 flex-wrap">
                 {agency.tone_profile.tags.map((tag) => (
                   <span
                     key={tag}
-                    className="text-[10px] uppercase tracking-widest text-[#b8965a] border border-[#b8965a33] rounded-full px-2 py-0.5"
+                    className="font-data text-[10px] text-mute border border-line rounded-full px-2.5 py-0.5"
                   >
                     {tag}
                   </span>
@@ -94,11 +97,11 @@ export default function ObjectDetail({ object, agency }: ObjectDetailProps) {
             <button
               onClick={handleGenerate}
               disabled={generating}
-              className="shrink-0 ml-4 flex items-center gap-2 px-5 py-2.5 bg-[#b8965a] hover:bg-[#d4b07a] text-[#111111] rounded text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="shrink-0 bg-ink text-bg px-5 py-2.5 rounded-full text-[13px] font-medium hover:opacity-80 transition-opacity disabled:opacity-40 flex items-center gap-2"
             >
               {generating ? (
                 <>
-                  <span className="inline-block w-3 h-3 border-2 border-[#11111166] border-t-[#111111] rounded-full animate-spin" />
+                  <span className="inline-block w-3 h-3 border-2 border-bg/40 border-t-bg rounded-full animate-spin" />
                   Genererar…
                 </>
               ) : (
@@ -109,7 +112,7 @@ export default function ObjectDetail({ object, agency }: ObjectDetailProps) {
         </div>
 
         {/* Sub-tabs */}
-        <div className="flex gap-1 mt-4">
+        <div className="flex gap-0.5 mt-5 p-[3px] bg-tint rounded-full w-fit">
           {([
             { key: 'copy',     label: 'Kanaltexter' },
             { key: 'revision', label: 'Revision' },
@@ -118,11 +121,12 @@ export default function ObjectDetail({ object, agency }: ObjectDetailProps) {
             <button
               key={key}
               onClick={() => setDetailTab(key)}
-              className={`text-[10px] uppercase tracking-widest px-3 py-1.5 rounded transition-colors border ${
+              className={[
+                'px-4 py-[6px] rounded-full text-[12px] font-medium transition-all duration-150 leading-none',
                 detailTab === key
-                  ? 'border-[#b8965a33] bg-[#b8965a0d] text-[#b8965a]'
-                  : 'border-transparent text-[#555] hover:text-[#888]'
-              }`}
+                  ? 'bg-bg text-ink shadow-[0_1px_2px_rgba(0,0,0,0.06),0_0_0_1px_var(--line)]'
+                  : 'text-mute hover:text-ink-2',
+              ].join(' ')}
             >
               {label}
             </button>
@@ -133,29 +137,33 @@ export default function ObjectDetail({ object, agency }: ObjectDetailProps) {
       {detailTab === 'copy' ? (
         <>
           {error && (
-            <div className="mx-6 mt-4 p-3 bg-red-900/20 border border-red-900/40 rounded text-sm text-red-400">
-              {error}
+            <div className="mx-8 mt-4 px-4 py-2.5 border border-accent/20 bg-accent/5 rounded-lg">
+              <p className="font-data text-[11px] text-accent tracking-snug">{error}</p>
             </div>
           )}
 
-          <div className="flex-1 overflow-y-auto p-6 space-y-3">
-            {generating && (
-              <div className="flex flex-col items-center justify-center py-16 text-center">
-                <div className="w-8 h-8 border-2 border-[#2a2a2a] border-t-[#b8965a] rounded-full animate-spin mb-4" />
-                <p className="text-[#555] text-sm">Genererar alla kanaler parallellt…</p>
-                <p className="text-[#333] text-xs mt-1">Vanligtvis klart inom 10–15 sekunder</p>
+          <div className="flex-1 overflow-y-auto">
+            {generating ? (
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <div className="w-5 h-5 border-[1.5px] border-line border-t-accent rounded-full animate-spin mb-4" />
+                <p className="font-data text-[11px] text-mute tracking-snug">
+                  Genererar alla kanaler parallellt…
+                </p>
+                <p className="font-data text-[10px] text-mute-2 mt-1 tracking-snug">
+                  Vanligtvis klart inom 10–15 sekunder
+                </p>
               </div>
+            ) : (
+              ALL_CHANNELS.map((channel) => (
+                <ContentCard
+                  key={channel}
+                  channel={channel}
+                  result={results[channel]}
+                  isActive={activeChannels.has(channel)}
+                  onToggle={() => toggleChannel(channel)}
+                />
+              ))
             )}
-
-            {!generating && ALL_CHANNELS.map((channel) => (
-              <ContentCard
-                key={channel}
-                channel={channel}
-                result={results[channel]}
-                isActive={activeChannels.has(channel)}
-                onToggle={() => toggleChannel(channel)}
-              />
-            ))}
           </div>
         </>
       ) : detailTab === 'revision' ? (
