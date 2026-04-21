@@ -17,15 +17,15 @@ interface SidebarProps {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  draft: '#555',
-  active: '#b8965a',
-  sold: '#444',
+  draft:  'var(--mute-2)',
+  active: 'var(--ink)',
+  sold:   'var(--mute-2)',
 }
 
-const STATUS_LABELS: Record<string, string> = {
-  draft: 'Utkast',
-  active: 'Aktiv',
-  sold: 'Såld',
+const STATUS_DOT: Record<string, string> = {
+  draft:  'var(--line-2)',
+  active: 'var(--accent)',
+  sold:   'var(--mute-2)',
 }
 
 export default function Sidebar({
@@ -36,141 +36,107 @@ export default function Sidebar({
   onSelect,
   onNewObject,
   onTone,
-  onHome,
-  onCompetition,
-  onProspects,
-  onFollowup,
 }: SidebarProps) {
-  const hasTone = !!agency?.tone_profile?.tags?.length
-  const toneActive = currentView === 'tone'
-  const homeActive = currentView === 'home'
-  const competitionActive = currentView === 'competition'
-  const prospectsActive = currentView === 'prospects'
-  const followupActive = currentView === 'followup'
-
   return (
-    <aside className="w-64 shrink-0 border-r border-[#2a2a2a] flex flex-col bg-[#111111]">
-      {/* Quick nav */}
-      <div className="p-3 border-b border-[#2a2a2a] space-y-1">
+    <aside className="w-56 shrink-0 border-r border-line flex flex-col bg-tint">
+
+      {/* New object */}
+      <div className="p-4 border-b border-line">
         <button
-          onClick={onHome}
-          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded transition-colors border ${
-            homeActive
-              ? 'bg-[#b8965a0d] border-[#b8965a33]'
-              : 'border-transparent hover:bg-[#1a1a1a]'
-          }`}
+          onClick={onNewObject}
+          className="w-full flex items-center justify-between px-3 py-2 rounded-full bg-ink text-bg text-[12px] font-medium hover:opacity-80 transition-opacity"
         >
-          <span className="text-sm leading-none">◈</span>
-          <span className={`text-xs font-medium ${homeActive ? 'text-[#b8965a]' : 'text-[#888]'}`}>
-            Översikt
-          </span>
-        </button>
-        <button
-          onClick={onCompetition}
-          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded transition-colors border ${
-            competitionActive
-              ? 'bg-[#b8965a0d] border-[#b8965a33]'
-              : 'border-transparent hover:bg-[#1a1a1a]'
-          }`}
-        >
-          <span className="text-sm leading-none">◎</span>
-          <span className={`text-xs font-medium ${competitionActive ? 'text-[#b8965a]' : 'text-[#888]'}`}>
-            Marknad
-          </span>
-        </button>
-        <button
-          onClick={onProspects}
-          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded transition-colors border ${
-            prospectsActive
-              ? 'bg-[#b8965a0d] border-[#b8965a33]'
-              : 'border-transparent hover:bg-[#1a1a1a]'
-          }`}
-        >
-          <span className="text-sm leading-none">◉</span>
-          <span className={`text-xs font-medium ${prospectsActive ? 'text-[#b8965a]' : 'text-[#888]'}`}>
-            Spekulanter
-          </span>
-        </button>
-        <button
-          onClick={onFollowup}
-          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded transition-colors border ${
-            followupActive
-              ? 'bg-[#b8965a0d] border-[#b8965a33]'
-              : 'border-transparent hover:bg-[#1a1a1a]'
-          }`}
-        >
-          <span className="text-sm leading-none">✦</span>
-          <span className={`text-xs font-medium ${followupActive ? 'text-[#b8965a]' : 'text-[#888]'}`}>
-            Uppföljning
-          </span>
+          <span>Nytt objekt</span>
+          <span className="font-data text-[14px] leading-none">+</span>
         </button>
       </div>
 
-      {/* New object */}
-      <div className="p-4 border-b border-[#2a2a2a]">
-        <button
-          onClick={onNewObject}
-          className="w-full flex items-center justify-center gap-2 py-2.5 border border-[#b8965a33] rounded text-[#b8965a] text-xs uppercase tracking-widest hover:bg-[#b8965a0d] transition-colors"
-        >
-          <span className="text-base leading-none">+</span>
-          Nytt objekt
-        </button>
+      {/* Column headers */}
+      <div className="px-4 py-2 border-b border-line flex justify-between">
+        <span className="font-data text-[10px] text-mute uppercase tracking-[0.02em]">Adress</span>
+        <span className="font-data text-[10px] text-mute uppercase tracking-[0.02em]">Dagar</span>
       </div>
 
       {/* Object list */}
       <div className="flex-1 overflow-y-auto">
         {objects.length === 0 ? (
-          <p className="text-[#444] text-xs text-center py-8 px-4">
-            Inga objekt ännu.<br />Skapa ditt första ovan.
-          </p>
+          <div className="px-4 py-8 text-center">
+            <p className="font-data text-[11px] text-mute-2 tracking-snug leading-relaxed">
+              Inga objekt ännu
+            </p>
+          </div>
         ) : (
-          <ul className="py-2">
-            {objects.map((obj) => (
-              <li key={obj.id}>
-                <button
-                  onClick={() => onSelect(obj.id)}
-                  className={`w-full text-left px-4 py-3 hover:bg-[#1a1a1a] transition-colors border-l-2 ${
-                    selectedId === obj.id && currentView === 'detail'
-                      ? 'border-[#b8965a] bg-[#1a1a1a]'
-                      : 'border-transparent'
-                  }`}
-                >
-                  <p className="text-sm text-[#f0ece4] truncate leading-tight">{obj.address}</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-[10px] text-[#555]">{obj.area}</span>
-                    <span className="text-[10px]" style={{ color: STATUS_COLORS[obj.status] }}>
-                      {STATUS_LABELS[obj.status]}
+          <ul>
+            {objects.map((obj, i) => {
+              const isActive = selectedId === obj.id && currentView === 'detail'
+              const daysOnMarket = Math.floor(
+                (Date.now() - new Date(obj.created_at).getTime()) / 86_400_000
+              )
+              return (
+                <li key={obj.id}>
+                  <button
+                    onClick={() => onSelect(obj.id)}
+                    className={[
+                      'w-full text-left px-4 py-3 flex items-start gap-2.5',
+                      'border-b border-line transition-colors border-l-2',
+                      isActive
+                        ? 'bg-bg border-l-accent'
+                        : 'hover:bg-bg/60 border-l-transparent',
+                    ].join(' ')}
+                  >
+                    {/* Row number */}
+                    <span className="font-data text-[10px] text-mute-2 pt-[3px] tabular-nums w-5 shrink-0">
+                      {String(i + 1).padStart(2, '0')}
                     </span>
-                  </div>
-                </button>
-              </li>
-            ))}
+
+                    {/* Address + area */}
+                    <div className="flex-1 min-w-0">
+                      <p
+                        className="text-[13px] font-medium truncate leading-snug"
+                        style={{ color: STATUS_COLORS[obj.status] }}
+                      >
+                        {obj.address}
+                      </p>
+                      <p className="font-data text-[10px] text-mute truncate mt-0.5 tracking-snug">
+                        {obj.area}
+                      </p>
+                    </div>
+
+                    {/* Days + dot */}
+                    <div className="flex flex-col items-end gap-1 shrink-0 pt-[2px]">
+                      <span className="font-data text-[11px] text-mute tabular-nums">
+                        {daysOnMarket}d
+                      </span>
+                      <span
+                        className="w-[5px] h-[5px] rounded-full"
+                        style={{ background: STATUS_DOT[obj.status] }}
+                      />
+                    </div>
+                  </button>
+                </li>
+              )
+            })}
           </ul>
         )}
       </div>
 
-      {/* Tone section */}
-      <div className="border-t border-[#2a2a2a] p-3">
+      {/* Tone status footer */}
+      <div className="border-t border-line p-3">
         <button
           onClick={onTone}
-          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded transition-colors ${
-            toneActive
-              ? 'bg-[#b8965a0d] border border-[#b8965a33]'
-              : 'hover:bg-[#1a1a1a] border border-transparent'
-          }`}
+          className="w-full text-left px-3 py-2 rounded hover:bg-bg/80 transition-colors"
         >
-          <span className="text-base leading-none">{hasTone ? '◆' : '◇'}</span>
-          <div className="flex-1 text-left">
-            <p className={`text-xs font-medium ${toneActive ? 'text-[#b8965a]' : 'text-[#888]'}`}>
-              Byråns tonalitet
+          <p className="font-data text-[10px] text-mute tracking-[0.02em] uppercase mb-1">
+            Tonalitet
+          </p>
+          <div className="flex items-center gap-1.5">
+            <span
+              className="w-[5px] h-[5px] rounded-full shrink-0"
+              style={{ background: agency?.tone_profile ? 'var(--accent)' : 'var(--line-2)' }}
+            />
+            <p className="font-data text-[11px] text-ink-2 truncate tracking-snug">
+              {agency?.tone_profile?.tags?.slice(0, 2).join(', ') ?? 'Ej konfigurerad'}
             </p>
-            {hasTone ? (
-              <p className="text-[10px] text-[#555] truncate mt-0.5">
-                {agency?.tone_profile?.tags?.slice(0, 3).join(', ')}…
-              </p>
-            ) : (
-              <p className="text-[10px] text-[#444] mt-0.5">Ej hämtad</p>
-            )}
           </div>
         </button>
       </div>
