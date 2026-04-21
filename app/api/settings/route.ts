@@ -38,7 +38,7 @@ export async function PATCH(req: NextRequest) {
     if (!agency) return NextResponse.json({ error: 'Ingen byrå hittad' }, { status: 404 })
 
     const body = await req.json()
-    const allowed = ['name', 'url', 'phone', 'email', 'address'] as const
+    const allowed = ['name', 'url', 'phone', 'contact_email', 'address'] as const
     const updates: Partial<Record<typeof allowed[number], string>> = {}
 
     for (const key of allowed) {

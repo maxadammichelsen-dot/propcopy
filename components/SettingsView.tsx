@@ -111,11 +111,11 @@ function AgencyInfoSection({ agency, onAgencyUpdated }: {
   onAgencyUpdated: (a: Agency) => void
 }) {
   const [form, setForm] = useState({
-    name:    agency.name    ?? '',
-    url:     agency.url     ?? '',
-    phone:   agency.phone   ?? '',
-    email:   agency.email   ?? '',
-    address: agency.address ?? '',
+    name:          agency.name          ?? '',
+    url:           agency.url           ?? '',
+    phone:         agency.phone         ?? '',
+    contact_email: agency.contact_email ?? '',
+    address:       agency.address       ?? '',
   })
   const [saving, setSaving]   = useState(false)
   const [saved,  setSaved]    = useState(false)
@@ -265,7 +265,7 @@ function AgencyInfoSection({ agency, onAgencyUpdated }: {
         </FormField>
 
         <FormField label="E-post">
-          <input value={form.email} onChange={e => update('email', e.target.value)}
+          <input value={form.contact_email} onChange={e => update('contact_email', e.target.value)}
             className={inputCls} placeholder="info@byrå.se" type="email" />
         </FormField>
 

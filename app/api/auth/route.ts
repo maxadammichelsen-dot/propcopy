@@ -17,13 +17,15 @@ export async function POST(req: NextRequest) {
   // works whether or not Supabase email confirmation is enabled.
   if (action === 'setup_agency') {
     if (!user_id) return NextResponse.json({ error: 'user_id krävs' }, { status: 400 })
+    const trimmedName = agency_name?.trim()
+    if (!trimmedName) return NextResponse.json({ error: 'Byrånamn krävs' }, { status: 400 })
     const admin = createSupabaseAdminClient()
 
     // 1. Create / update agency row
     const { data: agency, error: upsertError } = await admin
       .from('agencies')
       .upsert(
-        { user_id, name: agency_name || 'Min byrå', url: agency_url ?? '' },
+        { user_id, name: trimmedName, url: agency_url?.trim() ?? '' },
         { onConflict: 'user_id' }
       )
       .select('id, url')

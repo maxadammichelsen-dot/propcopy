@@ -12,7 +12,7 @@ export interface Agency {
   name: string
   url: string
   phone: string | null
-  email: string | null
+  contact_email: string | null
   address: string | null
   tone_profile: ToneProfile | null
   brand_colors: BrandColors | null
