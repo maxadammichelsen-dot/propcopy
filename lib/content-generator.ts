@@ -1,6 +1,7 @@
 import { anthropic, MODEL } from './anthropic'
 import { Agency, Channel, GenerateResult, KeyInsights, LocationArgument, PropertyObject } from '@/types'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { buildBrainContext } from './brain-context'
 
 const MASTER_SYSTEM = `Du är världens bästa copywriter specialiserad på svensk fastighetsförsäljning. Du har skrivit tusentals objekttexter som resulterat i budgivningar 15-30% över utgångspris.
 
@@ -256,8 +257,10 @@ export async function generateAllChannels(
     'booli', 'boneo', 'boneo_kommande', 'hjem', 'bovision',
   ]
 
+  const brainContext = await buildBrainContext(agency.id)
+
   const results = await Promise.all(
-    channels.map((channel) => generateChannel(channel, object, toneString, supabase))
+    channels.map((channel) => generateChannel(channel, object, toneString, supabase, brainContext))
   )
 
   await saveToSupabase(object.id, results, supabase)
@@ -268,7 +271,8 @@ async function generateChannel(
   channel: Channel,
   object: PropertyObject,
   tone: string,
-  supabase: SupabaseClient
+  supabase: SupabaseClient,
+  brainContext = ''
 ): Promise<GenerateResult> {
   const priceRange = getPriceRange(object.price)
   const refs = await fetchReferenceTexts(channel, object.type, priceRange, supabase)
@@ -286,7 +290,7 @@ async function generateChannel(
   const message = await anthropic.messages.create({
     model: MODEL,
     max_tokens: longChannels.includes(channel) ? 2048 : 1024,
-    system: MASTER_SYSTEM,
+    system: MASTER_SYSTEM + brainContext,
     messages: [{ role: 'user', content: prompt }],
   })
 
@@ -308,8 +312,10 @@ async function saveToSupabase(objectId: string, results: GenerateResult[], supab
 
 export async function generateKeyInsights(
   object: PropertyObject,
-  locationArgs: LocationArgument[] = []
+  locationArgs: LocationArgument[] = [],
+  agency_id?: string
 ): Promise<KeyInsights> {
+  const brainContext = agency_id ? await buildBrainContext(agency_id) : ''
   const locationContext = locationArgs.length > 0
     ? `\nPlatsargument: ${locationArgs.map(a => a.text).join(', ')}`
     : ''
@@ -336,7 +342,7 @@ Returnera ENBART giltig JSON utan markdown eller förklaringar:
   const message = await anthropic.messages.create({
     model: MODEL,
     max_tokens: 1024,
-    system: MASTER_SYSTEM,
+    system: MASTER_SYSTEM + brainContext,
     messages: [{ role: 'user', content: prompt }],
   })
 
