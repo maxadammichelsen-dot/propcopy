@@ -40,8 +40,8 @@ interface Draft {
 }
 
 const STATUS_CONFIG = {
-  hot:  { label: 'Het',  icon: '🔥', color: '#f87171' },
-  warm: { label: 'Varm', icon: '🌡', color: '#fbbf24' },
+  hot:  { label: 'Het',  dot: 'bg-accent',   text: 'text-accent' },
+  warm: { label: 'Varm', dot: 'bg-amber-400', text: 'text-amber-600' },
 }
 
 function relativeTime(iso: string | null) {
@@ -100,27 +100,31 @@ export default function FollowupView() {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="p-6 border-b border-[#2a2a2a]">
-        <h2 className="font-serif text-3xl text-[#f0ece4]">Uppföljning</h2>
-        <p className="text-sm text-[#555] mt-1">
+
+      {/* Header */}
+      <div className="border-b border-line px-8 py-6 shrink-0">
+        <h2 className="font-display text-[36px] leading-[0.95] tracking-[-0.02em] text-ink">
+          Uppföljning.
+        </h2>
+        <p className="font-data text-[11px] text-mute tracking-snug mt-2">
           AI-personaliserade uppföljningar för era varmaste spekulanter
         </p>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6 space-y-5">
+      <div className="flex-1 overflow-y-auto px-8 py-6 space-y-5">
         {queue.length === 0 ? (
           <EmptyState />
         ) : (
           <>
             {/* Stats */}
             <div className="grid grid-cols-3 gap-3">
-              <MiniStat label="I kö" value={String(stats.total)} />
-              <MiniStat label="Med e-post" value={String(stats.has_email)} accent />
+              <MiniStat label="I kö"                   value={String(stats.total)} />
+              <MiniStat label="Med e-post"             value={String(stats.has_email)} accent />
               <MiniStat label="Off-market matchningar" value={String(stats.off_market_count)} />
             </div>
 
             {/* Queue */}
-            <div className="space-y-4">
+            <div className="space-y-3">
               {queue.map(prospect => (
                 <ProspectCard
                   key={prospect.id}
@@ -154,36 +158,32 @@ function ProspectCard({
 }) {
   const cfg = STATUS_CONFIG[prospect.status]
   const hasEmail = !!prospect.email
-  const canGenerate = hasEmail && !generating && !draft
 
   return (
-    <div className="rounded-lg border border-[#2a2a2a] bg-[#1a1a1a] overflow-hidden">
+    <div className="border border-line rounded-lg overflow-hidden bg-bg">
       {/* Header row */}
-      <div className="flex items-center gap-4 px-5 py-4 border-b border-[#1e1e1e]">
-        <div
-          className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-medium shrink-0"
-          style={{
-            backgroundColor: 'var(--brand-primary-dim, #b8965a33)',
-            color: 'var(--brand-primary, #b8965a)',
-          }}
-        >
-          {prospect.email ? prospect.email[0].toUpperCase() : '?'}
+      <div className="flex items-center gap-4 px-5 py-4 border-b border-line bg-tint">
+        <div className="w-9 h-9 rounded-full bg-line flex items-center justify-center text-sm font-medium shrink-0">
+          <span className="font-data text-[12px] text-mute">
+            {prospect.email ? prospect.email[0].toUpperCase() : '?'}
+          </span>
         </div>
 
         <div className="flex-1 min-w-0">
-          <p className="text-sm text-[#f0ece4] truncate">
+          <p className="text-[13px] font-medium text-ink truncate">
             {prospect.email ?? 'Anonym besökare'}
           </p>
-          <p className="text-[10px] text-[#555]">
+          <p className="font-data text-[10px] text-mute tracking-snug">
             Senast aktiv {relativeTime(prospect.last_event_at)}
             {prospect.events_count > 0 && ` · ${prospect.events_count} händelser`}
           </p>
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          <span className="text-[10px] tabular-nums" style={{ color: cfg.color }}>
-            {cfg.icon} {prospect.engagement_score}p
+          <span className={`font-data text-[11px] tabular-nums ${cfg.text}`}>
+            {prospect.engagement_score}p
           </span>
+          <span className={`w-[5px] h-[5px] rounded-full ${cfg.dot}`} />
         </div>
       </div>
 
@@ -191,13 +191,17 @@ function ProspectCard({
         {/* Viewed objects */}
         {prospect.viewed_objects.length > 0 && (
           <div>
-            <p className="text-[10px] uppercase tracking-widest text-[#444] mb-1.5">Besökta objekt</p>
+            <p className="font-data text-[10px] text-mute tracking-[0.02em] uppercase mb-1.5">
+              Besökta objekt
+            </p>
             <div className="space-y-1">
               {prospect.viewed_objects.map(obj => (
-                <div key={obj.id} className="flex items-center gap-2 text-[11px]">
-                  <span className="text-[#444]">→</span>
-                  <span className="text-[#888]">{obj.address}</span>
-                  <span className="text-[#444]">{obj.type} · {new Intl.NumberFormat('sv-SE').format(obj.price)} kr</span>
+                <div key={obj.id} className="flex items-center gap-2 text-[12px]">
+                  <span className="text-mute-2">→</span>
+                  <span className="text-ink-2">{obj.address}</span>
+                  <span className="font-data text-[10px] text-mute tracking-snug">
+                    {obj.type} · {new Intl.NumberFormat('sv-SE').format(obj.price)} kr
+                  </span>
                 </div>
               ))}
             </div>
@@ -206,42 +210,42 @@ function ProspectCard({
 
         {/* Off-market matches */}
         {prospect.off_market_matches.length > 0 && (
-          <div
-            className="rounded border-l-2 pl-3 py-2"
-            style={{ borderColor: 'var(--brand-primary-dim, #b8965a33)' }}
-          >
-            <p className="text-[10px] uppercase tracking-widest text-[#555] mb-1">Off-market matchning</p>
+          <div className="border-l-2 border-line pl-3 py-1">
+            <p className="font-data text-[10px] text-mute tracking-[0.02em] uppercase mb-1">
+              Off-market matchning
+            </p>
             {prospect.off_market_matches.map(m => (
-              <p key={m.id} className="text-[11px] text-[#888]">
-                Ni har ett utkast som passar: <span className="text-[#d0ccc4]">{m.address}</span> ({m.type} i {m.area})
+              <p key={m.id} className="font-data text-[11px] text-mute tracking-snug">
+                Ni har ett utkast som passar:{' '}
+                <span className="text-ink font-medium">{m.address}</span>{' '}
+                ({m.type} i {m.area})
               </p>
             ))}
           </div>
         )}
 
-        {/* Draft or Generate button */}
+        {/* Draft or generate button */}
         {draft ? (
           <DraftDisplay draft={draft} copied={copied} onCopy={onCopy} />
         ) : (
-          <div className="flex items-center gap-3">
+          <div>
             {hasEmail ? (
               <button
                 onClick={onGenerate}
                 disabled={generating}
-                className="flex items-center gap-2 px-4 py-2 rounded text-xs font-medium transition-colors text-[#111111] disabled:opacity-60"
-                style={{ backgroundColor: 'var(--brand-primary, #b8965a)' }}
+                className="bg-ink text-bg px-5 py-2 rounded-full text-[13px] font-medium hover:opacity-80 transition-opacity disabled:opacity-40 flex items-center gap-2"
               >
                 {generating ? (
                   <>
-                    <span className="inline-block w-3 h-3 border-2 border-[#11111166] border-t-[#111111] rounded-full animate-spin" />
+                    <span className="inline-block w-3 h-3 border-2 border-bg/40 border-t-bg rounded-full animate-spin" />
                     Genererar…
                   </>
                 ) : (
-                  '✦ Generera uppföljning'
+                  'Generera uppföljning'
                 )}
               </button>
             ) : (
-              <p className="text-[10px] text-[#444]">
+              <p className="font-data text-[10px] text-mute-2 tracking-snug">
                 Anonym besökare – e-post behövs för uppföljning
               </p>
             )}
@@ -262,25 +266,26 @@ function DraftDisplay({
   onCopy: () => void
 }) {
   return (
-    <div className="rounded border border-[#232323] bg-[#111] overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-2.5 border-b border-[#1e1e1e]">
-        <p className="text-[10px] uppercase tracking-widest text-[#555]">Genererat utkast</p>
+    <div className="border border-line rounded-lg overflow-hidden">
+      <div className="flex items-center justify-between px-4 py-2.5 border-b border-line bg-tint">
+        <p className="font-data text-[10px] text-mute tracking-[0.02em] uppercase">
+          Genererat utkast
+        </p>
         <button
           onClick={onCopy}
-          className="text-[10px] transition-colors"
-          style={{ color: copied ? '#4ade80' : 'var(--brand-primary, #b8965a)' }}
+          className={`font-data text-[10px] tracking-snug ${copied ? 'text-ink' : 'text-accent hover:underline'}`}
         >
           {copied ? '✓ Kopierat' : 'Kopiera allt'}
         </button>
       </div>
-      <div className="px-4 py-3 space-y-2.5">
+      <div className="px-4 py-3 space-y-3 bg-bg">
         <div>
-          <p className="text-[9px] uppercase tracking-widest text-[#444] mb-1">Ämne</p>
-          <p className="text-xs text-[#d0ccc4] font-medium">{draft.subject}</p>
+          <p className="font-data text-[10px] text-mute tracking-[0.02em] uppercase mb-1">Ämne</p>
+          <p className="text-[13px] font-medium text-ink">{draft.subject}</p>
         </div>
         <div>
-          <p className="text-[9px] uppercase tracking-widest text-[#444] mb-1">Brödtext</p>
-          <p className="text-xs text-[#888] leading-relaxed whitespace-pre-wrap">{draft.body}</p>
+          <p className="font-data text-[10px] text-mute tracking-[0.02em] uppercase mb-1">Brödtext</p>
+          <p className="text-[13px] text-ink-2 leading-relaxed whitespace-pre-wrap">{draft.body}</p>
         </div>
       </div>
     </div>
@@ -293,12 +298,9 @@ function MiniStat({ label, value, accent = false }: {
   label: string; value: string; accent?: boolean
 }) {
   return (
-    <div className="rounded-lg border border-[#2a2a2a] bg-[#1a1a1a] p-4">
-      <p className="text-[10px] uppercase tracking-widest text-[#555] mb-2">{label}</p>
-      <p
-        className="text-2xl font-light tabular-nums"
-        style={{ color: accent ? 'var(--brand-primary, #b8965a)' : '#f0ece4' }}
-      >
+    <div className="border border-line rounded-lg bg-tint px-4 py-3">
+      <p className="font-data text-[10px] text-mute tracking-[0.02em] uppercase mb-2">{label}</p>
+      <p className={`font-data text-[24px] font-medium tabular-nums leading-none ${accent ? 'text-accent' : 'text-ink'}`}>
         {value}
       </p>
     </div>
@@ -309,35 +311,35 @@ function MiniStat({ label, value, accent = false }: {
 
 function EmptyState() {
   return (
-    <div className="rounded-lg border border-[#2a2a2a] bg-[#1a1a1a] p-10 text-center">
-      <div className="w-12 h-12 rounded-full border border-[#2a2a2a] flex items-center justify-center mx-auto mb-4">
-        <span className="text-xl">✦</span>
-      </div>
-      <h3 className="font-serif text-2xl text-[#f0ece4] mb-2">Inga spekulanter att följa upp</h3>
-      <p className="text-sm text-[#555] max-w-xs mx-auto leading-relaxed">
-        Installera spårningspixeln och samla in spekulanter som nått "varm" eller "het" status. De visas här automatiskt.
+    <div className="border border-line rounded-lg bg-tint px-8 py-10 text-center">
+      <h3 className="font-display text-[28px] leading-[0.95] tracking-[-0.02em] text-ink mb-2">
+        Inga spekulanter att <em className="italic text-mute">följa upp.</em>
+      </h3>
+      <p className="font-data text-[11px] text-mute max-w-xs mx-auto leading-relaxed tracking-snug">
+        Installera spårningspixeln och samla in spekulanter som nått "varm"
+        eller "het" status. De visas här automatiskt.
       </p>
     </div>
   )
 }
 
-// ─── Skeleton ────────────────────────────────────────────────
+// ─── Skeleton ─────────────────────────────────────────────────
 
 function FollowupSkeleton() {
   return (
     <div className="h-full flex flex-col">
-      <div className="p-6 border-b border-[#2a2a2a]">
-        <div className="h-8 w-36 bg-[#1e1e1e] rounded animate-pulse" />
-        <div className="h-4 w-60 bg-[#1a1a1a] rounded mt-2 animate-pulse" />
+      <div className="border-b border-line px-8 py-6">
+        <div className="h-9 w-40 bg-line rounded animate-pulse" />
+        <div className="h-3 w-60 bg-line rounded mt-3 animate-pulse" />
       </div>
-      <div className="p-6 space-y-4">
+      <div className="px-8 py-6 space-y-4">
         <div className="grid grid-cols-3 gap-3">
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-20 rounded-lg border border-[#2a2a2a] bg-[#1a1a1a] animate-pulse" />
+            <div key={i} className="h-20 rounded-lg border border-line bg-tint animate-pulse" />
           ))}
         </div>
         {[...Array(2)].map((_, i) => (
-          <div key={i} className="h-40 rounded-lg border border-[#2a2a2a] bg-[#1a1a1a] animate-pulse" />
+          <div key={i} className="h-40 rounded-lg border border-line bg-tint animate-pulse" />
         ))}
       </div>
     </div>
