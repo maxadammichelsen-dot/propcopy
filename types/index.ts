@@ -55,6 +55,8 @@ export interface PropertyObject {
   price: number
   details: string
   status: 'draft' | 'active' | 'sold'
+  sold_price: number | null
+  bid_premium_pct: number | null
   created_at: string
 }
 

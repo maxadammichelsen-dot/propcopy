@@ -220,6 +220,31 @@ BESKRIVNING:
 [text]`,
 }
 
+function getPriceRange(price: number): string {
+  if (price < 2_000_000)  return '0-2M'
+  if (price < 4_000_000)  return '2-4M'
+  if (price < 7_000_000)  return '4-7M'
+  if (price < 12_000_000) return '7-12M'
+  return '12M+'
+}
+
+async function fetchReferenceTexts(
+  channel: Channel,
+  objectType: string,
+  priceRange: string,
+  supabase: SupabaseClient
+): Promise<string[]> {
+  const { data } = await supabase
+    .from('best_texts')
+    .select('text')
+    .eq('channel', channel)
+    .or(`object_type.eq.${objectType},object_type.is.null`)
+    .order('performance_score', { ascending: false })
+    .limit(3)
+
+  return (data ?? []).map((r: { text: string }) => r.text)
+}
+
 export async function generateAllChannels(
   object: PropertyObject,
   agency: Agency,
@@ -232,7 +257,7 @@ export async function generateAllChannels(
   ]
 
   const results = await Promise.all(
-    channels.map((channel) => generateChannel(channel, object, toneString))
+    channels.map((channel) => generateChannel(channel, object, toneString, supabase))
   )
 
   await saveToSupabase(object.id, results, supabase)
@@ -242,9 +267,20 @@ export async function generateAllChannels(
 async function generateChannel(
   channel: Channel,
   object: PropertyObject,
-  tone: string
+  tone: string,
+  supabase: SupabaseClient
 ): Promise<GenerateResult> {
-  const prompt = CHANNEL_PROMPTS[channel](object, tone)
+  const priceRange = getPriceRange(object.price)
+  const refs = await fetchReferenceTexts(channel, object.type, priceRange, supabase)
+
+  let prompt = CHANNEL_PROMPTS[channel](object, tone)
+
+  if (refs.length > 0) {
+    prompt +=
+      '\n\nHär är exempel på texter som resulterat i stark budgivning för liknande objekt. ' +
+      'Matcha denna kvalitetsnivå men skriv originellt:\n\n' +
+      refs.map((r, i) => `--- Exempel ${i + 1} ---\n${r}`).join('\n\n')
+  }
 
   const longChannels: Channel[] = ['website', 'booli', 'boneo', 'bovision']
   const message = await anthropic.messages.create({
