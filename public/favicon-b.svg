@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" fill="#0F0F0E"/>
+  <text x="9" y="48" font-family="serif" font-size="48" fill="#FFFFFF">E</text>
+  <line x1="31" y1="14" x2="23" y2="52" stroke="#FF3D00" stroke-width="5" stroke-linecap="square"/>
+  <text x="36" y="48" font-family="monospace" font-size="26" font-weight="500" fill="#FFFFFF">io</text>
+</svg>
