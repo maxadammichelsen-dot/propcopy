@@ -20,9 +20,9 @@ interface Stats {
 }
 
 const STATUS_CONFIG = {
-  hot:  { label: 'Het',  icon: '🔥', color: '#f87171' },
-  warm: { label: 'Varm', icon: '🌡', color: '#fbbf24' },
-  cold: { label: 'Kall', icon: '❄️', color: '#60a5fa' },
+  hot:  { label: 'Het',  dot: 'bg-accent',    text: 'text-accent' },
+  warm: { label: 'Varm', dot: 'bg-amber-400',  text: 'text-amber-600' },
+  cold: { label: 'Kall', dot: 'bg-line-2',     text: 'text-mute' },
 }
 
 function relativeTime(iso: string) {
@@ -65,9 +65,7 @@ export default function ProspectsView({ agency }: ProspectsViewProps) {
       await navigator.clipboard.writeText(snippet)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
-    } catch {
-      // fallback: select the text
-    }
+    } catch {}
   }
 
   if (loading) return <ProspectsSkeleton />
@@ -76,91 +74,81 @@ export default function ProspectsView({ agency }: ProspectsViewProps) {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="p-6 border-b border-[#2a2a2a]">
-        <div className="flex items-center gap-3">
-          <h2 className="font-serif text-3xl text-[#f0ece4]">Spekulanter</h2>
+
+      {/* Header */}
+      <div className="border-b border-line px-8 py-6 shrink-0">
+        <div className="flex items-baseline gap-3">
+          <h2 className="font-display text-[36px] leading-[0.95] tracking-[-0.02em] text-ink">
+            Spekulanter.
+          </h2>
           {hasProspects && (
-            <span
-              className="text-[10px] px-2 py-0.5 rounded-full font-medium tabular-nums"
-              style={{
-                backgroundColor: 'var(--brand-primary-dim, #b8965a33)',
-                color: 'var(--brand-primary, #b8965a)',
-              }}
-            >
-              {stats.total}
-            </span>
+            <span className="font-data text-[11px] text-mute tabular-nums">{stats.total}</span>
           )}
         </div>
-        <p className="text-sm text-[#555] mt-1">
+        <p className="font-data text-[11px] text-mute tracking-snug mt-2">
           Besökare som interagerat med era bostäder
         </p>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6 space-y-5">
+      <div className="flex-1 overflow-y-auto px-8 py-6 space-y-5">
         {hasProspects ? (
           <>
             {/* Stats */}
             <div className="grid grid-cols-3 gap-3">
               {(['hot', 'warm', 'cold'] as const).map(s => (
-                <div key={s} className="rounded-lg border border-[#2a2a2a] bg-[#1a1a1a] p-4">
-                  <p className="text-[10px] uppercase tracking-widest text-[#555] mb-2">
+                <div key={s} className="border border-line rounded-lg bg-tint px-4 py-3">
+                  <p className="font-data text-[10px] text-mute tracking-[0.02em] uppercase mb-2">
                     {STATUS_CONFIG[s].label}
                   </p>
-                  <div className="flex items-end gap-1.5">
-                    <span className="text-2xl font-light tabular-nums" style={{ color: STATUS_CONFIG[s].color }}>
+                  <div className="flex items-center gap-2">
+                    <span className={`font-data text-[24px] font-medium tabular-nums leading-none ${STATUS_CONFIG[s].text}`}>
                       {stats[s]}
                     </span>
-                    <span className="text-base mb-0.5">{STATUS_CONFIG[s].icon}</span>
+                    <span className={`w-2 h-2 rounded-full ${STATUS_CONFIG[s].dot}`} />
                   </div>
                 </div>
               ))}
             </div>
 
             {/* Prospect list */}
-            <div className="rounded-lg border border-[#2a2a2a] bg-[#1a1a1a] overflow-hidden">
-              <div className="px-5 py-4 border-b border-[#2a2a2a]">
-                <p className="text-[10px] uppercase tracking-widest text-[#555]">
+            <div className="border border-line rounded-lg overflow-hidden bg-bg">
+              <div className="px-5 py-3 border-b border-line bg-tint">
+                <p className="font-data text-[10px] text-mute tracking-[0.02em] uppercase">
                   Sorterat efter engagemang
                 </p>
               </div>
-              <ul className="divide-y divide-[#1e1e1e]">
+              <ul className="divide-y divide-line">
                 {prospects.map(p => {
                   const cfg = STATUS_CONFIG[p.status]
                   return (
                     <li
                       key={p.id}
-                      className="flex items-center gap-4 px-5 py-3.5 hover:bg-[#161616] transition-colors"
+                      className="flex items-center gap-4 px-5 py-3.5 hover:bg-tint transition-colors"
                     >
                       {/* Avatar */}
-                      <div
-                        className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-medium"
-                        style={{
-                          backgroundColor: 'var(--brand-primary-dim, #b8965a33)',
-                          color: 'var(--brand-primary, #b8965a)',
-                        }}
-                      >
-                        {p.email ? p.email[0].toUpperCase() : '?'}
+                      <div className="w-8 h-8 rounded-full bg-line flex items-center justify-center shrink-0">
+                        <span className="font-data text-[11px] text-mute font-medium">
+                          {p.email ? p.email[0].toUpperCase() : '?'}
+                        </span>
                       </div>
 
                       {/* Info */}
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm text-[#f0ece4] truncate">
+                        <p className="text-[13px] font-medium text-ink truncate">
                           {p.name || p.email || 'Anonym besökare'}
                         </p>
-                        <p className="text-[10px] text-[#555] mt-0.5">
+                        <p className="font-data text-[10px] text-mute mt-0.5 tracking-snug">
                           {p.email && !p.name ? '' : p.email ? p.email + ' · ' : ''}
                           {relativeTime(p.created_at)}
                         </p>
                       </div>
 
-                      {/* Score */}
-                      <div className="text-right shrink-0">
-                        <p className="text-sm tabular-nums" style={{ color: cfg.color }}>
+                      {/* Score + status */}
+                      <div className="text-right shrink-0 flex items-center gap-2">
+                        <span className={`font-data text-[11px] tabular-nums ${cfg.text}`}>
                           {p.engagement_score}p
-                        </p>
-                        <p className="text-[10px] text-[#444]">
-                          {cfg.icon} {cfg.label}
-                        </p>
+                        </span>
+                        <span className={`w-[5px] h-[5px] rounded-full ${cfg.dot}`} />
                       </div>
                     </li>
                   )
@@ -173,49 +161,47 @@ export default function ProspectsView({ agency }: ProspectsViewProps) {
         )}
 
         {/* Install section */}
-        <div className="rounded-lg border border-[#2a2a2a] bg-[#1a1a1a] overflow-hidden">
+        <div className="border border-line rounded-lg overflow-hidden bg-bg">
           <button
             onClick={() => setShowSnippet(v => !v)}
-            className="w-full flex items-center justify-between px-5 py-4 hover:bg-[#161616] transition-colors"
+            className="w-full flex items-center justify-between px-5 py-4 hover:bg-tint transition-colors"
           >
             <div className="flex items-center gap-3">
-              <span className="text-base">◉</span>
+              <div className="w-2 h-2 rounded-full bg-accent shrink-0" />
               <div className="text-left">
-                <p className="text-sm text-[#d0ccc4] font-medium">
+                <p className="text-[13px] font-medium text-ink">
                   {hasProspects ? 'Hantera spårningspixeln' : 'Installera spårningspixeln'}
                 </p>
-                <p className="text-[10px] text-[#555]">
+                <p className="font-data text-[10px] text-mute tracking-snug">
                   Klistra in en kodrad på er hemsida
                 </p>
               </div>
             </div>
-            <span className="text-[#555] text-sm transition-transform" style={{
-              transform: showSnippet ? 'rotate(180deg)' : 'none',
-            }}>
+            <span className="font-data text-[11px] text-mute transition-transform duration-200"
+              style={{ display: 'inline-block', transform: showSnippet ? 'rotate(180deg)' : 'none' }}>
               ↓
             </span>
           </button>
 
           {showSnippet && (
-            <div className="px-5 pb-5 space-y-4 border-t border-[#1e1e1e] pt-4">
-              <div className="space-y-3">
+            <div className="px-5 pb-5 space-y-4 border-t border-line pt-4">
+              <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <p className="text-[10px] uppercase tracking-widest text-[#555]">Kodfragment</p>
+                  <p className="font-data text-[10px] text-mute tracking-[0.02em] uppercase">Kodfragment</p>
                   <button
                     onClick={handleCopy}
-                    className="text-[10px] transition-colors"
-                    style={{ color: copied ? '#4ade80' : 'var(--brand-primary, #b8965a)' }}
+                    className={`font-data text-[10px] tracking-snug ${copied ? 'text-ink' : 'text-accent hover:underline'}`}
                   >
                     {copied ? '✓ Kopierat' : 'Kopiera'}
                   </button>
                 </div>
-                <pre className="bg-[#111] border border-[#232323] rounded p-3 text-[10px] text-[#888] font-mono leading-relaxed overflow-x-auto whitespace-pre-wrap break-all">
+                <pre className="bg-tint border border-line rounded-lg p-3 font-data text-[10px] text-ink-2 leading-relaxed overflow-x-auto whitespace-pre-wrap break-all">
                   {snippet}
                 </pre>
               </div>
 
               <div className="space-y-2">
-                <p className="text-[10px] uppercase tracking-widest text-[#555]">Instruktioner</p>
+                <p className="font-data text-[10px] text-mute tracking-[0.02em] uppercase">Instruktioner</p>
                 {[
                   'Klistra in kodstycket i <head> på alla sidor ni vill spåra',
                   'Lägg till data-object="OBJEKT_ID" för listningsnivå-spårning',
@@ -223,13 +209,10 @@ export default function ProspectsView({ agency }: ProspectsViewProps) {
                   'Engagemangspoäng: sidvisning +1, scroll 50%+ +2, tid +3, mail +20',
                 ].map((tip, i) => (
                   <div key={i} className="flex gap-2.5">
-                    <span
-                      className="text-[10px] mt-0.5 shrink-0 tabular-nums"
-                      style={{ color: 'var(--brand-primary, #b8965a)' }}
-                    >
+                    <span className="font-data text-[10px] text-mute tabular-nums shrink-0 mt-0.5">
                       {i + 1}.
                     </span>
-                    <p className="text-[10px] text-[#666] leading-relaxed">{tip}</p>
+                    <p className="font-data text-[10px] text-mute leading-relaxed tracking-snug">{tip}</p>
                   </div>
                 ))}
               </div>
@@ -245,24 +228,26 @@ export default function ProspectsView({ agency }: ProspectsViewProps) {
 
 function EmptyState() {
   return (
-    <div className="rounded-lg border border-[#2a2a2a] bg-[#1a1a1a] p-8 text-center">
-      <div className="w-10 h-10 rounded-full border border-[#2a2a2a] flex items-center justify-center mx-auto mb-4">
-        <span className="text-lg">◉</span>
-      </div>
-      <h3 className="font-serif text-xl text-[#f0ece4] mb-2">Inga spekulanter än</h3>
-      <p className="text-sm text-[#555] max-w-xs mx-auto leading-relaxed">
-        Installera spårningspixeln på er hemsida för att börja samla in besöksdata och identifiera potentiella köpare.
+    <div className="border border-line rounded-lg bg-tint px-8 py-10 text-center">
+      <h3 className="font-display text-[28px] leading-[0.95] tracking-[-0.02em] text-ink mb-2">
+        Inga spekulanter <em className="italic text-mute">än.</em>
+      </h3>
+      <p className="font-data text-[11px] text-mute max-w-xs mx-auto leading-relaxed tracking-snug mb-5">
+        Installera spårningspixeln på er hemsida för att börja samla in
+        besöksdata och identifiera potentiella köpare.
       </p>
-      <div className="mt-4 flex items-center justify-center gap-4">
+      <div className="flex items-center justify-center gap-6 opacity-25 pointer-events-none select-none">
         {[
-          { score: 28, label: 'anna@...', status: 'hot', icon: '🔥' },
-          { score: 12, label: 'Anonym', status: 'warm', icon: '🌡' },
-          { score: 3,  label: 'Anonym', status: 'cold', icon: '❄️' },
+          { initial: 'A', score: 28, label: 'Het' },
+          { initial: 'M', score: 12, label: 'Varm' },
+          { initial: 'S', score: 3,  label: 'Kall' },
         ].map((p, i) => (
-          <div key={i} className="opacity-20 text-center">
-            <div className="w-8 h-8 rounded-full bg-[#2a2a2a] flex items-center justify-center mx-auto mb-1 text-xs">?</div>
-            <p className="text-[9px] text-[#555]">{p.label}</p>
-            <p className="text-[9px]">{p.icon} {p.score}p</p>
+          <div key={i} className="text-center">
+            <div className="w-8 h-8 rounded-full bg-line flex items-center justify-center mx-auto mb-1">
+              <span className="font-data text-[11px] text-mute">{p.initial}</span>
+            </div>
+            <p className="font-data text-[9px] text-mute-2">{p.score}p</p>
+            <p className="font-data text-[9px] text-mute-2">{p.label}</p>
           </div>
         ))}
       </div>
@@ -270,22 +255,22 @@ function EmptyState() {
   )
 }
 
-// ─── Skeleton ────────────────────────────────────────────────
+// ─── Skeleton ─────────────────────────────────────────────────
 
 function ProspectsSkeleton() {
   return (
     <div className="h-full flex flex-col">
-      <div className="p-6 border-b border-[#2a2a2a]">
-        <div className="h-8 w-36 bg-[#1e1e1e] rounded animate-pulse" />
-        <div className="h-4 w-56 bg-[#1a1a1a] rounded mt-2 animate-pulse" />
+      <div className="border-b border-line px-8 py-6">
+        <div className="h-9 w-40 bg-line rounded animate-pulse" />
+        <div className="h-3 w-56 bg-line rounded mt-3 animate-pulse" />
       </div>
-      <div className="p-6 space-y-4">
+      <div className="px-8 py-6 space-y-4">
         <div className="grid grid-cols-3 gap-3">
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-20 rounded-lg border border-[#2a2a2a] bg-[#1a1a1a] animate-pulse" />
+            <div key={i} className="h-20 rounded-lg border border-line bg-tint animate-pulse" />
           ))}
         </div>
-        <div className="h-64 rounded-lg border border-[#2a2a2a] bg-[#1a1a1a] animate-pulse" />
+        <div className="h-64 rounded-lg border border-line bg-tint animate-pulse" />
       </div>
     </div>
   )
