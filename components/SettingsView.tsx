@@ -97,6 +97,7 @@ export default function SettingsView({ agency, userEmail, onAgencyUpdated }: Set
       <AgencyInfoSection agency={agency} onAgencyUpdated={onAgencyUpdated} />
       <BrandSection agency={agency} onAgencyUpdated={onAgencyUpdated} />
       <IntegrationsSection agency={agency} onAgencyUpdated={onAgencyUpdated} />
+      <BrainSection />
       <AccountSection userEmail={userEmail} />
     </div>
   )
@@ -566,7 +567,414 @@ function PixelCard({ agency }: { agency: Agency }) {
 }
 
 // ══════════════════════════════════════════════════════════════
-// SEKTION 4 – KONTO
+// SEKTION 4 – BYRÅHJÄRNAN
+// ══════════════════════════════════════════════════════════════
+
+interface BrainStats {
+  total: number
+  byCategory: Record<string, number>
+  topSignals: { category: string; key: string; value: string; confidence: number }[]
+  recentFeedback: { id: string; channel: string; action: string; created_at: string }[]
+}
+
+const CATEGORY_LABEL: Record<string, string> = {
+  tone:          'Ton',
+  winning_text:  'Vinnande texter',
+  area_insight:  'Områdesinsikter',
+  buyer_profile: 'Köparprofil',
+  feedback:      'Feedback',
+  market:        'Marknad',
+  object_type:   'Objekttyp',
+}
+
+const ACTION_LABEL: Record<string, { label: string; color: string }> = {
+  approved: { label: 'Godkänd',  color: 'var(--ok)' },
+  rejected: { label: 'Avvisad',  color: 'var(--accent)' },
+  edited:   { label: 'Redigerad', color: 'var(--ink-2)' },
+}
+
+function BrainSection() {
+  const [stats, setStats]       = useState<BrainStats | null>(null)
+  const [loading, setLoading]   = useState(true)
+  const [expanded, setExpanded] = useState(false)
+  const [allEntries, setAllEntries] = useState<BrainStats['topSignals']>([])
+  const [resetting, setResetting] = useState(false)
+
+  useEffect(() => {
+    fetch('/api/brain/stats')
+      .then(r => r.json())
+      .then(d => { setStats(d); setLoading(false) })
+      .catch(() => setLoading(false))
+  }, [])
+
+  async function handleExpand() {
+    if (expanded) { setExpanded(false); return }
+    const res = await fetch('/api/brain/stats')
+    const d   = await res.json()
+    setStats(d)
+    setAllEntries(d.topSignals ?? [])
+    setExpanded(true)
+  }
+
+  async function handleReset() {
+    if (!window.confirm('Är du säker? Allt hjärnan har lärt sig kommer att raderas.')) return
+    setResetting(true)
+    await fetch('/api/brain/reset', { method: 'DELETE' })
+    setStats({ total: 0, byCategory: {}, topSignals: [], recentFeedback: [] })
+    setAllEntries([])
+    setExpanded(false)
+    setResetting(false)
+  }
+
+  if (loading) {
+    return (
+      <Section title="Byråhjärnan" subtitle="Kontextuellt minnessystem — lär sig från feedback">
+        <div style={{ display: 'flex', gap: '8px' }}>
+          {[80, 120, 100].map((w, i) => (
+            <div key={i} className="animate-pulse" style={{ height: '12px', width: `${w}px`, background: 'var(--line)', borderRadius: '4px' }} />
+          ))}
+        </div>
+      </Section>
+    )
+  }
+
+  const noData = !stats || stats.total === 0
+
+  return (
+    <Section title="Byråhjärnan" subtitle="Kontextuellt minnessystem — lär sig från feedback">
+      <div className="max-w-lg space-y-6">
+
+        {/* Stats row */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: '12px',
+          }}
+        >
+          <BrainStat
+            label="Inlärda preferenser"
+            value={stats?.total ?? 0}
+          />
+          <BrainStat
+            label="Feedback-händelser"
+            value={stats?.recentFeedback?.length ?? 0}
+            note="senaste 5"
+          />
+          <BrainStat
+            label="Kategorier"
+            value={Object.keys(stats?.byCategory ?? {}).length}
+          />
+        </div>
+
+        {/* Category breakdown */}
+        {!noData && stats?.byCategory && Object.keys(stats.byCategory).length > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+            {Object.entries(stats.byCategory).map(([cat, count]) => (
+              <span
+                key={cat}
+                style={{
+                  fontFamily: "'Geist Mono', monospace",
+                  fontSize: '10px',
+                  padding: '3px 8px',
+                  borderRadius: '100px',
+                  border: '1px solid var(--line)',
+                  color: 'var(--ink-2)',
+                  background: 'var(--tint)',
+                }}
+              >
+                {CATEGORY_LABEL[cat] ?? cat} · {count}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* Top tone signals */}
+        {!noData && stats?.topSignals && stats.topSignals.length > 0 && (
+          <div>
+            <p
+              style={{
+                fontFamily: "'Geist Mono', monospace",
+                fontSize: '10px',
+                color: 'var(--mute)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.02em',
+                marginBottom: '10px',
+              }}
+            >
+              Starkaste ton-signaler
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {stats.topSignals.map((s, i) => (
+                <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '12.5px', color: 'var(--ink-2)', letterSpacing: '-0.003em' }}>
+                      {s.value}
+                    </span>
+                    <span
+                      style={{
+                        fontFamily: "'Geist Mono', monospace",
+                        fontSize: '10px',
+                        color: 'var(--mute)',
+                      }}
+                    >
+                      {Math.round(s.confidence * 100)}%
+                    </span>
+                  </div>
+                  <div style={{ height: '2px', background: 'var(--line)', borderRadius: '1px', overflow: 'hidden' }}>
+                    <div
+                      style={{
+                        height: '100%',
+                        width: `${s.confidence * 100}%`,
+                        background: s.confidence >= 0.7 ? 'var(--ok)' : s.confidence >= 0.5 ? 'var(--ink)' : 'var(--mute)',
+                        borderRadius: '1px',
+                        transition: 'width 0.4s',
+                      }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Recent feedback */}
+        {stats?.recentFeedback && stats.recentFeedback.length > 0 && (
+          <div>
+            <p
+              style={{
+                fontFamily: "'Geist Mono', monospace",
+                fontSize: '10px',
+                color: 'var(--mute)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.02em',
+                marginBottom: '8px',
+              }}
+            >
+              Senaste feedback
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              {stats.recentFeedback.map((f) => {
+                const al = ACTION_LABEL[f.action] ?? { label: f.action, color: 'var(--mute)' }
+                const d  = new Date(f.created_at)
+                return (
+                  <div
+                    key={f.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      padding: '6px 0',
+                      borderBottom: '1px solid var(--line)',
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontFamily: "'Geist Mono', monospace",
+                        fontSize: '10px',
+                        color: al.color,
+                        minWidth: '70px',
+                      }}
+                    >
+                      {al.label}
+                    </span>
+                    <span
+                      style={{
+                        fontFamily: "'Geist Mono', monospace",
+                        fontSize: '10px',
+                        color: 'var(--mute)',
+                        flex: 1,
+                      }}
+                    >
+                      {f.channel}
+                    </span>
+                    <span
+                      style={{
+                        fontFamily: "'Geist Mono', monospace",
+                        fontSize: '10px',
+                        color: 'var(--mute-2)',
+                      }}
+                    >
+                      {d.toLocaleDateString('sv-SE', { month: 'short', day: 'numeric' })}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Empty state */}
+        {noData && (
+          <p
+            style={{
+              fontFamily: "'Geist Mono', monospace",
+              fontSize: '11px',
+              color: 'var(--mute-2)',
+              lineHeight: 1.6,
+            }}
+          >
+            Hjärnan är tom. Godkänn, avvisa eller redigera genererade texter för att börja lära systemet.
+          </p>
+        )}
+
+        {/* Expanded all-entries */}
+        {expanded && allEntries.length > 0 && (
+          <div
+            style={{
+              border: '1px solid var(--line)',
+              borderRadius: '8px',
+              overflow: 'hidden',
+            }}
+          >
+            <div
+              style={{
+                padding: '8px 12px',
+                borderBottom: '1px solid var(--line)',
+                background: 'var(--tint)',
+              }}
+            >
+              <p
+                style={{
+                  fontFamily: "'Geist Mono', monospace",
+                  fontSize: '10px',
+                  color: 'var(--mute)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.02em',
+                }}
+              >
+                Allt hjärnan vet ({allEntries.length})
+              </p>
+            </div>
+            <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+              {allEntries.map((e, i) => (
+                <div
+                  key={i}
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '90px 1fr 40px',
+                    gap: '8px',
+                    padding: '7px 12px',
+                    alignItems: 'center',
+                    borderBottom: '1px solid var(--line)',
+                    fontSize: '12px',
+                  }}
+                >
+                  <span
+                    style={{
+                      fontFamily: "'Geist Mono', monospace",
+                      fontSize: '9.5px',
+                      color: 'var(--mute)',
+                    }}
+                  >
+                    {CATEGORY_LABEL[e.category] ?? e.category}
+                  </span>
+                  <span style={{ color: 'var(--ink-2)', letterSpacing: '-0.003em', fontSize: '12px' }}>
+                    {e.value}
+                  </span>
+                  <span
+                    style={{
+                      fontFamily: "'Geist Mono', monospace",
+                      fontSize: '9.5px',
+                      color: 'var(--mute)',
+                      textAlign: 'right',
+                    }}
+                  >
+                    {Math.round(e.confidence * 100)}%
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Action buttons */}
+        <div style={{ display: 'flex', gap: '8px', paddingTop: '4px' }}>
+          {!noData && (
+            <button
+              onClick={handleExpand}
+              style={{
+                fontFamily: "'Geist Mono', monospace",
+                fontSize: '11px',
+                color: 'var(--mute)',
+                border: '1px solid var(--line)',
+                borderRadius: '100px',
+                padding: '6px 14px',
+                background: 'none',
+                cursor: 'pointer',
+                letterSpacing: '0',
+                transition: 'color 0.1s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.color = 'var(--ink)' }}
+              onMouseLeave={e => { e.currentTarget.style.color = 'var(--mute)' }}
+            >
+              {expanded ? 'Dölj' : 'Visa allt hjärnan vet'}
+            </button>
+          )}
+          <button
+            onClick={handleReset}
+            disabled={resetting || noData}
+            style={{
+              fontFamily: "'Geist Mono', monospace",
+              fontSize: '11px',
+              color: noData ? 'var(--mute-2)' : 'var(--accent)',
+              border: `1px solid ${noData ? 'var(--line)' : 'rgba(239,68,68,0.2)'}`,
+              borderRadius: '100px',
+              padding: '6px 14px',
+              background: 'none',
+              cursor: resetting || noData ? 'default' : 'pointer',
+              opacity: resetting ? 0.5 : 1,
+              letterSpacing: '0',
+            }}
+          >
+            {resetting ? 'Återställer…' : 'Återställ hjärnan'}
+          </button>
+        </div>
+      </div>
+    </Section>
+  )
+}
+
+function BrainStat({ label, value, note }: { label: string; value: number; note?: string }) {
+  return (
+    <div
+      style={{
+        padding: '12px 14px',
+        border: '1px solid var(--line)',
+        borderRadius: '8px',
+        background: 'var(--tint)',
+      }}
+    >
+      <p
+        style={{
+          fontFamily: "'Geist Mono', monospace",
+          fontSize: '20px',
+          fontWeight: 500,
+          color: 'var(--ink)',
+          lineHeight: 1,
+          fontVariantNumeric: 'tabular-nums',
+        }}
+      >
+        {value}
+      </p>
+      <p
+        style={{
+          fontFamily: "'Geist Mono', monospace",
+          fontSize: '9.5px',
+          color: 'var(--mute)',
+          marginTop: '5px',
+          lineHeight: 1.4,
+        }}
+      >
+        {label}
+        {note && <span style={{ color: 'var(--mute-2)' }}> · {note}</span>}
+      </p>
+    </div>
+  )
+}
+
+// ══════════════════════════════════════════════════════════════
+// SEKTION 5 – KONTO
 // ══════════════════════════════════════════════════════════════
 
 function AccountSection({ userEmail }: { userEmail: string }) {
