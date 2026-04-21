@@ -43,7 +43,8 @@ function getWeekNumber(d: Date): number {
 function p2(n: number) { return String(n).padStart(2, '0') }
 
 export default function DashboardHome({
-  agency, onSelectObject, onNewObject,
+  agency, onSelectObject, onNewObject, onProspects, onTone,
+  onCompetition, onFollowup, onSettings,
 }: DashboardHomeProps) {
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -61,12 +62,13 @@ export default function DashboardHome({
     return () => clearInterval(id)
   }, [])
 
-  if (loading) return <DashboardSkeleton />
+  if (loading) return <Skeleton />
   if (!data) return null
 
   const eyebrow = `${WEEKDAYS[now.getDay()]} · ${p2(now.getDate())}.${p2(now.getMonth() + 1)}.${now.getFullYear()} · V.${getWeekNumber(now)} · ${p2(now.getHours())}:${p2(now.getMinutes())}`
   const firstName = agency?.name?.split(' ')[0] ?? ''
   const cards = data.action_items.slice(0, 3)
+  const activeCount = data.object_health.filter(o => o.status === 'active').length
 
   return (
     <div
@@ -82,34 +84,35 @@ export default function DashboardHome({
       }}
     >
 
-      {/* ── Greet ──────────────────────────────────────────── */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+      {/* ── .greet ────────────────────────────────────────── */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+        {/* .eyebrow */}
         <span
           style={{
             fontFamily: "'Geist Mono', monospace",
             fontSize: '11px',
             color: 'var(--mute)',
-            letterSpacing: '-0.01em',
+            letterSpacing: 0,
           }}
         >
           {eyebrow}
         </span>
+        {/* .hi */}
         <span
           style={{
-            fontSize: '22px',
-            fontWeight: 500,
-            color: 'var(--ink)',
-            letterSpacing: '-0.02em',
-            lineHeight: 1.3,
+            fontSize: '13px',
+            color: 'var(--mute)',
+            fontWeight: 450,
+            letterSpacing: '-0.003em',
           }}
         >
           {getGreeting()}{firstName ? ', ' : ''}
-          {firstName && <b style={{ fontWeight: 700 }}>{firstName}</b>}
-          {'. Tre saker på bordet.'}
+          {firstName && <b style={{ color: 'var(--ink)', fontWeight: 500 }}>{firstName}</b>}
+          {'. Tre saker på bordet idag.'}
         </span>
       </div>
 
-      {/* ── Cards ──────────────────────────────────────────── */}
+      {/* ── .cards ────────────────────────────────────────── */}
       <div
         style={{
           display: 'grid',
@@ -117,45 +120,93 @@ export default function DashboardHome({
           gap: '12px',
         }}
       >
-        {cards.length > 0 ? (
-          cards.map(item => (
-            <ActionCard
-              key={item.id}
-              item={item}
-              onSelect={() => { if (item.object_id) onSelectObject(item.object_id) }}
-            />
-          ))
-        ) : (
-          <div
-            style={{
-              gridColumn: '1 / -1',
-              padding: '32px',
-              border: '1px dashed var(--line)',
-              borderRadius: '10px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <span
+        {cards.length > 0 ? cards.map(item => (
+          <ActionCard
+            key={item.id}
+            item={item}
+            onSelect={() => { if (item.object_id) onSelectObject(item.object_id) }}
+          />
+        )) : (
+          // Fallback: 3 placeholder cards when no action items
+          [
+            { id: 'p1', icon: '✦', title: 'Generera texter', desc: 'Inga aktiva uppgifter. Skapa ett nytt objekt för att komma igång.', action: onNewObject, label: 'Nytt objekt' },
+            { id: 'p2', icon: '◈', title: 'Tonprofil', desc: 'Ställ in byråns röst och tonalitet för konsekvent kommunikation.', action: onTone ?? (() => {}), label: 'Konfigurera' },
+            { id: 'p3', icon: '◉', title: 'Spekulanter', desc: 'Spåra och kommunicera med dina potentiella köpare.', action: onProspects ?? (() => {}), label: 'Öppna' },
+          ].map(p => (
+            <div
+              key={p.id}
+              className="card-hover"
               style={{
-                fontFamily: "'Geist Mono', monospace",
-                fontSize: '12px',
-                color: 'var(--mute-2)',
+                padding: '18px',
+                background: 'var(--bg)',
+                border: '1px solid var(--line)',
+                borderRadius: '10px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '14px',
+                minHeight: '220px',
+                cursor: 'pointer',
               }}
+              onClick={p.action}
             >
-              Inga uppgifter just nu
-            </span>
-          </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{
+                  width: '28px', height: '28px', background: 'var(--tint)',
+                  borderRadius: '6px', display: 'flex', alignItems: 'center',
+                  justifyContent: 'center', fontFamily: "'Geist Mono', monospace",
+                  fontSize: '11px', color: 'var(--ink-2)', fontWeight: 500,
+                }}>{p.icon}</span>
+              </div>
+              <h3 style={{ fontSize: '16px', fontWeight: 600, letterSpacing: '-0.018em', lineHeight: 1.3, color: 'var(--ink)', flex: 1 }}>{p.title}</h3>
+              <p style={{ fontSize: '13.5px', color: 'var(--mute)', lineHeight: 1.5, letterSpacing: '-0.003em' }}>{p.desc}</p>
+              <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', paddingTop: '12px', borderTop: '1px solid var(--line)' }}>
+                <button onClick={e => { e.stopPropagation(); p.action() }} style={{ padding: '7px 12px', background: 'var(--ink)', color: '#fff', fontWeight: 500, fontSize: '12.5px', borderRadius: '6px', border: 'none', cursor: 'pointer', letterSpacing: '-0.005em', display: 'inline-flex', alignItems: 'center', gap: '6px', fontFamily: 'inherit' }}>
+                  {p.label}
+                </button>
+              </div>
+            </div>
+          ))
         )}
       </div>
 
-      {/* ── Quick list ─────────────────────────────────────── */}
-      <QuickList
-        items={data.object_health}
-        onSelectObject={onSelectObject}
-        onNewObject={onNewObject}
-      />
+      {/* ── .quick ────────────────────────────────────────── */}
+      <div
+        style={{
+          marginTop: 'auto',
+          paddingTop: '20px',
+          borderTop: '1px solid var(--line)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '8px',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+          <Chip onClick={onNewObject} icon="+" label="Nytt objekt" />
+          {activeCount > 0 && (
+            <Chip
+              onClick={() => onSelectObject(data.object_health.find(o => o.status === 'active')?.id ?? '')}
+              icon="◉"
+              label={`${activeCount} aktiv${activeCount !== 1 ? 'a' : 't'}`}
+            />
+          )}
+          {onProspects && <Chip onClick={onProspects} icon="◈" label="Spekulanter" />}
+          {onCompetition && <Chip onClick={onCompetition} icon="◎" label="Konkurrens" />}
+          {onTone && <Chip onClick={onTone} icon="✦" label="Tonprofil" />}
+          {onFollowup && <Chip onClick={onFollowup} icon="↗" label="Statistik" />}
+          {onSettings && <Chip onClick={onSettings} icon="⚙" label="Inställningar" />}
+        </div>
+        <span
+          style={{
+            fontFamily: "'Geist Mono', monospace",
+            fontSize: '11px',
+            color: 'var(--mute-2)',
+          }}
+        >
+          {data.stats.texts_this_month} texter · v{getWeekNumber(now)}
+        </span>
+      </div>
 
     </div>
   )
@@ -168,20 +219,23 @@ function ActionCard({ item, onSelect }: { item: ActionItem; onSelect: () => void
 
   return (
     <div
+      className="card-hover"
+      onClick={onSelect}
       style={{
         padding: '18px',
+        background: 'var(--bg)',
         border: '1px solid var(--line)',
         borderRadius: '10px',
-        minHeight: '220px',
         display: 'flex',
         flexDirection: 'column',
-        gap: '10px',
-        background: 'var(--bg)',
+        gap: '14px',
+        minHeight: '220px',
+        cursor: 'pointer',
       }}
     >
       {/* .hdr */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        {/* .ic[.hot] */}
+        {/* .ic [.hot] */}
         <span
           style={{
             width: '28px',
@@ -190,23 +244,38 @@ function ActionCard({ item, onSelect }: { item: ActionItem; onSelect: () => void
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: '14px',
+            fontFamily: "'Geist Mono', monospace",
+            fontSize: '11px',
+            fontWeight: 500,
             flexShrink: 0,
             background: isHot ? 'var(--accent-tint)' : 'var(--tint)',
-            color: isHot ? 'var(--accent)' : 'var(--ink-3)',
+            color: isHot ? 'var(--accent)' : 'var(--ink-2)',
           }}
         >
           {item.icon ?? (isHot ? '⚡' : '·')}
         </span>
+        {/* .tag [.hot] */}
         <span
           style={{
             fontFamily: "'Geist Mono', monospace",
-            fontSize: '9px',
-            letterSpacing: '0.06em',
-            textTransform: 'uppercase' as const,
+            fontSize: '10.5px',
+            letterSpacing: 0,
+            padding: '3px 8px',
+            border: `1px solid ${isHot ? 'var(--accent-tint)' : 'var(--line)'}`,
+            borderRadius: '100px',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
             color: isHot ? 'var(--accent)' : 'var(--mute)',
+            background: isHot ? 'var(--accent-tint-2)' : 'transparent',
           }}
         >
+          {isHot && (
+            <span
+              className="dot-live"
+              style={{ width: '5px', height: '5px', borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }}
+            />
+          )}
           {item.priority === 'high' ? 'Prioritet' : item.priority === 'medium' ? 'Att göra' : 'Notering'}
         </span>
       </div>
@@ -237,297 +306,100 @@ function ActionCard({ item, onSelect }: { item: ActionItem; onSelect: () => void
         {item.description}
       </p>
 
-      {/* .btn.primary */}
-      {item.object_id && (
-        <button
-          onClick={onSelect}
-          style={{
-            alignSelf: 'flex-start',
-            padding: '7px 12px',
-            background: 'var(--ink)',
-            color: '#fff',
-            fontWeight: 500,
-            fontSize: '12.5px',
-            borderRadius: '6px',
-            border: 'none',
-            cursor: 'pointer',
-            fontFamily: "'Geist Mono', monospace",
-            letterSpacing: '-0.01em',
-          }}
-        >
-          Öppna objekt →
-        </button>
-      )}
-    </div>
-  )
-}
-
-// ─── Quick object list ────────────────────────────────────────
-
-function QuickList({
-  items, onSelectObject, onNewObject,
-}: {
-  items: ObjectHealth[]
-  onSelectObject: (id: string) => void
-  onNewObject: () => void
-}) {
-  if (items.length === 0) {
-    return (
+      {/* .cta */}
       <div
         style={{
-          padding: '32px',
-          border: '1px dashed var(--line)',
-          borderRadius: '10px',
+          marginTop: 'auto',
           display: 'flex',
-          flexDirection: 'column',
           alignItems: 'center',
-          gap: '12px',
+          justifyContent: 'space-between',
+          gap: '8px',
+          paddingTop: '12px',
+          borderTop: '1px solid var(--line)',
         }}
       >
+        {item.object_id ? (
+          <button
+            onClick={e => { e.stopPropagation(); onSelect() }}
+            style={{
+              padding: '7px 12px',
+              background: 'var(--ink)',
+              color: '#fff',
+              fontWeight: 500,
+              fontSize: '12.5px',
+              borderRadius: '6px',
+              border: 'none',
+              cursor: 'pointer',
+              letterSpacing: '-0.005em',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontFamily: 'inherit',
+            }}
+          >
+            Öppna objekt →
+          </button>
+        ) : (
+          <span />
+        )}
+        {/* .cta meta */}
         <span
           style={{
             fontFamily: "'Geist Mono', monospace",
             fontSize: '11px',
-            color: 'var(--mute-2)',
+            color: 'var(--mute)',
           }}
         >
-          Inga aktiva objekt
+          {item.priority === 'high' ? 'Idag' : item.priority === 'medium' ? 'Denna vecka' : '—'}
         </span>
-        <button
-          onClick={onNewObject}
-          style={{
-            fontFamily: "'Geist Mono', monospace",
-            fontSize: '11px',
-            color: 'var(--accent)',
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-          }}
-        >
-          Skapa ditt första →
-        </button>
       </div>
-    )
-  }
-
-  return (
-    <div>
-      {/* Column headers */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: '32px 1fr 56px 88px 24px',
-          gap: '16px',
-          padding: '8px 0',
-          borderBottom: '1px solid var(--ink)',
-        }}
-      >
-        {['#', 'Adress', 'Dagar', 'Hälsa', ''].map((h, i) => (
-          <span
-            key={i}
-            style={{
-              fontFamily: "'Geist Mono', monospace",
-              fontSize: '10px',
-              color: 'var(--mute)',
-              textTransform: 'uppercase' as const,
-              letterSpacing: '0.02em',
-              textAlign: i >= 2 ? 'right' as const : 'left' as const,
-            }}
-          >
-            {h}
-          </span>
-        ))}
-      </div>
-
-      <ul style={{ listStyle: 'none' }}>
-        {items.map((item, i) => (
-          <QuickRow
-            key={item.id}
-            item={item}
-            index={i + 1}
-            onSelectObject={onSelectObject}
-          />
-        ))}
-      </ul>
     </div>
   )
 }
 
-function QuickRow({
-  item, index, onSelectObject,
-}: {
-  item: ObjectHealth
-  index: number
-  onSelectObject: (id: string) => void
-}) {
-  const healthColor =
-    item.health_score >= 70 ? 'var(--ink)' :
-    item.health_score >= 40 ? 'var(--mute)' :
-    'var(--accent)'
+// ─── Chip ─────────────────────────────────────────────────────
 
-  const daysLabel =
-    item.status === 'sold'  ? 'Såld' :
-    item.status === 'draft' ? '—' :
-    `${item.days_on_market}d`
-
-  const daysAlert = item.status === 'active' && item.days_on_market > 30
-
+function Chip({ onClick, icon, label }: { onClick?: () => void; icon: string; label: string }) {
   return (
-    <li style={{ borderTop: '1px solid var(--line)' }}>
-      <button
-        onClick={() => onSelectObject(item.id)}
-        className="doc-row"
-        style={{
-          width: '100%',
-          textAlign: 'left',
-          display: 'grid',
-          gridTemplateColumns: '32px 1fr 56px 88px 24px',
-          gap: '16px',
-          alignItems: 'center',
-          padding: '14px 0',
-          background: 'none',
-          border: 'none',
-          cursor: 'pointer',
-        }}
-      >
-        <span
-          style={{
-            fontFamily: "'Geist Mono', monospace",
-            fontSize: '11px',
-            color: 'var(--mute-2)',
-            fontVariantNumeric: 'tabular-nums',
-          }}
-        >
-          {String(index).padStart(2, '0')}
-        </span>
-
-        <div style={{ minWidth: 0 }}>
-          <p
-            style={{
-              fontSize: '14px',
-              fontWeight: 500,
-              color: 'var(--ink)',
-              lineHeight: 1.3,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {item.address}
-          </p>
-          <p
-            style={{
-              fontFamily: "'Geist Mono', monospace",
-              fontSize: '11px',
-              color: 'var(--mute)',
-              marginTop: '2px',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {item.area}
-          </p>
-        </div>
-
-        <span
-          style={{
-            fontFamily: "'Geist Mono', monospace",
-            fontSize: '13px',
-            fontVariantNumeric: 'tabular-nums',
-            textAlign: 'right',
-            color: daysAlert ? 'var(--accent)' : 'var(--mute)',
-          }}
-        >
-          {daysLabel}
-        </span>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'flex-end' }}>
-          <div
-            style={{
-              width: '40px',
-              height: '3px',
-              background: 'var(--line)',
-              borderRadius: '2px',
-              overflow: 'hidden',
-            }}
-          >
-            <div
-              style={{
-                height: '100%',
-                width: `${item.health_score}%`,
-                background: healthColor,
-                borderRadius: '2px',
-              }}
-            />
-          </div>
-          <span
-            style={{
-              fontFamily: "'Geist Mono', monospace",
-              fontSize: '12px',
-              fontVariantNumeric: 'tabular-nums',
-              width: '24px',
-              textAlign: 'right',
-              color: healthColor,
-            }}
-          >
-            {item.health_score}
-          </span>
-        </div>
-
-        <span
-          className="tod-arrow"
-          style={{
-            fontFamily: "'Geist Mono', monospace",
-            fontSize: '14px',
-            color: 'var(--mute-2)',
-            textAlign: 'right',
-          }}
-        >
-          →
-        </span>
-      </button>
-    </li>
+    <button
+      onClick={onClick}
+      className="chip-btn"
+      style={{
+        padding: '6px 12px',
+        background: 'var(--bg)',
+        border: '1px solid var(--line)',
+        borderRadius: '100px',
+        fontSize: '12.5px',
+        color: 'var(--ink-2)',
+        fontWeight: 450,
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '6px',
+        cursor: 'pointer',
+        fontFamily: 'inherit',
+        letterSpacing: '-0.003em',
+      }}
+    >
+      <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11px', color: 'var(--mute)' }}>
+        {icon}
+      </span>
+      {label}
+    </button>
   )
 }
 
 // ─── Skeleton ─────────────────────────────────────────────────
 
-function DashboardSkeleton() {
+function Skeleton() {
   return (
-    <div
-      style={{
-        position: 'absolute',
-        inset: 0,
-        padding: '88px 40px 40px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '32px',
-        overflowY: 'auto',
-        background: 'var(--bg)',
-      }}
-    >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        <div style={{ height: '12px', width: '240px', background: 'var(--line)', borderRadius: '4px' }} className="animate-pulse" />
-        <div style={{ height: '28px', width: '320px', background: 'var(--line)', borderRadius: '4px' }} className="animate-pulse" />
+    <div style={{ position: 'absolute', inset: 0, padding: '88px 40px 40px', display: 'flex', flexDirection: 'column', gap: '32px', background: 'var(--bg)' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+        <div className="animate-pulse" style={{ height: '11px', width: '220px', background: 'var(--line)', borderRadius: '4px' }} />
+        <div className="animate-pulse" style={{ height: '13px', width: '180px', background: 'var(--line)', borderRadius: '4px' }} />
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
         {[...Array(3)].map((_, i) => (
-          <div
-            key={i}
-            style={{ height: '220px', background: 'var(--tint)', borderRadius: '10px' }}
-            className="animate-pulse"
-          />
-        ))}
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
-        <div style={{ height: '1px', background: 'var(--ink)', marginBottom: '1px' }} />
-        {[...Array(4)].map((_, i) => (
-          <div
-            key={i}
-            style={{ height: '48px', background: 'var(--tint)', borderRadius: '4px', marginTop: '8px' }}
-            className="animate-pulse"
-          />
+          <div key={i} className="animate-pulse" style={{ height: '220px', background: 'var(--tint)', borderRadius: '10px' }} />
         ))}
       </div>
     </div>
