@@ -4,8 +4,9 @@ import { useState } from 'react'
 import { Agency, Channel, GenerateResult, PropertyObject } from '@/types'
 import ContentCard from './ContentCard'
 import MetaPublishView from './MetaPublishView'
+import RevisionView from './RevisionView'
 
-type DetailTab = 'copy' | 'publish'
+type DetailTab = 'copy' | 'publish' | 'revision'
 
 interface ObjectDetailProps {
   object: PropertyObject
@@ -110,8 +111,9 @@ export default function ObjectDetail({ object, agency }: ObjectDetailProps) {
         {/* Sub-tabs */}
         <div className="flex gap-1 mt-4">
           {([
-            { key: 'copy',    label: 'Kanaltexter' },
-            { key: 'publish', label: 'Publicera' },
+            { key: 'copy',     label: 'Kanaltexter' },
+            { key: 'revision', label: 'Revision' },
+            { key: 'publish',  label: 'Publicera' },
           ] as { key: DetailTab; label: string }[]).map(({ key, label }) => (
             <button
               key={key}
@@ -156,6 +158,10 @@ export default function ObjectDetail({ object, agency }: ObjectDetailProps) {
             ))}
           </div>
         </>
+      ) : detailTab === 'revision' ? (
+        <div className="flex-1 overflow-hidden">
+          <RevisionView objectId={object.id} />
+        </div>
       ) : (
         <div className="flex-1 overflow-hidden">
           <MetaPublishView object={object} agency={agency} />

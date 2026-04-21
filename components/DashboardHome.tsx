@@ -15,9 +15,10 @@ interface DashboardHomeProps {
   onSelectObject: (id: string) => void
   onNewObject: () => void
   onProspects?: () => void
+  onRevision?: () => void
 }
 
-export default function DashboardHome({ agency, onSelectObject, onNewObject, onProspects }: DashboardHomeProps) {
+export default function DashboardHome({ agency, onSelectObject, onNewObject, onProspects, onRevision }: DashboardHomeProps) {
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -58,6 +59,16 @@ export default function DashboardHome({ agency, onSelectObject, onNewObject, onP
           <p className="font-data text-[11px] text-mute tracking-snug">
             {data.stats.active_objects} aktiva objekt · {data.stats.texts_this_month} texter denna månad
           </p>
+
+          {onRevision && (
+            <button
+              onClick={onRevision}
+              className="inline-flex items-center gap-1.5 mt-4 font-data text-[11px] text-mute hover:text-ink transition-colors tracking-snug border border-line rounded-full px-3 py-1.5"
+            >
+              <span>Analysera befintlig annons</span>
+              <span className="text-mute-2">→</span>
+            </button>
+          )}
         </div>
 
         {/* Right: KPI rail */}

@@ -4,7 +4,7 @@ import { Agency } from '@/types'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { useRouter } from 'next/navigation'
 
-type View = 'home' | 'detail' | 'new' | 'tone' | 'competition' | 'prospects' | 'followup'
+type View = 'home' | 'detail' | 'new' | 'tone' | 'competition' | 'prospects' | 'followup' | 'revision'
 
 interface TopbarProps {
   agency: Agency | null
