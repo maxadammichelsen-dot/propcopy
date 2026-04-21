@@ -165,6 +165,10 @@ export default function DashboardPage() {
               onNewObject={handleNewObject}
               onProspects={handleProspects}
               onRevision={handleRevision}
+              onTone={() => setView('tone')}
+              onCompetition={handleCompetition}
+              onFollowup={handleFollowup}
+              onSettings={handleSettings}
             />
           ) : view === 'competition' ? (
             <CompetitionView />
