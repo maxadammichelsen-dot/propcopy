@@ -151,7 +151,7 @@ export default function DashboardPage() {
           onFollowup={handleFollowup}
         />
 
-        <main className="flex-1 overflow-hidden">
+        <main className="flex-1 overflow-hidden relative">
           {view === 'settings' && agency ? (
             <SettingsView
               agency={agency}

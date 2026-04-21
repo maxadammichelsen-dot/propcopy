@@ -22,6 +22,8 @@ interface DashboardHomeProps {
   onSettings?: () => void
 }
 
+const WEEKDAYS = ['Söndag', 'Måndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lördag']
+
 function getGreeting(): string {
   const h = new Date().getHours()
   if (h < 10) return 'God morgon'
@@ -30,23 +32,22 @@ function getGreeting(): string {
   return 'God kväll'
 }
 
-function getWeekNumber(): number {
-  const d = new Date()
-  d.setHours(0, 0, 0, 0)
-  d.setDate(d.getDate() + 3 - ((d.getDay() + 6) % 7))
-  const w1 = new Date(d.getFullYear(), 0, 4)
-  return 1 + Math.round(((d.getTime() - w1.getTime()) / 86400000 - 3 + ((w1.getDay() + 6) % 7)) / 7)
+function getWeekNumber(d: Date): number {
+  const t = new Date(d)
+  t.setHours(0, 0, 0, 0)
+  t.setDate(t.getDate() + 3 - ((t.getDay() + 6) % 7))
+  const w1 = new Date(t.getFullYear(), 0, 4)
+  return 1 + Math.round(((t.getTime() - w1.getTime()) / 86400000 - 3 + ((w1.getDay() + 6) % 7)) / 7)
 }
 
+function p2(n: number) { return String(n).padStart(2, '0') }
+
 export default function DashboardHome({
-  agency, onSelectObject, onNewObject, onProspects, onRevision,
-  onTone, onCompetition, onFollowup, onSettings,
+  agency, onSelectObject, onNewObject,
 }: DashboardHomeProps) {
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
-  const [time, setTime] = useState(() =>
-    new Date().toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })
-  )
+  const [now, setNow] = useState(() => new Date())
 
   useEffect(() => {
     fetch('/api/dashboard')
@@ -56,378 +57,303 @@ export default function DashboardHome({
   }, [])
 
   useEffect(() => {
-    const id = setInterval(() => {
-      setTime(new Date().toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' }))
-    }, 30000)
+    const id = setInterval(() => setNow(new Date()), 30000)
     return () => clearInterval(id)
   }, [])
 
   if (loading) return <DashboardSkeleton />
   if (!data) return null
 
-  const dateLabel = new Date().toLocaleDateString('sv-SE', {
-    weekday: 'long', day: 'numeric', month: 'long',
-  })
+  const eyebrow = `${WEEKDAYS[now.getDay()]} · ${p2(now.getDate())}.${p2(now.getMonth() + 1)}.${now.getFullYear()} · V.${getWeekNumber(now)} · ${p2(now.getHours())}:${p2(now.getMinutes())}`
   const firstName = agency?.name?.split(' ')[0] ?? ''
-  const tonePercent = agency?.tone_profile?.tags?.length
-    ? Math.min(100, Math.round((agency.tone_profile.tags.length / 6) * 100))
-    : 0
-  const activeCount = data.object_health.filter(o => o.status === 'active').length
+  const cards = data.action_items.slice(0, 3)
 
   return (
-    <div className="h-full flex overflow-hidden">
+    <div
+      style={{
+        position: 'absolute',
+        inset: 0,
+        padding: '88px 40px 40px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '32px',
+        overflowY: 'auto',
+        background: 'var(--bg)',
+      }}
+    >
 
-      {/* ─── CENTER ─────────────────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto">
-
-        {/* Hero */}
-        <div className="px-10 pt-12 pb-10 border-b border-line">
-          <div className="flex items-center gap-3 mb-8">
-            <span className="dot-live" />
-            <span className="font-data text-[11px] text-mute capitalize tracking-snug">{dateLabel}</span>
-          </div>
-
-          <h1 className="font-display text-[72px] leading-[0.92] tracking-[-0.04em] text-ink">
-            {getGreeting()}{firstName ? `, ${firstName}` : ''}.{' '}
-            <em className="italic text-mute">Tre saker på bordet.</em>
-          </h1>
-
-          {data.stats.needs_action > 0 ? (
-            <div className="flex items-baseline gap-5 mt-10 pt-8 border-t border-line">
-              <span className="font-display text-[56px] leading-none tracking-[-0.03em] text-accent">
-                {data.stats.needs_action}
-              </span>
-              <p className="text-[14px] text-ink-2 leading-relaxed">
-                <strong className="font-medium">objekt behöver åtgärd</strong>
-                {' '}· {data.stats.active_objects} aktiva · {data.stats.texts_this_month} texter denna månad
-              </p>
-            </div>
-          ) : (
-            <p className="font-data text-[11px] text-mute tracking-snug mt-6">
-              {data.stats.active_objects} aktiva objekt · {data.stats.texts_this_month} texter denna månad
-            </p>
-          )}
-        </div>
-
-        {/* Three things today */}
-        <ThingsToday
-          items={data.action_items}
-          onSelectObject={onSelectObject}
-          onRevision={onRevision}
-        />
-
-        {/* Object list */}
-        <ObjectDocumentList
-          items={data.object_health}
-          onSelectObject={onSelectObject}
-          onNewObject={onNewObject}
-        />
+      {/* ── Greet ──────────────────────────────────────────── */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+        <span
+          style={{
+            fontFamily: "'Geist Mono', monospace",
+            fontSize: '11px',
+            color: 'var(--mute)',
+            letterSpacing: '-0.01em',
+          }}
+        >
+          {eyebrow}
+        </span>
+        <span
+          style={{
+            fontSize: '22px',
+            fontWeight: 500,
+            color: 'var(--ink)',
+            letterSpacing: '-0.02em',
+            lineHeight: 1.3,
+          }}
+        >
+          {getGreeting()}{firstName ? ', ' : ''}
+          {firstName && <b style={{ fontWeight: 700 }}>{firstName}</b>}
+          {'. Tre saker på bordet.'}
+        </span>
       </div>
 
-      {/* ─── RIGHT NAV PANEL ────────────────────────────────── */}
-      <aside className="w-[280px] border-l border-line bg-tint shrink-0 overflow-y-auto">
-
-        {/* Header */}
-        <div className="px-6 py-5 border-b border-line flex items-baseline justify-between">
-          <span className="font-data text-[10px] text-mute tracking-[0.02em] uppercase">
-            Vecka {getWeekNumber()}
-          </span>
-          <span className="font-data text-[10px] text-mute tabular-nums">{time}</span>
-        </div>
-
-        {/* ARBETSYTA */}
-        <NavSection label="Arbetsyta">
-          <NavItem
-            label="Today"
-            active
-            right={
-              <span className="flex gap-0.5">
-                {['G', 'T'].map(k => (
-                  <kbd key={k} className="font-data text-[9px] text-mute-2 bg-bg border border-line rounded px-[5px] py-[2px] leading-none">
-                    {k}
-                  </kbd>
-                ))}
-              </span>
-            }
-          />
-          <NavItem
-            label="Alla objekt"
-            right={
-              <span className={`font-data text-[12px] tabular-nums ${activeCount > 0 ? 'text-accent' : 'text-mute'}`}>
-                {activeCount}
-              </span>
-            }
-          />
-          <NavItem
-            label="Spekulanter"
-            onClick={onProspects}
-            right={
-              <span className="flex items-center gap-1.5 font-data text-[10px] text-accent">
-                <span className="w-1.5 h-1.5 rounded-full bg-accent" />
-                live
-              </span>
-            }
-          />
-          <NavItem
-            label="Tonprofil"
-            onClick={onTone}
-            right={
-              <span className="font-data text-[11px] text-mute tabular-nums">
-                {tonePercent > 0 ? `${tonePercent}%` : '—'}
-              </span>
-            }
-          />
-        </NavSection>
-
-        {/* ANALYS */}
-        <NavSection label="Analys">
-          <NavItem
-            label="Konkurrensintelligens"
-            onClick={onCompetition}
-            right={<span className="font-data text-[10px] text-mute">0 nya</span>}
-          />
-          <NavItem
-            label="Historik & statistik"
-            onClick={onFollowup}
-            right={<span className="font-data text-[10px] text-mute-2">v1</span>}
-          />
-        </NavSection>
-
-        {/* INSTÄLLNINGAR */}
-        <NavSection label="Inställningar">
-          <NavItem label="Byrå & team" onClick={onSettings} />
-          <NavItem
-            label="Kortkommandon"
-            right={
-              <span className="font-data text-[10px] text-mute border border-line rounded px-[5px] py-[2px] leading-none">
-                ?
-              </span>
-            }
-          />
-        </NavSection>
-      </aside>
-    </div>
-  )
-}
-
-// ─── Nav helpers ──────────────────────────────────────────────
-
-function NavSection({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="pt-6 pb-2">
-      <p className="px-6 font-data text-[9px] text-mute-2 tracking-[0.08em] uppercase mb-0.5">
-        {label}
-      </p>
-      <div>{children}</div>
-    </div>
-  )
-}
-
-function NavItem({
-  label, active = false, onClick, right,
-}: {
-  label: string
-  active?: boolean
-  onClick?: () => void
-  right?: React.ReactNode
-}) {
-  const baseClass = [
-    'flex items-center gap-2.5 px-6 py-2.5 border-t border-line w-full text-left',
-    onClick ? 'cursor-pointer hover:bg-bg/60 transition-colors' : 'cursor-default',
-    active ? 'bg-bg/40' : '',
-  ].join(' ')
-
-  const inner = (
-    <>
-      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${active ? 'bg-accent' : 'opacity-0'}`} />
-      <span className={`font-data text-[12px] flex-1 truncate ${active ? 'text-ink font-medium' : 'text-mute'}`}>
-        {label}
-      </span>
-      {right && <span className="shrink-0">{right}</span>}
-    </>
-  )
-
-  return onClick ? (
-    <button onClick={onClick} className={baseClass}>{inner}</button>
-  ) : (
-    <div className={baseClass}>{inner}</div>
-  )
-}
-
-// ─── Three things today ───────────────────────────────────────
-
-const PRIORITY_TAG = {
-  high:   { label: 'Prioritet',  cls: 'text-accent border-accent/40 bg-accent/5' },
-  medium: { label: 'Att göra',   cls: 'text-ink-2 border-line-2' },
-  low:    { label: 'Notering',   cls: 'text-mute border-line' },
-} as const
-
-function ThingsToday({
-  items, onSelectObject, onRevision,
-}: {
-  items: ActionItem[]
-  onSelectObject: (id: string) => void
-  onRevision?: () => void
-}) {
-  const shown = items.slice(0, 3)
-  if (!shown.length && !onRevision) return null
-
-  return (
-    <div className="px-10 py-10 border-b border-line">
-      {/* Section header */}
-      <div className="flex items-baseline justify-between mb-6">
-        <h2 className="font-display text-[40px] leading-none tracking-[-0.028em] text-ink">
-          Idag bör du <em className="italic text-mute">· kuraterat av Estatio</em>
-        </h2>
-        {shown.length > 0 && (
-          <span className="font-data text-[11px] text-mute tracking-snug">
-            <strong className="text-accent">{String(shown.length).padStart(2, '0')}</strong> saker
-          </span>
+      {/* ── Cards ──────────────────────────────────────────── */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(3, 1fr)',
+          gap: '12px',
+        }}
+      >
+        {cards.length > 0 ? (
+          cards.map(item => (
+            <ActionCard
+              key={item.id}
+              item={item}
+              onSelect={() => { if (item.object_id) onSelectObject(item.object_id) }}
+            />
+          ))
+        ) : (
+          <div
+            style={{
+              gridColumn: '1 / -1',
+              padding: '32px',
+              border: '1px dashed var(--line)',
+              borderRadius: '10px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <span
+              style={{
+                fontFamily: "'Geist Mono', monospace",
+                fontSize: '12px',
+                color: 'var(--mute-2)',
+              }}
+            >
+              Inga uppgifter just nu
+            </span>
+          </div>
         )}
       </div>
 
-      {shown.length === 0 ? (
-        <div className="py-8 text-center border border-dashed border-line rounded-lg">
-          <p className="font-data text-[11px] text-mute-2 tracking-snug mb-3">Inga uppgifter just nu.</p>
-          {onRevision && (
-            <button
-              onClick={onRevision}
-              className="font-data text-[11px] text-accent hover:underline tracking-snug"
-            >
-              Analysera befintlig annons →
-            </button>
-          )}
-        </div>
-      ) : (
-        <ol>
-          {shown.map((item, i) => {
-            const tag = PRIORITY_TAG[item.priority]
-            return (
-              <li key={item.id}>
-                <button
-                  onClick={() => item.object_id ? onSelectObject(item.object_id) : undefined}
-                  disabled={!item.object_id}
-                  className="w-full text-left flex items-start gap-6 py-6 border-t border-line group hover:pl-2 transition-all duration-150 disabled:cursor-default"
-                  style={{ borderTopColor: i === 0 ? 'var(--ink)' : undefined }}
-                >
-                  {/* Index */}
-                  <span className="font-display text-[30px] italic text-mute-2 leading-none w-9 shrink-0 tabular-nums pt-0.5">
-                    {String(i + 1).padStart(2, '0')}
-                  </span>
+      {/* ── Quick list ─────────────────────────────────────── */}
+      <QuickList
+        items={data.object_health}
+        onSelectObject={onSelectObject}
+        onNewObject={onNewObject}
+      />
 
-                  {/* Content */}
-                  <div className="flex-1 min-w-0 space-y-1.5">
-                    <p className="text-[16px] font-medium text-ink leading-tight">{item.title}</p>
-                    <p className="font-data text-[12px] text-mute leading-relaxed">{item.description}</p>
-                  </div>
+    </div>
+  )
+}
 
-                  {/* Tags */}
-                  <div className="flex gap-1.5 flex-wrap justify-end shrink-0 max-w-[180px] pt-0.5">
-                    <span className={`font-data text-[10px] px-2 py-0.5 border rounded leading-none ${tag.cls}`}>
-                      {tag.label}
-                    </span>
-                    {item.object_id && (
-                      <span className="font-data text-[10px] px-2 py-0.5 border border-line text-mute rounded leading-none">
-                        Objekt
-                      </span>
-                    )}
-                  </div>
+// ─── Action Card ──────────────────────────────────────────────
 
-                  {/* Arrow */}
-                  <span className="font-data text-[16px] text-mute-2 group-hover:text-accent group-hover:translate-x-1 transition-all shrink-0 pt-0.5">
-                    →
-                  </span>
-                </button>
-              </li>
-            )
-          })}
-          {shown.length > 0 && (
-            <li className="border-t border-line" />
-          )}
-        </ol>
-      )}
+function ActionCard({ item, onSelect }: { item: ActionItem; onSelect: () => void }) {
+  const isHot = item.priority === 'high'
 
-      {onRevision && shown.length > 0 && (
-        <div className="mt-4">
-          <button
-            onClick={onRevision}
-            className="font-data text-[11px] text-mute hover:text-ink transition-colors tracking-snug border border-line rounded-full px-3 py-1.5"
-          >
-            Analysera befintlig annons →
-          </button>
-        </div>
+  return (
+    <div
+      style={{
+        padding: '18px',
+        border: '1px solid var(--line)',
+        borderRadius: '10px',
+        minHeight: '220px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '10px',
+        background: 'var(--bg)',
+      }}
+    >
+      {/* .hdr */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        {/* .ic[.hot] */}
+        <span
+          style={{
+            width: '28px',
+            height: '28px',
+            borderRadius: '6px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '14px',
+            flexShrink: 0,
+            background: isHot ? 'var(--accent-tint)' : 'var(--tint)',
+            color: isHot ? 'var(--accent)' : 'var(--ink-3)',
+          }}
+        >
+          {item.icon ?? (isHot ? '⚡' : '·')}
+        </span>
+        <span
+          style={{
+            fontFamily: "'Geist Mono', monospace",
+            fontSize: '9px',
+            letterSpacing: '0.06em',
+            textTransform: 'uppercase' as const,
+            color: isHot ? 'var(--accent)' : 'var(--mute)',
+          }}
+        >
+          {item.priority === 'high' ? 'Prioritet' : item.priority === 'medium' ? 'Att göra' : 'Notering'}
+        </span>
+      </div>
+
+      {/* h3 */}
+      <h3
+        style={{
+          fontSize: '16px',
+          fontWeight: 600,
+          letterSpacing: '-0.018em',
+          lineHeight: 1.3,
+          color: 'var(--ink)',
+          flex: 1,
+        }}
+      >
+        {item.title}
+      </h3>
+
+      {/* p */}
+      <p
+        style={{
+          fontSize: '13.5px',
+          color: 'var(--mute)',
+          lineHeight: 1.5,
+          letterSpacing: '-0.003em',
+        }}
+      >
+        {item.description}
+      </p>
+
+      {/* .btn.primary */}
+      {item.object_id && (
+        <button
+          onClick={onSelect}
+          style={{
+            alignSelf: 'flex-start',
+            padding: '7px 12px',
+            background: 'var(--ink)',
+            color: '#fff',
+            fontWeight: 500,
+            fontSize: '12.5px',
+            borderRadius: '6px',
+            border: 'none',
+            cursor: 'pointer',
+            fontFamily: "'Geist Mono', monospace",
+            letterSpacing: '-0.01em',
+          }}
+        >
+          Öppna objekt →
+        </button>
       )}
     </div>
   )
 }
 
-// ─── Object document list ─────────────────────────────────────
+// ─── Quick object list ────────────────────────────────────────
 
-function ObjectDocumentList({
+function QuickList({
   items, onSelectObject, onNewObject,
 }: {
   items: ObjectHealth[]
   onSelectObject: (id: string) => void
   onNewObject: () => void
 }) {
-  const activeItems = items.filter(o => o.status !== 'sold')
-
-  return (
-    <div className="px-10 py-10">
-      {/* Header */}
-      <div className="flex items-baseline justify-between mb-5">
-        <h2 className="font-display text-[40px] leading-none tracking-[-0.028em] text-ink">
-          Aktiva objekt <em className="italic text-mute">· {activeItems.length}</em>
-        </h2>
+  if (items.length === 0) {
+    return (
+      <div
+        style={{
+          padding: '32px',
+          border: '1px dashed var(--line)',
+          borderRadius: '10px',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '12px',
+        }}
+      >
+        <span
+          style={{
+            fontFamily: "'Geist Mono', monospace",
+            fontSize: '11px',
+            color: 'var(--mute-2)',
+          }}
+        >
+          Inga aktiva objekt
+        </span>
         <button
           onClick={onNewObject}
-          className="font-data text-[11px] text-mute hover:text-ink transition-colors tracking-snug"
+          style={{
+            fontFamily: "'Geist Mono', monospace",
+            fontSize: '11px',
+            color: 'var(--accent)',
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+          }}
         >
-          + Nytt objekt
+          Skapa ditt första →
         </button>
       </div>
+    )
+  }
 
-      {items.length === 0 ? (
-        <div className="py-12 text-center border border-dashed border-line rounded-lg">
-          <p className="font-data text-[11px] text-mute-2 tracking-snug mb-4">Inga aktiva objekt</p>
-          <button
-            onClick={onNewObject}
-            className="font-data text-[11px] text-accent hover:underline tracking-snug"
+  return (
+    <div>
+      {/* Column headers */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '32px 1fr 56px 88px 24px',
+          gap: '16px',
+          padding: '8px 0',
+          borderBottom: '1px solid var(--ink)',
+        }}
+      >
+        {['#', 'Adress', 'Dagar', 'Hälsa', ''].map((h, i) => (
+          <span
+            key={i}
+            style={{
+              fontFamily: "'Geist Mono', monospace",
+              fontSize: '10px',
+              color: 'var(--mute)',
+              textTransform: 'uppercase' as const,
+              letterSpacing: '0.02em',
+              textAlign: i >= 2 ? 'right' as const : 'left' as const,
+            }}
           >
-            Skapa ditt första →
-          </button>
-        </div>
-      ) : (
-        <>
-          {/* Column headers */}
-          <div className="grid grid-cols-[32px_1fr_56px_88px_28px] gap-4 py-2.5 border-b border-ink">
-            {['#', 'Adress', 'Dagar', 'Hälsa', ''].map((h, i) => (
-              <span
-                key={i}
-                className={`font-data text-[10px] text-mute uppercase tracking-[0.02em] ${i >= 2 ? 'text-right' : ''}`}
-              >
-                {h}
-              </span>
-            ))}
-          </div>
+            {h}
+          </span>
+        ))}
+      </div>
 
-          <ul>
-            {items.map((item, i) => (
-              <ObjectDocumentRow
-                key={item.id}
-                item={item}
-                index={i + 1}
-                onSelectObject={onSelectObject}
-              />
-            ))}
-          </ul>
-        </>
-      )}
+      <ul style={{ listStyle: 'none' }}>
+        {items.map((item, i) => (
+          <QuickRow
+            key={item.id}
+            item={item}
+            index={i + 1}
+            onSelectObject={onSelectObject}
+          />
+        ))}
+      </ul>
     </div>
   )
 }
 
-function ObjectDocumentRow({
+function QuickRow({
   item, index, onSelectObject,
 }: {
   item: ObjectHealth
@@ -447,38 +373,117 @@ function ObjectDocumentRow({
   const daysAlert = item.status === 'active' && item.days_on_market > 30
 
   return (
-    <li>
+    <li style={{ borderTop: '1px solid var(--line)' }}>
       <button
         onClick={() => onSelectObject(item.id)}
-        className="w-full text-left py-4 grid grid-cols-[32px_1fr_56px_88px_28px] gap-4 items-center border-t border-line group hover:pl-2 transition-all duration-150"
+        className="doc-row"
+        style={{
+          width: '100%',
+          textAlign: 'left',
+          display: 'grid',
+          gridTemplateColumns: '32px 1fr 56px 88px 24px',
+          gap: '16px',
+          alignItems: 'center',
+          padding: '14px 0',
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+        }}
       >
-        <span className="font-data text-[11px] text-mute-2 tabular-nums">{String(index).padStart(2, '0')}</span>
+        <span
+          style={{
+            fontFamily: "'Geist Mono', monospace",
+            fontSize: '11px',
+            color: 'var(--mute-2)',
+            fontVariantNumeric: 'tabular-nums',
+          }}
+        >
+          {String(index).padStart(2, '0')}
+        </span>
 
-        <div className="min-w-0">
-          <p className="text-[14px] font-medium text-ink leading-tight truncate">{item.address}</p>
-          <p className="font-data text-[11px] text-mute mt-0.5 truncate">{item.area}</p>
+        <div style={{ minWidth: 0 }}>
+          <p
+            style={{
+              fontSize: '14px',
+              fontWeight: 500,
+              color: 'var(--ink)',
+              lineHeight: 1.3,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {item.address}
+          </p>
+          <p
+            style={{
+              fontFamily: "'Geist Mono', monospace",
+              fontSize: '11px',
+              color: 'var(--mute)',
+              marginTop: '2px',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {item.area}
+          </p>
         </div>
 
-        <span className={`font-data text-[13px] tabular-nums text-right ${daysAlert ? 'text-accent' : 'text-mute'}`}>
+        <span
+          style={{
+            fontFamily: "'Geist Mono', monospace",
+            fontSize: '13px',
+            fontVariantNumeric: 'tabular-nums',
+            textAlign: 'right',
+            color: daysAlert ? 'var(--accent)' : 'var(--mute)',
+          }}
+        >
           {daysLabel}
         </span>
 
-        <div className="flex items-center gap-2 justify-end">
-          <div className="w-10 h-[3px] bg-line rounded-full overflow-hidden">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'flex-end' }}>
+          <div
+            style={{
+              width: '40px',
+              height: '3px',
+              background: 'var(--line)',
+              borderRadius: '2px',
+              overflow: 'hidden',
+            }}
+          >
             <div
-              className="h-full rounded-full transition-all"
-              style={{ width: `${item.health_score}%`, background: healthColor }}
+              style={{
+                height: '100%',
+                width: `${item.health_score}%`,
+                background: healthColor,
+                borderRadius: '2px',
+              }}
             />
           </div>
           <span
-            className="font-data text-[12px] tabular-nums w-6 text-right"
-            style={{ color: healthColor }}
+            style={{
+              fontFamily: "'Geist Mono', monospace",
+              fontSize: '12px',
+              fontVariantNumeric: 'tabular-nums',
+              width: '24px',
+              textAlign: 'right',
+              color: healthColor,
+            }}
           >
             {item.health_score}
           </span>
         </div>
 
-        <span className="font-data text-[14px] text-mute-2 group-hover:text-accent transition-colors text-right">
+        <span
+          className="tod-arrow"
+          style={{
+            fontFamily: "'Geist Mono', monospace",
+            fontSize: '14px',
+            color: 'var(--mute-2)',
+            textAlign: 'right',
+          }}
+        >
           →
         </span>
       </button>
@@ -490,37 +495,41 @@ function ObjectDocumentRow({
 
 function DashboardSkeleton() {
   return (
-    <div className="h-full flex overflow-hidden">
-      <div className="flex-1 overflow-y-auto">
-        <div className="px-10 pt-12 pb-10 border-b border-line space-y-4">
-          <div className="h-3 w-28 bg-line rounded animate-pulse" />
-          <div className="h-16 w-96 bg-line rounded animate-pulse" />
-          <div className="h-3 w-40 bg-line rounded animate-pulse" />
-        </div>
-        <div className="px-10 py-10 border-b border-line space-y-4">
-          <div className="h-8 w-64 bg-line rounded animate-pulse" />
-          {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-20 bg-tint rounded animate-pulse" />
-          ))}
-        </div>
-        <div className="px-10 py-10 space-y-3">
-          <div className="h-8 w-48 bg-line rounded animate-pulse" />
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-14 bg-tint rounded animate-pulse" />
-          ))}
-        </div>
+    <div
+      style={{
+        position: 'absolute',
+        inset: 0,
+        padding: '88px 40px 40px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '32px',
+        overflowY: 'auto',
+        background: 'var(--bg)',
+      }}
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div style={{ height: '12px', width: '240px', background: 'var(--line)', borderRadius: '4px' }} className="animate-pulse" />
+        <div style={{ height: '28px', width: '320px', background: 'var(--line)', borderRadius: '4px' }} className="animate-pulse" />
       </div>
-      <aside className="w-[280px] border-l border-line bg-tint shrink-0">
-        <div className="px-6 py-5 border-b border-line flex justify-between">
-          <div className="h-2.5 w-16 bg-line rounded animate-pulse" />
-          <div className="h-2.5 w-10 bg-line rounded animate-pulse" />
-        </div>
-        <div className="p-6 space-y-3">
-          {[...Array(7)].map((_, i) => (
-            <div key={i} className="h-9 bg-bg/60 rounded animate-pulse" />
-          ))}
-        </div>
-      </aside>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+        {[...Array(3)].map((_, i) => (
+          <div
+            key={i}
+            style={{ height: '220px', background: 'var(--tint)', borderRadius: '10px' }}
+            className="animate-pulse"
+          />
+        ))}
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+        <div style={{ height: '1px', background: 'var(--ink)', marginBottom: '1px' }} />
+        {[...Array(4)].map((_, i) => (
+          <div
+            key={i}
+            style={{ height: '48px', background: 'var(--tint)', borderRadius: '4px', marginTop: '8px' }}
+            className="animate-pulse"
+          />
+        ))}
+      </div>
     </div>
   )
 }
