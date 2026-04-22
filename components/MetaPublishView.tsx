@@ -1,14 +1,15 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Agency, PropertyObject } from '@/types'
+import { Agency, Channel, GenerateResult, PropertyObject } from '@/types'
 
 interface MetaPublishViewProps {
   object: PropertyObject
   agency: Agency | null
+  results?: Record<Channel, GenerateResult | null>
 }
 
-type Tab = 'organic' | 'ad' | 'schedule'
+type Tab = 'hemnet' | 'organic' | 'ad' | 'schedule'
 type Platform = 'facebook' | 'instagram' | 'both'
 
 interface ScheduledPost {
@@ -51,8 +52,8 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
 
 const inputCls = 'bg-transparent border border-line rounded-lg px-3 py-2 text-[14px] text-ink focus:border-ink outline-none transition-colors placeholder:text-mute-2'
 
-export default function MetaPublishView({ object, agency }: MetaPublishViewProps) {
-  const [tab, setTab] = useState<Tab>('organic')
+export default function MetaPublishView({ object, agency, results }: MetaPublishViewProps) {
+  const [tab, setTab] = useState<Tab>('hemnet')
   const isConnected = !!agency?.meta_page_id
 
   if (!isConnected) {
@@ -89,7 +90,8 @@ export default function MetaPublishView({ object, agency }: MetaPublishViewProps
       <div className="px-6 pt-4 pb-0 shrink-0">
         <div className="flex gap-0.5 p-[3px] bg-tint rounded-full w-fit">
           {([
-            { key: 'organic',  label: 'Organiskt' },
+            { key: 'hemnet',   label: 'Hemnet' },
+            { key: 'organic',  label: 'Meta' },
             { key: 'ad',       label: 'Annons' },
             { key: 'schedule', label: 'Schemalagt' },
           ] as { key: Tab; label: string }[]).map(({ key, label }) => (
@@ -110,10 +112,206 @@ export default function MetaPublishView({ object, agency }: MetaPublishViewProps
       </div>
 
       <div className="flex-1 overflow-y-auto px-6 py-5">
+        {tab === 'hemnet'   && <HemnetTab   results={results} />}
         {tab === 'organic'  && <OrganicTab  object={object} agency={agency} />}
         {tab === 'ad'       && <AdTab       object={object} agency={agency} />}
         {tab === 'schedule' && <ScheduleTab agency={agency} />}
       </div>
+    </div>
+  )
+}
+
+// ─── Hemnet tab ───────────────────────────────────────────────
+
+function HemnetTab({ results }: { results?: Record<Channel, GenerateResult | null> }) {
+  const [copied, setCopied] = useState<'hemnet' | 'raket' | null>(null)
+
+  const hemnet = results?.hemnet?.content ?? null
+  const raket  = results?.hemnet_raket?.content ?? null
+
+  async function copy(text: string, key: 'hemnet' | 'raket') {
+    await navigator.clipboard.writeText(text)
+    setCopied(key)
+    setTimeout(() => setCopied(null), 2000)
+  }
+
+  if (!hemnet && !raket) {
+    return (
+      <div className="py-10 text-center">
+        <p className="font-data text-[11px] text-mute-2 tracking-snug leading-relaxed">
+          Generera texter i Kopiera-fliken först,<br />sedan visas texterna här.
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6 max-w-lg">
+
+      {/* Hemnet */}
+      {hemnet && (
+        <div>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '10px',
+            }}
+          >
+            <p className="font-data text-[10px] text-mute tracking-[0.02em] uppercase">
+              Hemnet
+            </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span
+                className="font-data text-[10px] text-mute-2"
+              >
+                {hemnet.length} tecken
+              </span>
+              <button
+                onClick={() => copy(hemnet, 'hemnet')}
+                style={{
+                  fontFamily: "'Geist Mono', monospace",
+                  fontSize: '11px',
+                  padding: '4px 10px',
+                  background: copied === 'hemnet' ? 'var(--ok)' : 'var(--ink)',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  letterSpacing: '-0.01em',
+                  transition: 'background 0.15s',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {copied === 'hemnet' ? '✓ Kopierad' : 'Kopiera Hemnet-text'}
+              </button>
+            </div>
+          </div>
+
+          <div
+            style={{
+              padding: '16px',
+              border: '1px solid var(--line)',
+              borderRadius: '8px',
+              background: 'var(--tint)',
+              maxHeight: '280px',
+              overflowY: 'auto',
+            }}
+          >
+            {/* Split first line as headline if followed by content */}
+            {(() => {
+              const lines = hemnet.split('\n')
+              const first = lines[0]?.trim() ?? ''
+              const rest  = lines.slice(1).join('\n').trim()
+              if (first && rest) {
+                return (
+                  <>
+                    <p
+                      style={{
+                        fontSize: '15px',
+                        fontWeight: 600,
+                        color: 'var(--ink)',
+                        letterSpacing: '-0.018em',
+                        lineHeight: 1.3,
+                        marginBottom: '10px',
+                      }}
+                    >
+                      {first}
+                    </p>
+                    <p
+                      style={{
+                        fontSize: '13px',
+                        lineHeight: 1.65,
+                        color: 'var(--ink-2)',
+                        letterSpacing: '-0.003em',
+                        whiteSpace: 'pre-wrap',
+                      }}
+                    >
+                      {rest}
+                    </p>
+                  </>
+                )
+              }
+              return (
+                <p
+                  style={{
+                    fontSize: '13px',
+                    lineHeight: 1.65,
+                    color: 'var(--ink-2)',
+                    letterSpacing: '-0.003em',
+                    whiteSpace: 'pre-wrap',
+                  }}
+                >
+                  {hemnet}
+                </p>
+              )
+            })()}
+          </div>
+        </div>
+      )}
+
+      {/* Hemnet Raket */}
+      {raket && (
+        <div>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '10px',
+            }}
+          >
+            <p className="font-data text-[10px] text-mute tracking-[0.02em] uppercase">
+              Hemnet Raket
+            </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span className="font-data text-[10px] text-mute-2">
+                {raket.length} tecken
+              </span>
+              <button
+                onClick={() => copy(raket, 'raket')}
+                style={{
+                  fontFamily: "'Geist Mono', monospace",
+                  fontSize: '11px',
+                  padding: '4px 10px',
+                  background: copied === 'raket' ? 'var(--ok)' : 'var(--ink)',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  letterSpacing: '-0.01em',
+                  transition: 'background 0.15s',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {copied === 'raket' ? '✓ Kopierad' : 'Kopiera Raket-text'}
+              </button>
+            </div>
+          </div>
+
+          <div
+            style={{
+              padding: '16px',
+              border: '1px solid var(--line)',
+              borderRadius: '8px',
+              background: 'var(--tint)',
+            }}
+          >
+            <p
+              style={{
+                fontSize: '13px',
+                lineHeight: 1.65,
+                color: 'var(--ink-2)',
+                letterSpacing: '-0.003em',
+                whiteSpace: 'pre-wrap',
+              }}
+            >
+              {raket}
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

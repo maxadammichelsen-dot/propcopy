@@ -192,7 +192,7 @@ export default function ObjectDetail({ object, agency }: ObjectDetailProps) {
         </div>
       ) : (
         <div className="flex-1 overflow-hidden">
-          <MetaPublishView object={object} agency={agency} />
+          <MetaPublishView object={object} agency={agency} results={results} />
         </div>
       )}
     </div>
