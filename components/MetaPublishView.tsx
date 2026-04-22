@@ -9,7 +9,7 @@ interface MetaPublishViewProps {
   results?: Record<Channel, GenerateResult | null>
 }
 
-type Tab = 'hemnet' | 'email' | 'organic' | 'ad' | 'schedule'
+type Tab = 'hemnet' | 'email' | 'organic' | 'ad' | 'schedule' | 'log'
 type Platform = 'facebook' | 'instagram' | 'both'
 
 interface ScheduledPost {
@@ -95,6 +95,7 @@ export default function MetaPublishView({ object, agency, results }: MetaPublish
             { key: 'organic',  label: 'Meta' },
             { key: 'ad',       label: 'Annons' },
             { key: 'schedule', label: 'Schemalagt' },
+            { key: 'log',      label: 'Logg' },
           ] as { key: Tab; label: string }[]).map(({ key, label }) => (
             <button
               key={key}
@@ -118,6 +119,7 @@ export default function MetaPublishView({ object, agency, results }: MetaPublish
         {tab === 'organic'  && <OrganicTab  object={object} agency={agency} />}
         {tab === 'ad'       && <AdTab       object={object} agency={agency} />}
         {tab === 'schedule' && <ScheduleTab agency={agency} />}
+        {tab === 'log'      && <LogTab      objectId={object.id} />}
       </div>
     </div>
   )
@@ -862,6 +864,158 @@ function PostRow({ post }: { post: ScheduledPost }) {
       <p className="font-data text-[11px] text-mute leading-relaxed line-clamp-2 flex-1 tracking-snug">
         {post.content}
       </p>
+    </div>
+  )
+}
+
+// ─── Log tab ──────────────────────────────────────────────────
+
+interface LogEntry {
+  id: string
+  channel: string
+  published_at: string
+  status: string
+  note: string | null
+  external_id: string | null
+}
+
+const CHANNEL_LABEL: Record<string, string> = {
+  hemnet_copy:   'Hemnet · kopierad',
+  hemnet_vitec:  'Hemnet · Vitec-export',
+  meta_organic:  'Meta · organiskt',
+  meta_ad:       'Meta · annons',
+  email:         'E-post',
+}
+
+const STATUS_COLOR: Record<string, string> = {
+  success:   'var(--ok)',
+  failed:    'var(--accent)',
+  scheduled: '#D97706',
+}
+
+function formatTime(iso: string): string {
+  const d = new Date(iso)
+  const today = new Date()
+  const isToday =
+    d.getDate() === today.getDate() &&
+    d.getMonth() === today.getMonth() &&
+    d.getFullYear() === today.getFullYear()
+
+  const hm = d.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })
+  if (isToday) return `Idag ${hm}`
+  return d.toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' }) + ` · ${hm}`
+}
+
+function LogTab({ objectId }: { objectId: string }) {
+  const [entries, setEntries] = useState<LogEntry[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetch(`/api/publish/log?object_id=${objectId}`)
+      .then(r => r.json())
+      .then(d => { setEntries(d.log ?? []); setLoading(false) })
+      .catch(() => setLoading(false))
+  }, [objectId])
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', paddingTop: '4px' }}>
+        {[...Array(3)].map((_, i) => (
+          <div
+            key={i}
+            className="animate-pulse"
+            style={{ height: '44px', background: 'var(--tint)', borderRadius: '6px' }}
+          />
+        ))}
+      </div>
+    )
+  }
+
+  if (entries.length === 0) {
+    return (
+      <div style={{ paddingTop: '40px', textAlign: 'center' }}>
+        <p
+          style={{
+            fontFamily: "'Geist Mono', monospace",
+            fontSize: '11px',
+            color: 'var(--mute-2)',
+            lineHeight: 1.6,
+          }}
+        >
+          Inga publiceringar ännu.
+          <br />
+          Kopiera, skicka eller publicera från flikarna ovan.
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ maxWidth: '480px' }}>
+      {entries.map((entry, i) => (
+        <div
+          key={entry.id}
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '6px 1fr auto',
+            gap: '12px',
+            alignItems: 'start',
+            padding: '10px 0',
+            borderBottom: i < entries.length - 1 ? '1px solid var(--line)' : 'none',
+          }}
+        >
+          {/* Status dot */}
+          <span
+            style={{
+              width: '6px',
+              height: '6px',
+              borderRadius: '50%',
+              background: STATUS_COLOR[entry.status] ?? 'var(--mute)',
+              flexShrink: 0,
+              marginTop: '4px',
+            }}
+          />
+
+          {/* Channel + note */}
+          <div>
+            <p
+              style={{
+                fontSize: '13px',
+                color: 'var(--ink)',
+                fontWeight: 450,
+                letterSpacing: '-0.005em',
+              }}
+            >
+              {CHANNEL_LABEL[entry.channel] ?? entry.channel}
+            </p>
+            {entry.note && (
+              <p
+                style={{
+                  fontFamily: "'Geist Mono', monospace",
+                  fontSize: '10px',
+                  color: 'var(--mute)',
+                  marginTop: '1px',
+                }}
+              >
+                {entry.note}
+              </p>
+            )}
+          </div>
+
+          {/* Time */}
+          <span
+            style={{
+              fontFamily: "'Geist Mono', monospace",
+              fontSize: '10px',
+              color: 'var(--mute)',
+              whiteSpace: 'nowrap',
+              paddingTop: '2px',
+            }}
+          >
+            {formatTime(entry.published_at)}
+          </span>
+        </div>
+      ))}
     </div>
   )
 }
