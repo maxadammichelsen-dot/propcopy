@@ -9,7 +9,7 @@ interface MetaPublishViewProps {
   results?: Record<Channel, GenerateResult | null>
 }
 
-type Tab = 'hemnet' | 'organic' | 'ad' | 'schedule'
+type Tab = 'hemnet' | 'email' | 'organic' | 'ad' | 'schedule'
 type Platform = 'facebook' | 'instagram' | 'both'
 
 interface ScheduledPost {
@@ -91,6 +91,7 @@ export default function MetaPublishView({ object, agency, results }: MetaPublish
         <div className="flex gap-0.5 p-[3px] bg-tint rounded-full w-fit">
           {([
             { key: 'hemnet',   label: 'Hemnet' },
+            { key: 'email',    label: 'E-post' },
             { key: 'organic',  label: 'Meta' },
             { key: 'ad',       label: 'Annons' },
             { key: 'schedule', label: 'Schemalagt' },
@@ -113,6 +114,7 @@ export default function MetaPublishView({ object, agency, results }: MetaPublish
 
       <div className="flex-1 overflow-y-auto px-6 py-5">
         {tab === 'hemnet'   && <HemnetTab   results={results} />}
+        {tab === 'email'    && <EmailTab    object={object} results={results} />}
         {tab === 'organic'  && <OrganicTab  object={object} agency={agency} />}
         {tab === 'ad'       && <AdTab       object={object} agency={agency} />}
         {tab === 'schedule' && <ScheduleTab agency={agency} />}
@@ -312,6 +314,170 @@ function HemnetTab({ results }: { results?: Record<Channel, GenerateResult | nul
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+// ─── Email tab ────────────────────────────────────────────────
+
+function EmailTab({
+  object,
+  results,
+}: {
+  object: PropertyObject
+  results?: Record<Channel, GenerateResult | null>
+}) {
+  const mailResult = results?.mail?.content ?? null
+
+  // Parse subject + body from mail result (first line = subject, rest = body)
+  const mailLines  = mailResult?.split('\n') ?? []
+  const subjectRaw = mailLines[0]?.replace(/^ÄMNESRAD:\s*/i, '').trim() ?? ''
+  const bodyRaw    = mailLines.slice(1).join('\n').replace(/^BRÖDTEXT:\s*/i, '').trim()
+
+  const [recipients, setRecipients] = useState('')
+  const [subject,    setSubject]    = useState(subjectRaw)
+  const [body,       setBody]       = useState(bodyRaw)
+  const [sending,    setSending]    = useState(false)
+  const [status,     setStatus]     = useState<'idle' | 'ok' | 'error'>('idle')
+  const [statusMsg,  setStatusMsg]  = useState('')
+
+  // Sync if result arrives after mount
+  const [synced, setSynced] = useState(false)
+  if (!synced && mailResult) {
+    setSubject(subjectRaw)
+    setBody(bodyRaw)
+    setSynced(true)
+  }
+
+  async function handleSend() {
+    if (!recipients.trim() || !subject.trim() || !body.trim()) return
+    setSending(true)
+    setStatus('idle')
+    try {
+      const res = await fetch('/api/publish/email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          object_id:  object.id,
+          recipients,
+          subject,
+          body,
+        }),
+      })
+      const d = await res.json()
+      if (!res.ok) {
+        setStatus('error')
+        setStatusMsg(d.error ?? 'Fel vid sändning')
+      } else {
+        setStatus('ok')
+        setStatusMsg(`Skickat till ${d.sent_to} mottagare`)
+      }
+    } catch {
+      setStatus('error')
+      setStatusMsg('Nätverksfel')
+    } finally {
+      setSending(false)
+    }
+  }
+
+  const recipientCount = recipients
+    .split(',')
+    .map(r => r.trim())
+    .filter(Boolean).length
+
+  return (
+    <div className="space-y-5 max-w-lg">
+
+      {/* Recipients */}
+      <div>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: '8px' }}>
+          <FieldLabel>Mottagare</FieldLabel>
+          {recipientCount > 0 && (
+            <span
+              style={{
+                fontFamily: "'Geist Mono', monospace",
+                fontSize: '10px',
+                color: 'var(--mute)',
+              }}
+            >
+              {recipientCount} adress{recipientCount !== 1 ? 'er' : ''}
+            </span>
+          )}
+        </div>
+        <textarea
+          value={recipients}
+          onChange={e => setRecipients(e.target.value)}
+          rows={3}
+          className={`${inputCls} w-full resize-none leading-relaxed`}
+          placeholder="namn@byrå.se, kund@example.se, …"
+        />
+        <p className="font-data text-[10px] text-mute-2 mt-1 tracking-snug">
+          Komma-separerade e-postadresser
+        </p>
+      </div>
+
+      {/* Subject */}
+      <div>
+        <FieldLabel>Ämnesrad</FieldLabel>
+        <input
+          value={subject}
+          onChange={e => setSubject(e.target.value)}
+          className={`${inputCls} w-full`}
+          placeholder="Nytt objekt: Storgatan 1, Stockholm"
+        />
+      </div>
+
+      {/* Body */}
+      <div>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: '8px' }}>
+          <FieldLabel>Brödtext</FieldLabel>
+          {!mailResult && (
+            <span
+              style={{
+                fontFamily: "'Geist Mono', monospace",
+                fontSize: '10px',
+                color: 'var(--mute-2)',
+              }}
+            >
+              Generera i Kopiera-fliken för AI-förslag
+            </span>
+          )}
+        </div>
+        <textarea
+          value={body}
+          onChange={e => setBody(e.target.value)}
+          rows={10}
+          className={`${inputCls} w-full resize-none leading-relaxed`}
+          placeholder="Skriv e-posttext här, eller generera via AI i Kopiera-fliken…"
+        />
+        <p className="font-data text-[10px] text-mute-2 text-right mt-1">{body.length} tecken</p>
+      </div>
+
+      {/* Status */}
+      {status !== 'idle' && (
+        <p
+          className="font-data text-[11px] tracking-snug"
+          style={{ color: status === 'ok' ? 'var(--ok)' : 'var(--accent)' }}
+        >
+          {status === 'ok' ? '✓ ' : '✗ '}{statusMsg}
+        </p>
+      )}
+
+      {/* Send button */}
+      <button
+        onClick={handleSend}
+        disabled={sending || !recipients.trim() || !subject.trim() || !body.trim()}
+        className="bg-ink text-bg px-6 py-2.5 rounded-full text-[13px] font-medium hover:opacity-80 transition-opacity disabled:opacity-40 flex items-center gap-2"
+      >
+        {sending && (
+          <span className="w-3 h-3 border-2 border-bg/40 border-t-bg rounded-full animate-spin" />
+        )}
+        {sending
+          ? 'Skickar…'
+          : status === 'ok'
+            ? `✓ Skickat till ${recipientCount} mottagare`
+            : `Skicka till ${recipientCount > 0 ? recipientCount : '…'} mottagare`}
+      </button>
     </div>
   )
 }
