@@ -22,8 +22,22 @@ export interface Agency {
   meta_page_id: string | null
   instagram_account_id: string | null
   social_tone_profile: SocialToneProfile | null
+  vitec_api_key: string | null
+  vitec_customer_id: string | null
   created_at: string
   user_id: string
+}
+
+export interface VitecEstate {
+  vitecId: string
+  address: string
+  area: string
+  type: string
+  size: number
+  rooms: number | null
+  price: number
+  description: string
+  images: string[]
 }
 
 export interface ScrapedData {
@@ -57,6 +71,8 @@ export interface PropertyObject {
   status: 'draft' | 'active' | 'sold'
   sold_price: number | null
   bid_premium_pct: number | null
+  vitec_id: string | null
+  source: string
   created_at: string
 }
 

@@ -97,6 +97,7 @@ export default function SettingsView({ agency, userEmail, onAgencyUpdated }: Set
       <AgencyInfoSection agency={agency} onAgencyUpdated={onAgencyUpdated} />
       <BrandSection agency={agency} onAgencyUpdated={onAgencyUpdated} />
       <IntegrationsSection agency={agency} onAgencyUpdated={onAgencyUpdated} />
+      <MaklarsystemSection agency={agency} onAgencyUpdated={onAgencyUpdated} />
       <BrainSection />
       <AccountSection userEmail={userEmail} />
     </div>
@@ -567,7 +568,115 @@ function PixelCard({ agency }: { agency: Agency }) {
 }
 
 // ══════════════════════════════════════════════════════════════
-// SEKTION 4 – BYRÅHJÄRNAN
+// SEKTION 4 – MÄKLARSYSTEM (VITEC)
+// ══════════════════════════════════════════════════════════════
+
+function MaklarsystemSection({ agency, onAgencyUpdated }: {
+  agency: Agency
+  onAgencyUpdated: (a: Agency) => void
+}) {
+  const [apiKey,     setApiKey]     = useState(agency.vitec_api_key     ?? '')
+  const [customerId, setCustomerId] = useState(agency.vitec_customer_id ?? '')
+  const [testing,    setTesting]    = useState(false)
+  const [status,     setStatus]     = useState<'idle' | 'ok' | 'error'>('idle')
+  const [statusMsg,  setStatusMsg]  = useState('')
+
+  const isConnected = !!agency.vitec_api_key && !!agency.vitec_customer_id
+
+  async function handleTest() {
+    if (!apiKey || !customerId) return
+    setTesting(true)
+    setStatus('idle')
+    try {
+      const res = await fetch('/api/vitec/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ api_key: apiKey, customer_id: customerId }),
+      })
+      const d = await res.json()
+      if (d.error) {
+        setStatus('error')
+        setStatusMsg(d.error)
+      } else {
+        setStatus('ok')
+        setStatusMsg(`Kopplad — ${d.estate_count} aktiva objekt hittade`)
+        onAgencyUpdated({ ...agency, vitec_api_key: apiKey, vitec_customer_id: customerId })
+      }
+    } catch {
+      setStatus('error')
+      setStatusMsg('Nätverksfel')
+    } finally {
+      setTesting(false)
+    }
+  }
+
+  return (
+    <Section title="Mäklarsystem" subtitle="Koppla Vitec för att importera objekt direkt">
+      <div className="max-w-lg space-y-5">
+        {/* Connection status */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span
+            style={{
+              width: '6px',
+              height: '6px',
+              borderRadius: '50%',
+              background: isConnected ? 'var(--ok)' : 'var(--line-2)',
+              flexShrink: 0,
+            }}
+          />
+          <span className="font-data text-[11px] text-mute tracking-snug">
+            {isConnected ? 'Vitec kopplat' : 'Vitec ej kopplat'}
+          </span>
+        </div>
+
+        <FormField label="Vitec API-nyckel">
+          <input
+            value={apiKey}
+            onChange={e => { setApiKey(e.target.value); setStatus('idle') }}
+            className={inputCls}
+            placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+            type="password"
+            autoComplete="off"
+          />
+        </FormField>
+
+        <FormField label="Kund-ID (Customer ID)">
+          <input
+            value={customerId}
+            onChange={e => { setCustomerId(e.target.value); setStatus('idle') }}
+            className={inputCls}
+            placeholder="12345"
+          />
+        </FormField>
+
+        <p className="font-data text-[10px] text-mute-2 tracking-snug leading-relaxed">
+          Hittas i Vitec Express → Inställningar → API. Kontakta Vitec support om du saknar tillgång.
+        </p>
+
+        {status !== 'idle' && (
+          <p
+            className="font-data text-[11px] tracking-snug"
+            style={{ color: status === 'ok' ? 'var(--ok)' : 'var(--accent)' }}
+          >
+            {status === 'ok' ? '✓ ' : '✗ '}{statusMsg}
+          </p>
+        )}
+
+        <button
+          onClick={handleTest}
+          disabled={testing || !apiKey || !customerId}
+          className="font-data text-[11px] text-mute border border-line rounded-full px-5 py-2 hover:text-ink transition-colors disabled:opacity-40 flex items-center gap-1.5"
+        >
+          {testing && <span className="w-2.5 h-2.5 border border-current border-t-transparent rounded-full animate-spin inline-block" />}
+          {testing ? 'Testar koppling…' : 'Testa koppling'}
+        </button>
+      </div>
+    </Section>
+  )
+}
+
+// ══════════════════════════════════════════════════════════════
+// SEKTION 5 – BYRÅHJÄRNAN
 // ══════════════════════════════════════════════════════════════
 
 interface BrainStats {

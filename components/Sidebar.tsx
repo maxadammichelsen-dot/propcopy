@@ -1,6 +1,8 @@
 'use client'
 
+import { useState } from 'react'
 import { Agency, PropertyObject } from '@/types'
+import VitecImportModal from './VitecImportModal'
 
 interface SidebarProps {
   objects: PropertyObject[]
@@ -31,6 +33,9 @@ export default function Sidebar({
   onNewObject,
   onTone,
 }: SidebarProps) {
+  const [vitecOpen, setVitecOpen] = useState(false)
+  const hasVitec = !!(agency?.vitec_api_key && agency?.vitec_customer_id)
+
   return (
     <aside
       style={{
@@ -44,7 +49,7 @@ export default function Sidebar({
       }}
     >
       {/* New object */}
-      <div style={{ padding: '10px 10px 8px', borderBottom: '1px solid var(--line)' }}>
+      <div style={{ padding: '10px 10px 8px', borderBottom: '1px solid var(--line)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
         <button
           onClick={onNewObject}
           style={{
@@ -67,6 +72,33 @@ export default function Sidebar({
           <span>Nytt objekt</span>
           <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '14px', lineHeight: 1 }}>+</span>
         </button>
+        {hasVitec && (
+          <button
+            onClick={() => setVitecOpen(true)}
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '6px 12px',
+              borderRadius: '6px',
+              background: 'none',
+              color: 'var(--ink-2)',
+              fontSize: '12px',
+              fontWeight: 400,
+              border: '1px solid var(--line)',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              letterSpacing: '-0.005em',
+              transition: 'background 0.1s',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--tint)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'none' }}
+          >
+            <span>Importera från Vitec</span>
+            <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11px', color: 'var(--mute)' }}>→</span>
+          </button>
+        )}
       </div>
 
       {/* Column headers */}
@@ -239,6 +271,13 @@ export default function Sidebar({
           </div>
         </button>
       </div>
+
+      {vitecOpen && (
+        <VitecImportModal
+          onClose={() => setVitecOpen(false)}
+          onImported={(id) => { setVitecOpen(false); onSelect(id) }}
+        />
+      )}
     </aside>
   )
 }
