@@ -12,20 +12,26 @@ export async function POST(req: NextRequest) {
       .from('users').select('agency_id').eq('id', user.id).single()
     if (!profile?.agency_id) return NextResponse.json({ error: 'Ingen byrå' }, { status: 400 })
 
-    const { vitec_id } = await req.json()
+    const { vitec_id, base_type } = await req.json()
     if (!vitec_id) return NextResponse.json({ error: 'vitec_id krävs' }, { status: 400 })
 
     const { data: agency } = await supabase
       .from('agencies')
-      .select('vitec_api_key, vitec_customer_id')
+      .select('vitec_username, vitec_password, vitec_customer_id')
       .eq('id', profile.agency_id)
       .single()
 
-    if (!agency?.vitec_api_key || !agency?.vitec_customer_id) {
+    if (!agency?.vitec_username || !agency?.vitec_password || !agency?.vitec_customer_id) {
       return NextResponse.json({ error: 'Vitec ej konfigurerat' }, { status: 400 })
     }
 
-    const estate = await vitecGetEstate(agency.vitec_api_key, agency.vitec_customer_id, vitec_id)
+    const estate = await vitecGetEstate(
+      agency.vitec_username,
+      agency.vitec_password,
+      agency.vitec_customer_id,
+      vitec_id,
+      base_type ?? 'House'
+    )
 
     // Check if already imported
     const { data: existing } = await supabase
@@ -42,30 +48,21 @@ export async function POST(req: NextRequest) {
       type:        estate.type,
       size:        estate.size,
       price:       estate.price,
-      details:     estate.description || `${estate.size} kvm, ${estate.rooms ?? '?'} rum`,
+      details:     estate.description || `${estate.size} kvm${estate.rooms != null ? `, ${estate.rooms} rum` : ''}`,
       status:      'draft' as const,
       vitec_id:    estate.vitecId,
       source:      'vitec',
     }
 
     if (existing) {
-      // Update existing
       const { data: updated, error } = await supabase
-        .from('objects')
-        .update(row)
-        .eq('id', existing.id)
-        .select()
-        .single()
+        .from('objects').update(row).eq('id', existing.id).select().single()
       if (error) throw new Error(error.message)
       return NextResponse.json({ object: updated, updated: true })
     }
 
-    // Insert new
     const { data: created, error } = await supabase
-      .from('objects')
-      .insert(row)
-      .select()
-      .single()
+      .from('objects').insert(row).select().single()
     if (error) throw new Error(error.message)
     return NextResponse.json({ object: created, updated: false })
   } catch (err) {

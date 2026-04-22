@@ -14,15 +14,15 @@ export async function GET() {
 
     const { data: agency } = await supabase
       .from('agencies')
-      .select('vitec_api_key, vitec_customer_id')
+      .select('vitec_username, vitec_password, vitec_customer_id')
       .eq('id', profile.agency_id)
       .single()
 
-    if (!agency?.vitec_api_key || !agency?.vitec_customer_id) {
+    if (!agency?.vitec_username || !agency?.vitec_password || !agency?.vitec_customer_id) {
       return NextResponse.json({ error: 'Vitec ej konfigurerat' }, { status: 400 })
     }
 
-    const estates = await vitecGetEstates(agency.vitec_api_key, agency.vitec_customer_id)
+    const estates = await vitecGetEstates(agency.vitec_username, agency.vitec_password, agency.vitec_customer_id)
     return NextResponse.json({ estates })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Okänt fel'

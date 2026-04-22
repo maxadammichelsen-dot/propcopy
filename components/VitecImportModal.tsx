@@ -32,13 +32,13 @@ export default function VitecImportModal({ onClose, onImported }: VitecImportMod
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
 
-  async function handleImport(vitec_id: string) {
+  async function handleImport(vitec_id: string, base_type: string) {
     setImporting(vitec_id)
     try {
       const res = await fetch('/api/vitec/import', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ vitec_id }),
+        body: JSON.stringify({ vitec_id, base_type }),
       })
       const d = await res.json()
       if (d.error) { setError(d.error); return }
@@ -168,7 +168,7 @@ export default function VitecImportModal({ onClose, onImported }: VitecImportMod
                     </p>
                   </div>
                   <button
-                    onClick={() => handleImport(estate.vitecId)}
+                    onClick={() => handleImport(estate.vitecId, estate.baseType)}
                     disabled={importing === estate.vitecId}
                     style={{
                       flexShrink: 0,

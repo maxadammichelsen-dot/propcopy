@@ -2,68 +2,111 @@ import { VitecEstate } from '@/types'
 
 const VITEC_BASE = 'https://connect.maklare.vitec.net'
 
-export function vitecHeaders(apiKey: string) {
+// Vitec uses HTTP Basic Auth on every request
+function vitecHeaders(username: string, password: string): HeadersInit {
+  const cred = Buffer.from(`${username}:${password}`).toString('base64')
   return {
-    'X-ApiKey': apiKey,
-    'Accept':   'application/json',
+    Authorization: `Basic ${cred}`,
+    Accept:         'application/json',
+    'Content-Type': 'application/json',
   }
 }
 
-function mapObjectType(vitecType: string): string {
-  const t = (vitecType ?? '').toLowerCase()
-  if (t.includes('villa') || t.includes('hus'))   return 'Villa'
-  if (t.includes('bostadsrätt') || t.includes('lägenhet')) return 'Bostadsrätt'
-  if (t.includes('tomt'))   return 'Tomt'
-  if (t.includes('gård'))   return 'Gård'
-  if (t.includes('fritid')) return 'Fritidshus'
-  return vitecType ?? 'Övrigt'
+// Vitec estateBaseType → our property type label
+function mapObjectType(baseType: string): string {
+  const t = (baseType ?? '').toLowerCase()
+  if (t.includes('house'))          return 'Villa'
+  if (t.includes('cooperative'))    return 'Bostadsrätt'
+  if (t.includes('condominium'))    return 'Ägarlägenhet'
+  if (t.includes('cottage'))        return 'Fritidshus'
+  if (t.includes('plot'))           return 'Tomt'
+  if (t.includes('project'))        return 'Nyproduktion'
+  return baseType ?? 'Övrigt'
 }
 
-// Maps a Vitec estate object to our VitecEstate shape.
-// Vitec Connect returns varying field names — handle common variants.
+// Vitec Get{Type} endpoint name from estateBaseType
+function getEndpointForType(baseType: string): string {
+  const t = (baseType ?? '').toLowerCase()
+  if (t.includes('cooperative'))  return 'GetHousingCooperative'
+  if (t.includes('condominium'))  return 'GetCondominium'
+  if (t.includes('cottage'))      return 'GetCottage'
+  if (t.includes('plot'))         return 'GetPlot'
+  if (t.includes('project'))      return 'GetProject'
+  return 'GetHouse'
+}
+
+// Map a list-level estate (from GetEstateList) to VitecEstate
+// List items use 'streetAdress' (one d) and different nested structure
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function mapVitecEstate(raw: any): VitecEstate {
-  const streetName   = raw.streetAddress?.streetName   ?? raw.address?.street    ?? ''
-  const streetNumber = raw.streetAddress?.streetNumber ?? raw.address?.number    ?? ''
-  const address = [streetName, streetNumber].filter(Boolean).join(' ')
+function mapListItem(raw: any): VitecEstate {
+  return {
+    vitecId:     String(raw.estateId ?? ''),
+    baseType:    raw.estateBaseType ?? 'House',
+    address:     raw.streetAdress  ?? raw.streetAddress ?? 'Okänd adress',
+    area:        raw.primaryArea   ?? raw.city ?? '',
+    type:        mapObjectType(raw.estateBaseType ?? ''),
+    size:        0,
+    rooms:       null,
+    price:       Number(raw.salesPriceEstimate ?? 0),
+    description: '',
+    images:      [],
+  }
+}
 
-  const city  = raw.streetAddress?.city   ?? raw.municipality ?? raw.city ?? ''
-  const area  = raw.streetAddress?.county ?? raw.area         ?? city
+// Map a full estate detail response to VitecEstate
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapDetailEstate(raw: any, baseType: string): VitecEstate {
+  const addr = raw.objectAddress ?? raw.Address ?? {}
 
-  const livingArea = raw.livingArea ?? raw.area_m2 ?? raw.boarea ?? 0
-  const rooms      = raw.numberOfRooms ?? raw.rooms ?? null
-  const price      = raw.startingPrice ?? raw.price ?? raw.utgangspris ?? 0
+  const streetParts = [
+    addr.streetAddress ?? addr.StreetAddress ?? '',
+  ].filter(Boolean)
+  const address = streetParts.join(' ') || 'Okänd adress'
 
-  const desc = raw.description?.text
-    ?? raw.marketingDescription
-    ?? raw.descriptionText
-    ?? ''
+  const area  = addr.area ?? addr.AreaName ?? addr.municipality ?? addr.city ?? addr.City ?? ''
+  const size  = Number(raw.baseInformation?.livingSpace ?? 0)
+  const rooms = raw.interior?.numberOfRooms != null ? Number(raw.interior.numberOfRooms) : null
+  const price = Number(raw.price?.startingPrice ?? 0)
 
-  const images: string[] = (raw.images ?? raw.photos ?? [])
-    .slice(0, 10)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .map((img: any) => img.url ?? img.imageUrl ?? img)
-    .filter((u: unknown) => typeof u === 'string')
+  // Description: join all room text sections
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const roomTexts: string[] = (raw.rooms ?? []).map((r: any) => [r.heading, r.text].filter(Boolean).join('\n')).filter(Boolean)
+  const areaText  = raw.surrounding?.generalAboutArea ?? ''
+  const description = [...roomTexts, areaText].filter(Boolean).join('\n\n')
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const images: string[] = (raw.images ?? []).map((img: any) => img.url ?? img.imageUrl).filter((u: unknown) => typeof u === 'string').slice(0, 10)
 
   return {
-    vitecId:     String(raw.id ?? raw.estateId ?? raw.objectId ?? ''),
-    address:     address || 'Okänd adress',
-    area:        area || city || 'Okänd ort',
-    type:        mapObjectType(raw.objectType ?? raw.estateType ?? raw.type ?? ''),
-    size:        Number(livingArea) || 0,
-    rooms:       rooms != null ? Number(rooms) : null,
-    price:       Number(price) || 0,
-    description: desc,
+    vitecId:  String(raw.estateId ?? raw.id ?? ''),
+    baseType,
+    address,
+    area:     area || (addr.city ?? addr.City ?? ''),
+    type:     mapObjectType(baseType),
+    size,
+    rooms,
+    price,
+    description,
     images,
   }
 }
 
 export async function vitecGetEstates(
-  apiKey: string,
+  username: string,
+  password: string,
   customerId: string
 ): Promise<VitecEstate[]> {
-  const url = `${VITEC_BASE}/v2/customer/${customerId}/estate`
-  const res = await fetch(url, { headers: vitecHeaders(apiKey) })
+  const headers = vitecHeaders(username, password)
+  const url = `${VITEC_BASE}/Estate/GetEstateList`
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      customerId,
+      statuses: [{ id: '3', name: 'Till salu' }],
+    }),
+  })
 
   if (!res.ok) {
     const text = await res.text().catch(() => res.statusText)
@@ -73,16 +116,21 @@ export async function vitecGetEstates(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const data: any = await res.json()
   const list = Array.isArray(data) ? data : (data.estates ?? data.items ?? data.data ?? [])
-  return list.map(mapVitecEstate)
+  return list.map(mapListItem)
 }
 
 export async function vitecGetEstate(
-  apiKey: string,
+  username: string,
+  password: string,
   customerId: string,
-  estateId: string
+  estateId: string,
+  baseType = 'House'
 ): Promise<VitecEstate> {
-  const url = `${VITEC_BASE}/v2/customer/${customerId}/estate/${estateId}`
-  const res = await fetch(url, { headers: vitecHeaders(apiKey) })
+  const headers = vitecHeaders(username, password)
+  const endpoint = getEndpointForType(baseType)
+  const url = `${VITEC_BASE}/Estate/${endpoint}?estateId=${encodeURIComponent(estateId)}&customerId=${encodeURIComponent(customerId)}`
+
+  const res = await fetch(url, { headers })
 
   if (!res.ok) {
     const text = await res.text().catch(() => res.statusText)
@@ -91,5 +139,14 @@ export async function vitecGetEstate(
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const raw: any = await res.json()
-  return mapVitecEstate(raw)
+  return mapDetailEstate(raw, baseType)
+}
+
+export async function vitecTestConnection(
+  username: string,
+  password: string
+): Promise<boolean> {
+  const headers = vitecHeaders(username, password)
+  const res = await fetch(`${VITEC_BASE}/User/AuthenticateUser`, { headers })
+  return res.ok
 }

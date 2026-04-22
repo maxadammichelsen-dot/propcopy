@@ -575,23 +575,24 @@ function MaklarsystemSection({ agency, onAgencyUpdated }: {
   agency: Agency
   onAgencyUpdated: (a: Agency) => void
 }) {
-  const [apiKey,     setApiKey]     = useState(agency.vitec_api_key     ?? '')
+  const [username,   setUsername]   = useState(agency.vitec_username   ?? '')
+  const [password,   setPassword]   = useState(agency.vitec_password   ?? '')
   const [customerId, setCustomerId] = useState(agency.vitec_customer_id ?? '')
   const [testing,    setTesting]    = useState(false)
   const [status,     setStatus]     = useState<'idle' | 'ok' | 'error'>('idle')
   const [statusMsg,  setStatusMsg]  = useState('')
 
-  const isConnected = !!agency.vitec_api_key && !!agency.vitec_customer_id
+  const isConnected = !!agency.vitec_username && !!agency.vitec_customer_id
 
   async function handleTest() {
-    if (!apiKey || !customerId) return
+    if (!username || !password || !customerId) return
     setTesting(true)
     setStatus('idle')
     try {
       const res = await fetch('/api/vitec/test', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ api_key: apiKey, customer_id: customerId }),
+        body: JSON.stringify({ username, password, customer_id: customerId }),
       })
       const d = await res.json()
       if (d.error) {
@@ -600,7 +601,7 @@ function MaklarsystemSection({ agency, onAgencyUpdated }: {
       } else {
         setStatus('ok')
         setStatusMsg(`Kopplad — ${d.estate_count} aktiva objekt hittade`)
-        onAgencyUpdated({ ...agency, vitec_api_key: apiKey, vitec_customer_id: customerId })
+        onAgencyUpdated({ ...agency, vitec_username: username, vitec_password: password, vitec_customer_id: customerId })
       }
     } catch {
       setStatus('error')
@@ -611,7 +612,7 @@ function MaklarsystemSection({ agency, onAgencyUpdated }: {
   }
 
   return (
-    <Section title="Mäklarsystem" subtitle="Koppla Vitec för att importera objekt direkt">
+    <Section title="Mäklarsystem" subtitle="Koppla Vitec Express Connect för att importera objekt direkt">
       <div className="max-w-lg space-y-5">
         {/* Connection status */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -629,14 +630,24 @@ function MaklarsystemSection({ agency, onAgencyUpdated }: {
           </span>
         </div>
 
-        <FormField label="Vitec API-nyckel">
+        <FormField label="Användarnamn (Vitec Express)">
           <input
-            value={apiKey}
-            onChange={e => { setApiKey(e.target.value); setStatus('idle') }}
+            value={username}
+            onChange={e => { setUsername(e.target.value); setStatus('idle') }}
             className={inputCls}
-            placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+            placeholder="fornamn.efternamn@byrå.se"
+            autoComplete="username"
+          />
+        </FormField>
+
+        <FormField label="Lösenord">
+          <input
+            value={password}
+            onChange={e => { setPassword(e.target.value); setStatus('idle') }}
+            className={inputCls}
+            placeholder="••••••••"
             type="password"
-            autoComplete="off"
+            autoComplete="current-password"
           />
         </FormField>
 
@@ -650,7 +661,7 @@ function MaklarsystemSection({ agency, onAgencyUpdated }: {
         </FormField>
 
         <p className="font-data text-[10px] text-mute-2 tracking-snug leading-relaxed">
-          Hittas i Vitec Express → Inställningar → API. Kontakta Vitec support om du saknar tillgång.
+          Samma inloggningsuppgifter som Vitec Express. Kund-ID hittas under Inställningar → Om systemet i Vitec Express.
         </p>
 
         {status !== 'idle' && (
@@ -664,7 +675,7 @@ function MaklarsystemSection({ agency, onAgencyUpdated }: {
 
         <button
           onClick={handleTest}
-          disabled={testing || !apiKey || !customerId}
+          disabled={testing || !username || !password || !customerId}
           className="font-data text-[11px] text-mute border border-line rounded-full px-5 py-2 hover:text-ink transition-colors disabled:opacity-40 flex items-center gap-1.5"
         >
           {testing && <span className="w-2.5 h-2.5 border border-current border-t-transparent rounded-full animate-spin inline-block" />}

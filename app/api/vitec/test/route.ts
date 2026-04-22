@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase'
 import { createSupabaseAdminClient } from '@/lib/supabase-admin'
-import { vitecGetEstates } from '@/lib/vitec-client'
+import { vitecGetEstates, vitecTestConnection } from '@/lib/vitec-client'
 
 export async function POST(req: NextRequest) {
   try {
@@ -10,24 +10,35 @@ export async function POST(req: NextRequest) {
     if (authError || !user) return NextResponse.json({ error: 'Ej autentiserad' }, { status: 401 })
 
     const body = await req.json()
-    const apiKey     = body.api_key?.trim()
+    const username   = body.username?.trim()
+    const password   = body.password?.trim()
     const customerId = body.customer_id?.trim()
 
-    if (!apiKey || !customerId) {
-      return NextResponse.json({ error: 'API-nyckel och kund-ID krävs' }, { status: 400 })
+    if (!username || !password || !customerId) {
+      return NextResponse.json({ error: 'Användarnamn, lösenord och kund-ID krävs' }, { status: 400 })
     }
 
-    // Try fetching estates to verify connection
-    const estates = await vitecGetEstates(apiKey, customerId)
+    // Verify credentials
+    const authOk = await vitecTestConnection(username, password)
+    if (!authOk) {
+      return NextResponse.json({ error: 'Felaktiga inloggningsuppgifter' }, { status: 401 })
+    }
 
-    // Persist credentials to the agency
-    const admin = createSupabaseAdminClient()
+    // Fetch estate list to verify customerId
+    const estates = await vitecGetEstates(username, password, customerId)
+
+    // Persist to agency
     const { data: profile } = await supabase
       .from('users').select('agency_id').eq('id', user.id).single()
 
     if (profile?.agency_id) {
+      const admin = createSupabaseAdminClient()
       await admin.from('agencies')
-        .update({ vitec_api_key: apiKey, vitec_customer_id: customerId })
+        .update({
+          vitec_username:    username,
+          vitec_password:    password,
+          vitec_customer_id: customerId,
+        })
         .eq('id', profile.agency_id)
     }
 

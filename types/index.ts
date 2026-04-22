@@ -22,7 +22,8 @@ export interface Agency {
   meta_page_id: string | null
   instagram_account_id: string | null
   social_tone_profile: SocialToneProfile | null
-  vitec_api_key: string | null
+  vitec_username: string | null
+  vitec_password: string | null
   vitec_customer_id: string | null
   created_at: string
   user_id: string
@@ -30,6 +31,7 @@ export interface Agency {
 
 export interface VitecEstate {
   vitecId: string
+  baseType: string
   address: string
   area: string
   type: string

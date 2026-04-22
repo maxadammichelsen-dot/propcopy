@@ -34,7 +34,7 @@ export default function Sidebar({
   onTone,
 }: SidebarProps) {
   const [vitecOpen, setVitecOpen] = useState(false)
-  const hasVitec = !!(agency?.vitec_api_key && agency?.vitec_customer_id)
+  const hasVitec = !!(agency?.vitec_username && agency?.vitec_customer_id)
 
   return (
     <aside
