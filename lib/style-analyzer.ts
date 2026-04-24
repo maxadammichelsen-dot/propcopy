@@ -48,7 +48,7 @@ function extractListingLinks(html: string, baseUrl: string): string[] {
       } catch { /* skip malformed */ }
     }
   }
-  return links.slice(0, 25)
+  return links.slice(0, 60)
 }
 
 function extractParagraphs(html: string): string[] {
@@ -65,8 +65,8 @@ function extractParagraphs(html: string): string[] {
   return cleaned
     .split(/(?<=[.!?])\s+/)
     .map(s => s.trim())
-    .filter(s => s.length > 120 && /[a-zåäöA-ZÅÄÖ]{4,}/.test(s))
-    .slice(0, 4)
+    .filter(s => s.length > 80 && /[a-zåäöA-ZÅÄÖ]{4,}/.test(s))
+    .slice(0, 6)
 }
 
 export async function analyzeStyleDNA(
@@ -82,11 +82,11 @@ export async function analyzeStyleDNA(
 
     const links = extractListingLinks(homeHtml, normalized)
 
-    // 2. Fetch up to 15 listing pages in parallel batches
+    // 2. Fetch up to 30 listing pages in parallel batches to collect 20-50 texts
     const batchSize = 5
     const paragraphs: string[] = []
 
-    for (let i = 0; i < Math.min(links.length, 15) && paragraphs.length < 40; i += batchSize) {
+    for (let i = 0; i < Math.min(links.length, 30) && paragraphs.length < 60; i += batchSize) {
       const batch = links.slice(i, i + batchSize)
       const pages = await Promise.all(batch.map(fetchPage))
       for (const html of pages) {
@@ -97,7 +97,7 @@ export async function analyzeStyleDNA(
     if (paragraphs.length < 3) return null
 
     const sample = paragraphs
-      .slice(0, 30)
+      .slice(0, 50)
       .map((p, i) => `[${i + 1}] ${p}`)
       .join('\n\n')
 

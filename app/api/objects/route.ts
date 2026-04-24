@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const { address, area, type, size, price, details } = body
+    const { address, area, type, size, price, details, image_analysis } = body
 
     if (!address || !area || !type || !size || !price) {
       return NextResponse.json({ error: 'Obligatoriska fält saknas' }, { status: 400 })
@@ -86,6 +86,7 @@ export async function POST(req: NextRequest) {
         price: Number(price),
         details: details ?? '',
         status: 'draft',
+        ...(image_analysis ? { image_analysis } : {}),
       })
       .select()
       .single()

@@ -1,5 +1,5 @@
 import { anthropic, MODEL } from './anthropic'
-import { Agency, Channel, GenerateResult, KeyInsights, LocationArgument, PropertyObject } from '@/types'
+import { Agency, Channel, GenerateResult, ImageAnalysis, KeyInsights, LocationArgument, PropertyObject } from '@/types'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { buildBrainContext, buildStyleContext } from './brain-context'
 
@@ -299,6 +299,31 @@ BESKRIVNING:
 [text]`,
 }
 
+function formatImageContext(analysis: ImageAnalysis): string {
+  const parts: string[] = ['VISUELLA DETALJER FRÅN BILDERNA:']
+  if (analysis.style)
+    parts.push(`Stil: ${analysis.style}`)
+  if (analysis.materials?.length)
+    parts.push(`Material: ${analysis.materials.join(', ')}`)
+  if (analysis.lighting)
+    parts.push(`Ljus: ${analysis.lighting}`)
+  if (analysis.ceiling_height)
+    parts.push(`Takhöjd: ${analysis.ceiling_height}`)
+  if (analysis.renovation_status)
+    parts.push(`Skick: ${analysis.renovation_status}`)
+  if (analysis.room_character)
+    parts.push(`Atmosfär: ${analysis.room_character}`)
+  if (analysis.special_features?.length)
+    parts.push(`Särdrag: ${analysis.special_features.join(', ')}`)
+  if (analysis.view)
+    parts.push(`Utsikt: ${analysis.view}`)
+  if (analysis.outdoor)
+    parts.push(`Utomhus: ${analysis.outdoor}`)
+  if (analysis.key_selling_points?.length)
+    parts.push(`Visuella säljargument: ${analysis.key_selling_points.join(' · ')}`)
+  return '\n\n' + parts.join('\n')
+}
+
 function getPriceRange(price: number): string {
   if (price < 2_000_000)  return '0-2M'
   if (price < 4_000_000)  return '2-4M'
@@ -340,9 +365,10 @@ export async function generateAllChannels(
     buildBrainContext(agency.id),
   ])
   const agencyContext = styleContext + brainContext
+  const imageContext = object.image_analysis ? formatImageContext(object.image_analysis) : ''
 
   const results = await Promise.all(
-    channels.map((channel) => generateChannel(channel, object, toneString, supabase, agencyContext))
+    channels.map((channel) => generateChannel(channel, object, toneString, supabase, agencyContext, imageContext))
   )
 
   await saveToSupabase(object.id, results, supabase)
@@ -354,12 +380,14 @@ async function generateChannel(
   object: PropertyObject,
   tone: string,
   supabase: SupabaseClient,
-  brainContext = ''
+  brainContext = '',
+  imageContext = ''
 ): Promise<GenerateResult> {
   const priceRange = getPriceRange(object.price)
   const refs = await fetchReferenceTexts(channel, object.type, priceRange, supabase)
 
   let prompt = CHANNEL_PROMPTS[channel](object, tone)
+  if (imageContext) prompt += imageContext
 
   if (refs.length > 0) {
     prompt +=

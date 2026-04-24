@@ -61,6 +61,19 @@ export interface BrandColors {
   accent?: string
 }
 
+export interface ImageAnalysis {
+  materials: string[]
+  lighting: string
+  ceiling_height: string | null
+  renovation_status: string
+  special_features: string[]
+  room_character: string
+  view: string | null
+  outdoor: string | null
+  style: string
+  key_selling_points: string[]
+}
+
 export interface PropertyObject {
   id: string
   agency_id: string
@@ -75,6 +88,7 @@ export interface PropertyObject {
   bid_premium_pct: number | null
   vitec_id: string | null
   source: string
+  image_analysis: ImageAnalysis | null
   created_at: string
 }
 
