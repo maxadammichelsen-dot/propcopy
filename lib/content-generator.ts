@@ -445,14 +445,15 @@ Returnera ENBART giltig JSON utan markdown eller förklaringar:
 
   const message = await anthropic.messages.create({
     model: MODEL,
-    max_tokens: 1024,
+    max_tokens: 2000,
     system: MASTER_SYSTEM + brainContext,
     messages: [{ role: 'user', content: prompt }],
   })
 
-  const raw = message.content[0].type === 'text' ? message.content[0].text.trim() : '{}'
-  const json = raw.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim()
-  return JSON.parse(json) as KeyInsights
+  const text = message.content[0].type === 'text' ? message.content[0].text : ''
+  const match = text.match(/\{[\s\S]*\}/)
+  if (!match) throw new Error('No JSON found in generateKeyInsights response')
+  return JSON.parse(match[0]) as KeyInsights
 }
 
 function formatPrice(price: number): string {

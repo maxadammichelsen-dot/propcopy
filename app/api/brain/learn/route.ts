@@ -55,7 +55,7 @@ async function handleApproved(
 ) {
   const message = await anthropic.messages.create({
     model: MODEL,
-    max_tokens: 512,
+    max_tokens: 1500,
     messages: [{
       role: 'user',
       content: `Analysera denna godkända fastighetstexter och extrahera de tre starkaste meningarna.
@@ -70,12 +70,11 @@ Returnera ENBART giltig JSON utan markdown:
     }],
   })
 
-  const raw = message.content[0].type === 'text' ? message.content[0].text.trim() : '{}'
-  const json = raw.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim()
+  const approvedText = message.content[0].type === 'text' ? message.content[0].text : ''
+  const approvedMatch = approvedText.match(/\{[\s\S]*\}/)
   let phrases: string[] = []
   try {
-    const parsed = JSON.parse(json)
-    phrases = (parsed.winning_phrases ?? []).slice(0, 3)
+    if (approvedMatch) phrases = (JSON.parse(approvedMatch[0]).winning_phrases ?? []).slice(0, 3)
   } catch { /* ignore */ }
 
   // Save winning phrases
@@ -125,7 +124,7 @@ async function handleEdited(
 ) {
   const message = await anthropic.messages.create({
     model: MODEL,
-    max_tokens: 512,
+    max_tokens: 1500,
     messages: [{
       role: 'user',
       content: `Mäklaren redigerade denna fastighetstext. Analysera exakt vad som ändrades och varför.
@@ -145,10 +144,10 @@ Returnera ENBART giltig JSON utan markdown:
     }],
   })
 
-  const raw = message.content[0].type === 'text' ? message.content[0].text.trim() : '{}'
-  const json = raw.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim()
+  const editedText = message.content[0].type === 'text' ? message.content[0].text : ''
+  const editedMatch = editedText.match(/\{[\s\S]*\}/)
   let diff: { removed?: string[]; added?: string[]; pattern?: string } = {}
-  try { diff = JSON.parse(json) } catch { /* ignore */ }
+  try { if (editedMatch) diff = JSON.parse(editedMatch[0]) } catch { /* ignore */ }
 
   const rows: Record<string, unknown>[] = []
 
@@ -203,7 +202,7 @@ async function handleRejected(
 ) {
   const message = await anthropic.messages.create({
     model: MODEL,
-    max_tokens: 512,
+    max_tokens: 1500,
     messages: [{
       role: 'user',
       content: `Mäklaren avvisade denna fastighetstext. Analysera specifikt vad som gick fel.
@@ -218,10 +217,10 @@ Returnera ENBART giltig JSON utan markdown:
     }],
   })
 
-  const raw = message.content[0].type === 'text' ? message.content[0].text.trim() : '{}'
-  const json = raw.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim()
+  const rejectedText = message.content[0].type === 'text' ? message.content[0].text : ''
+  const rejectedMatch = rejectedText.match(/\{[\s\S]*\}/)
   let result: { avoid_patterns?: string[] } = {}
-  try { result = JSON.parse(json) } catch { /* ignore */ }
+  try { if (rejectedMatch) result = JSON.parse(rejectedMatch[0]) } catch { /* ignore */ }
 
   // Save avoid_patterns
   const patterns = (result.avoid_patterns ?? []).slice(0, 4)
