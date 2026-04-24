@@ -63,14 +63,10 @@ export interface BrandColors {
 
 export interface ImageAnalysis {
   materials: string[]
-  lighting: string
-  ceiling_height: string | null
-  renovation_status: string
+  lighting: string[]
+  ceiling_height: 'standard' | 'högt' | 'mycket högt'
+  renovation_status: 'nytt' | 'välbevarat' | 'original' | 'blandat'
   special_features: string[]
-  room_character: string
-  view: string | null
-  outdoor: string | null
-  style: string
   key_selling_points: string[]
 }
 

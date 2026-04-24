@@ -301,26 +301,18 @@ BESKRIVNING:
 
 function formatImageContext(analysis: ImageAnalysis): string {
   const parts: string[] = ['VISUELLA DETALJER FRÅN BILDERNA:']
-  if (analysis.style)
-    parts.push(`Stil: ${analysis.style}`)
   if (analysis.materials?.length)
     parts.push(`Material: ${analysis.materials.join(', ')}`)
-  if (analysis.lighting)
-    parts.push(`Ljus: ${analysis.lighting}`)
+  if (analysis.lighting?.length)
+    parts.push(`Ljus: ${analysis.lighting.join(', ')}`)
   if (analysis.ceiling_height)
     parts.push(`Takhöjd: ${analysis.ceiling_height}`)
   if (analysis.renovation_status)
     parts.push(`Skick: ${analysis.renovation_status}`)
-  if (analysis.room_character)
-    parts.push(`Atmosfär: ${analysis.room_character}`)
   if (analysis.special_features?.length)
     parts.push(`Särdrag: ${analysis.special_features.join(', ')}`)
-  if (analysis.view)
-    parts.push(`Utsikt: ${analysis.view}`)
-  if (analysis.outdoor)
-    parts.push(`Utomhus: ${analysis.outdoor}`)
   if (analysis.key_selling_points?.length)
-    parts.push(`Visuella säljargument: ${analysis.key_selling_points.join(' · ')}`)
+    parts.push(`Säljande detaljer: ${analysis.key_selling_points.join(' · ')}`)
   return '\n\n' + parts.join('\n')
 }
 

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase'
 import { anthropic, MODEL } from '@/lib/anthropic'
 
-const MAX_IMAGES = 8
+const MAX_IMAGES = 15
 
 export async function POST(req: NextRequest) {
   try {
@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const { images } = body as { images: string[] }
+    const { images, object_id } = body as { images: string[]; object_id?: string }
 
     if (!Array.isArray(images) || images.length === 0) {
       return NextResponse.json({ error: 'images krävs' }, { status: 400 })
@@ -45,20 +45,15 @@ export async function POST(req: NextRequest) {
           ...imageBlocks as any[],
           {
             type: 'text',
-            text: `Analysera dessa bilder från en fastighet och beskriv de visuella egenskaperna noggrant för att hjälpa en mäklare skriva bättre annonstexter.
-
-Returnera ENBART giltig JSON utan markdown:
+            text: `Analysera dessa bostadsbilder.
+Returnera ENDAST JSON:
 {
-  "materials": ["materialnamn1", "materialnamn2"],
-  "lighting": "beskrivning av ljussättning och hur ljuset faller",
-  "ceiling_height": "låg/normal/hög/mycket hög",
-  "renovation_status": "nyrenoverat/gott skick/normalt slitage/renoveringsbehov",
+  "materials": ["material1", "material2"],
+  "lighting": ["ljusbeskrivning1", "ljusbeskrivning2"],
+  "ceiling_height": "standard" | "högt" | "mycket högt",
+  "renovation_status": "nytt" | "välbevarat" | "original" | "blandat",
   "special_features": ["särdrag1", "särdrag2"],
-  "room_character": "övergripande känsla och atmosfär i bostaden",
-  "view": "utsiktsbeskrivning eller null",
-  "outdoor": "uteplats/balkong/trädgård-beskrivning eller null",
-  "style": "stilbeskrivning t.ex. nordisk minimalism, klassisk, industriell",
-  "key_selling_points": ["starkaste visuella säljargument 1", "starkaste visuella säljargument 2", "starkaste visuella säljargument 3"]
+  "key_selling_points": ["säljargument1", "säljargument2", "säljargument3"]
 }`,
           },
         ],
@@ -68,6 +63,13 @@ Returnera ENBART giltig JSON utan markdown:
     const raw = message.content[0].type === 'text' ? message.content[0].text.trim() : ''
     const json = raw.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim()
     const analysis = JSON.parse(json)
+
+    if (object_id) {
+      await supabase
+        .from('objects')
+        .update({ image_analysis: analysis })
+        .eq('id', object_id)
+    }
 
     return NextResponse.json({ image_analysis: analysis })
   } catch (err) {
