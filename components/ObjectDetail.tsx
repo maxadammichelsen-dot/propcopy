@@ -37,12 +37,18 @@ export default function ObjectDetail({ object, agency, onNavigateToMarket }: Obj
   const [results, setResults] = useState<Record<Channel, GenerateResult | null>>(EMPTY_RESULTS)
   const [generating, setGenerating] = useState(false)
   const [error, setError] = useState('')
-  const [insights, setInsights] = useState<KeyInsights | null>(null)
-  const [insightsLoading, setInsightsLoading] = useState(true)
+  const [insights, setInsights] = useState<KeyInsights | null>(object.key_insights ?? null)
+  const [insightsLoading, setInsightsLoading] = useState(!object.key_insights)
   const [competition, setCompetition] = useState<AreaCompetition | null>(null)
 
   useEffect(() => {
-    setInsights(null)
+    // Reset when switching objects
+    const cached = object.key_insights ?? null
+    setInsights(cached)
+    if (cached) {
+      setInsightsLoading(false)
+      return
+    }
     setInsightsLoading(true)
     fetch('/api/keyinsights', {
       method: 'POST',

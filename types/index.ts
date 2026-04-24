@@ -85,6 +85,7 @@ export interface PropertyObject {
   vitec_id: string | null
   source: string
   image_analysis: ImageAnalysis | null
+  key_insights: KeyInsights | null
   created_at: string
 }
 
