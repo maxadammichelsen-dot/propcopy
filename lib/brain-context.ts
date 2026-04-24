@@ -87,3 +87,44 @@ export async function getBrainStats(agency_id: string): Promise<{
     topSignals: data.filter(e => e.category === 'tone').slice(0, 5),
   }
 }
+
+export async function buildStyleContext(agency_id: string): Promise<string> {
+  const supabase = createSupabaseAdminClient()
+  const { data } = await supabase
+    .from('agency_brain')
+    .select('value')
+    .eq('agency_id', agency_id)
+    .eq('category', 'style_dna')
+    .eq('key', 'analysis')
+    .single()
+
+  if (!data?.value) return ''
+
+  try {
+    const dna = JSON.parse(data.value) as {
+      sentence_length?: string
+      opening_patterns?: string[]
+      preferred_words?: string[]
+      avoided_words?: string[]
+      example_sentences?: string[]
+      tone_markers?: string[]
+    }
+
+    const parts: string[] = ['BYRÅNS SKRIVSTIL:']
+    if (dna.sentence_length)
+      parts.push(`Meningslängd: ${dna.sentence_length}`)
+    if (dna.opening_patterns?.length)
+      parts.push(`Öppningsmönster: ${dna.opening_patterns.slice(0, 2).join(' | ')}`)
+    if (dna.preferred_words?.length)
+      parts.push(`Typiska fraser: ${dna.preferred_words.slice(0, 8).join(', ')}`)
+    if (dna.avoided_words?.length)
+      parts.push(`Undvik alltid: ${dna.avoided_words.slice(0, 5).join(', ')}`)
+    if (dna.example_sentences?.length)
+      parts.push(`Skriv som detta exempel: "${dna.example_sentences[0]}"`)
+
+    if (parts.length <= 1) return ''
+    return '\n' + parts.join('\n')
+  } catch {
+    return ''
+  }
+}

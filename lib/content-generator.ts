@@ -1,7 +1,7 @@
 import { anthropic, MODEL } from './anthropic'
 import { Agency, Channel, GenerateResult, KeyInsights, LocationArgument, PropertyObject } from '@/types'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { buildBrainContext } from './brain-context'
+import { buildBrainContext, buildStyleContext } from './brain-context'
 
 const MASTER_SYSTEM = `Du är Sveriges bästa copywriter för fastighetsmäklare. Du har skrivit texter som resulterat i budgivningar 15-30% över utgångspris.
 
@@ -335,10 +335,14 @@ export async function generateAllChannels(
     'booli', 'boneo', 'boneo_kommande', 'hjem', 'bovision',
   ]
 
-  const brainContext = await buildBrainContext(agency.id)
+  const [styleContext, brainContext] = await Promise.all([
+    buildStyleContext(agency.id),
+    buildBrainContext(agency.id),
+  ])
+  const agencyContext = styleContext + brainContext
 
   const results = await Promise.all(
-    channels.map((channel) => generateChannel(channel, object, toneString, supabase, brainContext))
+    channels.map((channel) => generateChannel(channel, object, toneString, supabase, agencyContext))
   )
 
   await saveToSupabase(object.id, results, supabase)

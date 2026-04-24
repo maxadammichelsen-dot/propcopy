@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase'
 import { fetchAgencyTone } from '@/lib/tone-fetcher'
+import { analyzeStyleDNA } from '@/lib/style-analyzer'
 
 export async function POST(req: NextRequest) {
   try {
@@ -18,6 +19,20 @@ export async function POST(req: NextRequest) {
     }
 
     const toneProfile = await fetchAgencyTone(url, user.id, supabase)
+
+    // Fetch agency_id to save style DNA to brain (fire-and-forget)
+    const { data: agency } = await supabase
+      .from('agencies')
+      .select('id')
+      .eq('user_id', user.id)
+      .single()
+
+    if (agency?.id) {
+      analyzeStyleDNA(url, agency.id).catch(err =>
+        console.error('[/api/tone] style DNA:', err)
+      )
+    }
+
     return NextResponse.json({ tone_profile: toneProfile })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Okänt fel'
