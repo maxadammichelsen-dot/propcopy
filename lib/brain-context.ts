@@ -21,28 +21,42 @@ export async function buildBrainContext(agency_id: string): Promise<string> {
     .from('agency_brain')
     .select('category, key, value, confidence')
     .eq('agency_id', agency_id)
-    .gte('confidence', 0.3)
+    .gte('confidence', 0.05)
     .order('confidence', { ascending: false })
 
   if (error || !data || data.length === 0) return ''
 
   const by = (cat: string) => data.filter(e => e.category === cat)
 
-  const tone         = by('tone')
-  const winningTexts = by('winning_text')
-  const areaInsights = by('area_insight')
-  const buyerProfile = by('buyer_profile')
-  const feedback     = data.filter(e => e.category === 'feedback')
-  const positive     = feedback.filter(e => e.confidence >= 0.6)
-  const negative     = feedback.filter(e => e.confidence < 0.4)
+  const tone           = by('tone')
+  const winningTexts   = by('winning_text')
+  const winningPhrases = by('winning_phrases')
+  const editPrefs      = by('edit_preference')
+  const avoidPatterns  = by('avoid_pattern')
+  const areaInsights   = by('area_insight')
+  const buyerProfile   = by('buyer_profile')
+  const feedback       = data.filter(e => e.category === 'feedback')
+  const positive       = feedback.filter(e => e.confidence >= 0.6)
+  const negative       = feedback.filter(e => e.confidence < 0.4)
+
+  const allWinning = [...winningTexts, ...winningPhrases]
+    .sort((a, b) => b.confidence - a.confidence)
+    .slice(0, 8)
+
+  const allAvoid = [...avoidPatterns, ...negative]
+    .sort((a, b) => a.confidence - b.confidence)
+    .slice(0, 6)
 
   const sections: string[] = []
 
   if (tone.length > 0) {
     sections.push(`TONALITET:\n${formatEntries(tone)}`)
   }
-  if (winningTexts.length > 0) {
-    sections.push(`VINNANDE FORMULERINGAR:\n${formatEntries(winningTexts)}`)
+  if (allWinning.length > 0) {
+    sections.push(`VINNANDE FORMULERINGAR (godkänd av mäklaren):\n${formatEntries(allWinning)}`)
+  }
+  if (editPrefs.length > 0) {
+    sections.push(`MÄKLARENS REDIGERINGSPREFERENSER:\n${formatEntries(editPrefs)}`)
   }
   if (areaInsights.length > 0) {
     sections.push(`OMRÅDE-INSIKTER:\n${formatEntries(areaInsights)}`)
@@ -53,8 +67,8 @@ export async function buildBrainContext(agency_id: string): Promise<string> {
   if (positive.length > 0) {
     sections.push(`ANVÄND ALLTID:\n${formatEntries(positive)}`)
   }
-  if (negative.length > 0) {
-    sections.push(`UNDVIK ALLTID:\n${formatEntries(negative)}`)
+  if (allAvoid.length > 0) {
+    sections.push(`UNDVIK ALLTID:\n${formatEntries(allAvoid)}`)
   }
 
   if (sections.length === 0) return ''
