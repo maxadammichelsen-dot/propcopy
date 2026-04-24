@@ -1,4 +1,5 @@
 import { anthropic, MODEL } from './anthropic'
+import { createSupabaseAdminClient } from './supabase-admin'
 import type { PropertyObject } from '@/types'
 
 export interface CompetitorListing {
@@ -92,5 +93,87 @@ Mäklarfirmor att välja bland: Fastighetsbyrån, Skandia Mäklarna, Notar, Erik
       listings: [],
       insight: 'Marknadsdata kunde inte hämtas just nu.',
     }
+  }
+}
+
+type CompRow = {
+  address: string | null
+  price: number | null
+  days_on_market: number | null
+  object_type: string | null
+  competitor_agency: string | null
+}
+
+export async function buildCompetitionContext(
+  area: string,
+  objectPrice: number,
+  agency_id: string
+): Promise<string> {
+  try {
+    const supabase = createSupabaseAdminClient()
+    const { data } = await supabase
+      .from('competition_data')
+      .select('address, price, days_on_market, object_type, competitor_agency')
+      .eq('agency_id', agency_id)
+      .ilike('area', `%${area}%`)
+      .order('scraped_at', { ascending: false })
+      .limit(20)
+
+    if (!data || data.length === 0) return ''
+
+    const rows = data as CompRow[]
+    const summary = rows.find(r => r.object_type === '_summary')
+    const listings = rows.filter(r => r.object_type !== '_summary')
+
+    let meta: { count?: number; trend?: string; insight?: string } = {}
+    try { meta = JSON.parse(summary?.address ?? '{}') } catch { /* empty */ }
+
+    const marketCount = Number(meta.count) || listings.length
+    const avgPrice    = summary?.price ?? 0
+    const avgDays     = summary?.days_on_market ?? 0
+
+    if (marketCount === 0 && avgPrice === 0) return ''
+
+    const priceDiff = avgPrice > 0
+      ? Math.round(((objectPrice - avgPrice) / avgPrice) * 100)
+      : null
+
+    const priceLabel = priceDiff === null
+      ? 'i nivå med snittet'
+      : priceDiff > 5
+        ? `${priceDiff}% över snittet`
+        : priceDiff < -5
+          ? `${Math.abs(priceDiff)}% under snittet`
+          : 'i nivå med snittet'
+
+    const fmt = (n: number) => new Intl.NumberFormat('sv-SE').format(n)
+
+    const topListings = listings.slice(0, 4)
+    const competitorLines = topListings.map(l =>
+      `• ${l.address} – ${fmt(l.price ?? 0)} kr (${l.days_on_market ?? 0} dagar)`
+    )
+
+    const parts: string[] = [
+      'KONKURRENSSITUATION:',
+      `Liknande objekt på marknaden: ${marketCount}`,
+      `Prisläge: ${priceLabel}`,
+      `Snitt dagar på marknaden: ${avgDays}`,
+    ]
+
+    if (competitorLines.length > 0) {
+      parts.push(`Närmaste konkurrenter:\n${competitorLines.join('\n')}`)
+    }
+
+    if (meta.insight) {
+      parts.push(`Marknadsanalys: ${meta.insight}`)
+    }
+
+    parts.push(
+      `Differentiera genom att lyfta: Det som är genuint unikt för detta objekt jämfört med de ${marketCount} liknande alternativen på marknaden.`
+    )
+
+    return '\n\n' + parts.join('\n')
+  } catch {
+    return ''
   }
 }

@@ -12,6 +12,14 @@ type DetailTab = 'copy' | 'publish' | 'revision'
 interface ObjectDetailProps {
   object: PropertyObject
   agency: Agency | null
+  onNavigateToMarket?: () => void
+}
+
+interface AreaCompetition {
+  marketCount: number
+  priceDiffPct: number | null
+  avgDays: number
+  withViewing: number
 }
 
 const ALL_CHANNELS: Channel[] = [
@@ -23,7 +31,7 @@ const EMPTY_RESULTS = Object.fromEntries(
   ALL_CHANNELS.map((c) => [c, null])
 ) as Record<Channel, GenerateResult | null>
 
-export default function ObjectDetail({ object, agency }: ObjectDetailProps) {
+export default function ObjectDetail({ object, agency, onNavigateToMarket }: ObjectDetailProps) {
   const [detailTab, setDetailTab] = useState<DetailTab>('copy')
   const [activeChannels, setActiveChannels] = useState<Set<Channel>>(new Set(ALL_CHANNELS))
   const [results, setResults] = useState<Record<Channel, GenerateResult | null>>(EMPTY_RESULTS)
@@ -31,6 +39,7 @@ export default function ObjectDetail({ object, agency }: ObjectDetailProps) {
   const [error, setError] = useState('')
   const [insights, setInsights] = useState<KeyInsights | null>(null)
   const [insightsLoading, setInsightsLoading] = useState(true)
+  const [competition, setCompetition] = useState<AreaCompetition | null>(null)
 
   useEffect(() => {
     setInsights(null)
@@ -45,6 +54,33 @@ export default function ObjectDetail({ object, agency }: ObjectDetailProps) {
       .catch(() => {})
       .finally(() => setInsightsLoading(false))
   }, [object.id])
+
+  useEffect(() => {
+    setCompetition(null)
+    fetch('/api/competition')
+      .then(r => r.json())
+      .then(d => {
+        const areas = d.areas ?? []
+        const area = areas.find(
+          (a: any) => a.area?.toLowerCase() === object.area?.toLowerCase()
+        )
+        if (!area) return
+        const priceDiffPct = area.avg_price > 0
+          ? Math.round(((object.price - area.avg_price) / area.avg_price) * 100)
+          : null
+        const withViewing = Math.max(
+          1,
+          area.listings?.filter((l: any) => (l.days_on_market ?? 99) < 21).length ?? 0
+        )
+        setCompetition({
+          marketCount: area.market_count ?? 0,
+          priceDiffPct,
+          avgDays: area.avg_days_on_market ?? 0,
+          withViewing,
+        })
+      })
+      .catch(() => {})
+  }, [object.id, object.area, object.price])
 
   function toggleChannel(channel: Channel) {
     setActiveChannels((prev) => {
@@ -160,6 +196,12 @@ export default function ObjectDetail({ object, agency }: ObjectDetailProps) {
           )}
 
           <div className="flex-1 overflow-y-auto">
+            {competition && competition.marketCount > 0 && (
+              <CompetitionCard
+                competition={competition}
+                onClick={onNavigateToMarket}
+              />
+            )}
             <InsightsCard insights={insights} loading={insightsLoading} />
             {generating ? (
               <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -197,4 +239,81 @@ export default function ObjectDetail({ object, agency }: ObjectDetailProps) {
       )}
     </div>
   )
+}
+
+function CompetitionCard({
+  competition,
+  onClick,
+}: {
+  competition: AreaCompetition
+  onClick?: () => void
+}) {
+  const { marketCount, priceDiffPct, avgDays, withViewing } = competition
+
+  const priceLabel =
+    priceDiffPct === null
+      ? null
+      : priceDiffPct > 0
+        ? `+${priceDiffPct}% över snitt`
+        : priceDiffPct < 0
+          ? `${priceDiffPct}% under snitt`
+          : 'i nivå med snitt'
+
+  const priceColor =
+    priceDiffPct === null
+      ? 'var(--mute)'
+      : priceDiffPct > 5
+        ? '#16a34a'
+        : priceDiffPct < -5
+          ? 'var(--accent)'
+          : 'var(--mute)'
+
+  return (
+    <div
+      onClick={onClick}
+      style={{
+        margin: '16px 32px 0',
+        padding: '10px 16px',
+        border: '1px solid var(--line)',
+        borderRadius: '8px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px',
+        cursor: onClick ? 'pointer' : 'default',
+        background: 'var(--tint)',
+        transition: 'background 0.15s',
+      }}
+      onMouseEnter={e => { if (onClick) (e.currentTarget as HTMLDivElement).style.background = 'var(--line-2)' }}
+      onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = 'var(--tint)' }}
+    >
+      <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11px', color: 'var(--ink)', letterSpacing: '-0.01em' }}>
+        {marketCount} liknande objekt på marknaden
+      </span>
+      <Sep />
+      <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11px', color: 'var(--mute)', letterSpacing: '-0.01em' }}>
+        {withViewing} har nyligen kommit ut
+      </span>
+      <Sep />
+      <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11px', color: 'var(--mute)', letterSpacing: '-0.01em' }}>
+        snitt {avgDays}d på marknaden
+      </span>
+      {priceLabel && (
+        <>
+          <Sep />
+          <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11px', fontWeight: 500, color: priceColor, letterSpacing: '-0.01em' }}>
+            Ditt pris {priceLabel}
+          </span>
+        </>
+      )}
+      {onClick && (
+        <span style={{ marginLeft: 'auto', fontFamily: "'Geist Mono', monospace", fontSize: '11px', color: 'var(--mute)', letterSpacing: '-0.01em' }}>
+          Marknad →
+        </span>
+      )}
+    </div>
+  )
+}
+
+function Sep() {
+  return <span style={{ color: 'var(--line)', fontSize: '11px' }}>·</span>
 }

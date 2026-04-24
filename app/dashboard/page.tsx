@@ -190,7 +190,7 @@ export default function DashboardPage() {
               onAgencyUpdated={setAgency}
             />
           ) : selectedObject ? (
-            <ObjectDetail object={selectedObject} agency={agency} />
+            <ObjectDetail object={selectedObject} agency={agency} onNavigateToMarket={handleCompetition} />
           ) : (
             <EmptyState onNewObject={handleNewObject} />
           )}

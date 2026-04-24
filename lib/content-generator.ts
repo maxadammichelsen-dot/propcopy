@@ -2,6 +2,7 @@ import { anthropic, MODEL } from './anthropic'
 import { Agency, Channel, GenerateResult, ImageAnalysis, KeyInsights, LocationArgument, PropertyObject } from '@/types'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { buildBrainContext, buildStyleContext } from './brain-context'
+import { buildCompetitionContext } from './competition-analyzer'
 
 const MASTER_SYSTEM = `Du är Sveriges bästa copywriter för fastighetsmäklare. Du har skrivit texter som resulterat i budgivningar 15-30% över utgångspris.
 
@@ -352,11 +353,12 @@ export async function generateAllChannels(
     'booli', 'boneo', 'boneo_kommande', 'hjem', 'bovision',
   ]
 
-  const [styleContext, brainContext] = await Promise.all([
+  const [styleContext, brainContext, competitionContext] = await Promise.all([
     buildStyleContext(agency.id),
     buildBrainContext(agency.id),
+    buildCompetitionContext(object.area, object.price, agency.id),
   ])
-  const agencyContext = styleContext + brainContext
+  const agencyContext = styleContext + brainContext + competitionContext
   const imageContext = object.image_analysis ? formatImageContext(object.image_analysis) : ''
 
   const results = await Promise.all(
