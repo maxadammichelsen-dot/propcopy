@@ -1,0 +1,1 @@
+ALTER TABLE objects ADD COLUMN IF NOT EXISTS story text;

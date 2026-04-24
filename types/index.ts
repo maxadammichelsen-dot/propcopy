@@ -86,6 +86,7 @@ export interface PropertyObject {
   source: string
   image_analysis: ImageAnalysis | null
   key_insights: KeyInsights | null
+  story: string | null
   created_at: string
 }
 

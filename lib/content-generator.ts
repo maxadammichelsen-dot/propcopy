@@ -360,9 +360,12 @@ export async function generateAllChannels(
   ])
   const agencyContext = styleContext + brainContext + competitionContext
   const imageContext = object.image_analysis ? formatImageContext(object.image_analysis) : ''
+  const storyContext = object.story
+    ? `\n\nMÄKLARENS BERÄTTELSE OCH UNIKA DETALJER:\n${object.story}\nVäv in dessa detaljer naturligt i texten. Detta är guld – använd det.`
+    : ''
 
   const results = await Promise.all(
-    channels.map((channel) => generateChannel(channel, object, toneString, supabase, agencyContext, imageContext))
+    channels.map((channel) => generateChannel(channel, object, toneString, supabase, agencyContext, imageContext, storyContext))
   )
 
   await saveToSupabase(object.id, results, supabase)
@@ -375,12 +378,14 @@ async function generateChannel(
   tone: string,
   supabase: SupabaseClient,
   brainContext = '',
-  imageContext = ''
+  imageContext = '',
+  storyContext = ''
 ): Promise<GenerateResult> {
   const priceRange = getPriceRange(object.price)
   const refs = await fetchReferenceTexts(channel, object.type, priceRange, supabase)
 
   let prompt = CHANNEL_PROMPTS[channel](object, tone)
+  if (storyContext) prompt += storyContext
   if (imageContext) prompt += imageContext
 
   if (refs.length > 0) {

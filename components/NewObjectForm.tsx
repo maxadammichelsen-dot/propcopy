@@ -33,7 +33,7 @@ function readFileAsDataURL(file: File): Promise<string> {
 
 export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProps) {
   const [step, setStep]         = useState(1)
-  const [form, setForm]         = useState({ address: '', area: '', type: 'Lägenhet', size: '', price: '', details: '' })
+  const [form, setForm]         = useState({ address: '', area: '', type: 'Lägenhet', size: '', price: '', details: '', story: '' })
   const [channels, setChannels] = useState<string[]>(['hemnet', 'instagram'])
   const [loading, setLoading]   = useState(false)
   const [error, setError]       = useState('')
@@ -117,6 +117,7 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
         ...form,
         size: Number(form.size),
         price: Number(form.price.replace(/\s/g, '')),
+        story: form.story.trim() || null,
         ...(imageAnalysis ? { image_analysis: imageAnalysis } : {}),
       }),
     })
@@ -238,17 +239,31 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
               <span style={sectionLabel}>Platsanalys</span>
               <LocationCard address={form.address} area={form.area} onInclude={appendDetail} />
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', minHeight: 0 }}>
-              <span style={sectionLabel}>Säljargument &amp; detaljer</span>
-              <textarea
-                ref={detailsRef}
-                value={form.details}
-                onChange={e => update('details', e.target.value)}
-                placeholder={"3 rok, ljus och luftig, nyrenoverat kök 2023, parkett i alla rum...\n\nKlicka på platsargumenten till vänster för att lägga till dem."}
-                style={{ flex: 1, minHeight: '200px', padding: '14px 16px', fontSize: '14px', border: '1px solid var(--line)', borderRadius: '8px', outline: 'none', resize: 'none', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'inherit', lineHeight: 1.6, transition: 'border-color 0.15s' }}
-                onFocus={e => { e.currentTarget.style.borderColor = 'var(--ink)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(10,10,9,0.04)' }}
-                onBlur={e => { e.currentTarget.style.borderColor = 'var(--line)'; e.currentTarget.style.boxShadow = 'none' }}
-              />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', minHeight: 0, overflowY: 'auto' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <span style={sectionLabel}>Säljargument &amp; detaljer</span>
+                <textarea
+                  ref={detailsRef}
+                  value={form.details}
+                  onChange={e => update('details', e.target.value)}
+                  placeholder={"3 rok, ljus och luftig, nyrenoverat kök 2023, parkett i alla rum...\n\nKlicka på platsargumenten till vänster för att lägga till dem."}
+                  style={{ minHeight: '160px', padding: '14px 16px', fontSize: '14px', border: '1px solid var(--line)', borderRadius: '8px', outline: 'none', resize: 'none', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'inherit', lineHeight: 1.6, transition: 'border-color 0.15s' }}
+                  onFocus={e => { e.currentTarget.style.borderColor = 'var(--ink)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(10,10,9,0.04)' }}
+                  onBlur={e => { e.currentTarget.style.borderColor = 'var(--line)'; e.currentTarget.style.boxShadow = 'none' }}
+                />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <span style={sectionLabel}>Berätta det som inte syns i fakta</span>
+                <textarea
+                  value={form.story}
+                  onChange={e => update('story', e.target.value)}
+                  placeholder={"Historik, material, atmosfär, speciella detaljer som postmästarehistorien, takbjälkar, öppen spis, trädgård..."}
+                  rows={5}
+                  style={{ padding: '14px 16px', fontSize: '14px', border: '1px solid var(--line)', borderRadius: '8px', outline: 'none', resize: 'none', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'inherit', lineHeight: 1.6, transition: 'border-color 0.15s' }}
+                  onFocus={e => { e.currentTarget.style.borderColor = 'var(--ink)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(10,10,9,0.04)' }}
+                  onBlur={e => { e.currentTarget.style.borderColor = 'var(--line)'; e.currentTarget.style.boxShadow = 'none' }}
+                />
+              </div>
             </div>
           </div>
         )}
@@ -423,6 +438,7 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
               <ReviewItem label="Typ"     value={form.type} />
               <ReviewItem label="Storlek" value={form.size ? `${form.size} kvm` : '—'} />
               <ReviewItem label="Pris"    value={form.price ? `${form.price} kr` : '—'} />
+              <ReviewItem label="Berättelse" value={form.story.trim() ? `${form.story.trim().slice(0, 40)}…` : '—'} />
               <ReviewItem
                 label="Bilder"
                 value={
