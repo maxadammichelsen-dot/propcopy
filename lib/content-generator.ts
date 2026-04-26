@@ -3,6 +3,7 @@ import { Agency, Channel, GenerateResult, ImageAnalysis, KeyInsights, LocationAr
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { buildBrainContext, buildStyleContext } from './brain-context'
 import { buildCompetitionContext } from './competition-analyzer'
+import { getChannelOptimization } from './channel-optimization'
 
 const MASTER_SYSTEM = `Du är Sveriges bästa copywriter för fastighetsmäklare.
 
@@ -200,14 +201,15 @@ export async function generateAllChannels(
     buildBrainContext(agency.id),
     buildCompetitionContext(object.area, object.price, agency.id),
   ])
-  const agencyContext = styleContext + brainContext + competitionContext
+  // System: MASTER_SYSTEM + style_dna + brain_context (positions 1-2, 4)
+  const systemContext = styleContext + brainContext
   const imageContext = object.image_analysis ? formatImageContext(object.image_analysis) : ''
   const storyContext = object.story
     ? `\n\nMÄKLARENS BERÄTTELSE OCH UNIKA DETALJER:\n${object.story}\nVäv in dessa detaljer naturligt i texten. Detta är guld – använd det.`
     : ''
 
   const results = await Promise.all(
-    channels.map((channel) => generateChannel(channel, object, toneString, supabase, agencyContext, imageContext, storyContext))
+    channels.map((channel) => generateChannel(channel, object, toneString, supabase, systemContext, imageContext, storyContext, competitionContext))
   )
 
   await saveToSupabase(object.id, results, supabase)
@@ -219,16 +221,20 @@ async function generateChannel(
   object: PropertyObject,
   tone: string,
   supabase: SupabaseClient,
-  brainContext = '',
+  systemContext = '',
   imageContext = '',
-  storyContext = ''
+  storyContext = '',
+  competitionContext = ''
 ): Promise<GenerateResult> {
   const priceRange = getPriceRange(object.price)
   const refs = await fetchReferenceTexts(channel, object.type, priceRange, supabase)
 
-  let prompt = CHANNEL_PROMPTS[channel](object, tone)
+  // Prompt order: 3. channelOptimization → 5. objektdata → 6. story → 7. bild → 8. konkurrens
+  const channelOpt = getChannelOptimization(channel)
+  let prompt = channelOpt + '\n\n' + CHANNEL_PROMPTS[channel](object, tone)
   if (storyContext) prompt += storyContext
   if (imageContext) prompt += imageContext
+  if (competitionContext) prompt += competitionContext
 
   if (refs.length > 0) {
     prompt +=
@@ -240,7 +246,8 @@ async function generateChannel(
   const message = await anthropic.messages.create({
     model: MODEL,
     max_tokens: 1500,
-    system: MASTER_SYSTEM + brainContext,
+    // System order: 1. MASTER_SYSTEM → 2. style_dna → 4. brain_context
+    system: MASTER_SYSTEM + systemContext,
     messages: [{ role: 'user', content: prompt }],
   })
 
