@@ -267,6 +267,46 @@ function buildBrandsContext(brands: Record<string, string[]> | null | undefined,
   )
 }
 
+function buildFactsContext(object: any): string {
+  const facts: string[] = []
+
+  if (object.tenure) facts.push(`Upplåtelseform: ${object.tenure}`)
+  if (object.size) facts.push(`Boarea: ${object.size} m²`)
+  if (object.plot_area) facts.push(`Tomtarea: ${object.plot_area} m²`)
+  if (object.rooms) {
+    const rooms = object.bedrooms
+      ? `${object.rooms} varav ${object.bedrooms} sovrum`
+      : `${object.rooms}`
+    facts.push(`Antal rum: ${rooms}`)
+  }
+  if (object.construction_year) facts.push(`Byggår: ${object.construction_year}`)
+  if (object.operating_cost_yearly) facts.push(`Driftkostnad: ${object.operating_cost_yearly} kr/år`)
+  if (object.energy_class) facts.push(`Energiklass: ${object.energy_class}`)
+  if (object.monthly_fee) facts.push(`Månadsavgift: ${object.monthly_fee} kr/mån`)
+  if (object.heating) facts.push(`Uppvärmning: ${object.heating}`)
+  if (object.ventilation) facts.push(`Ventilation: ${object.ventilation}`)
+  if (object.parking) facts.push(`Parkering: ${object.parking}`)
+  if (object.standard_class) facts.push(`Standard: ${object.standard_class}`)
+
+  if (object.renovations) {
+    const renoLines: string[] = []
+    const r = object.renovations
+    if (r.kitchen?.year) renoLines.push(`Kök ${r.kitchen.year}${r.kitchen.note ? ' – ' + r.kitchen.note : ''}`)
+    if (r.bathroom?.year) renoLines.push(`Bad ${r.bathroom.year}${r.bathroom.note ? ' – ' + r.bathroom.note : ''}`)
+    if (r.facade?.year) renoLines.push(`Fasad ${r.facade.year}${r.facade.note ? ' – ' + r.facade.note : ''}`)
+    if (renoLines.length > 0) facts.push(`Renoveringar: ${renoLines.join(', ')}`)
+  }
+
+  if (facts.length === 0) return ''
+
+  return `
+FAKTA OM OBJEKTET (måste vara med i Hemnet-texten där naturligt):
+${facts.map(f => '- ' + f).join('\n')}
+
+Använd dessa exakt. Hitta inte på andra siffror eller årtal.
+Om ett fält inte är listat – nämn inte den uppgiften alls.`.trim()
+}
+
 async function generateChannel(
   channel: Channel,
   object: PropertyObject,
@@ -280,10 +320,11 @@ async function generateChannel(
   const priceRange = getPriceRange(object.price)
   const refs = await fetchReferenceTexts(channel, object.type, priceRange, supabase)
 
-  // Prompt order: 3. channelOptimization → 3b. brands → 5. objektdata → 6. story → 7. bild → 8. konkurrens
+  // Prompt order: 3. channelOptimization → 3b. brands → 4. facts → 5. objektdata → 6. story → 7. bild → 8. konkurrens
   const channelOpt = getChannelOptimization(channel)
   const brandsContext = buildBrandsContext(object.brands, channel)
-  let prompt = channelOpt + brandsContext + '\n\n' + CHANNEL_PROMPTS[channel](object, tone)
+  const factsContext = buildFactsContext(object)
+  let prompt = channelOpt + brandsContext + (factsContext ? '\n\n' + factsContext : '') + '\n\n' + CHANNEL_PROMPTS[channel](object, tone)
   if (storyContext) prompt += storyContext
   if (imageContext) prompt += imageContext
   if (competitionContext) prompt += competitionContext

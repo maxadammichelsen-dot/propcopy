@@ -206,6 +206,7 @@ export default function ObjectDetail({ object, agency, onNavigateToMarket }: Obj
               />
             )}
             <InsightsCard insights={insights} loading={insightsLoading} />
+            <FactsRow object={object} />
             {object.brands && Object.values(object.brands).some(v => v.length > 0) && (
               <BrandsRow brands={object.brands} />
             )}
@@ -322,6 +323,43 @@ function CompetitionCard({
 
 function Sep() {
   return <span style={{ color: 'var(--line)', fontSize: '11px' }}>·</span>
+}
+
+function FactsRow({ object }: { object: any }) {
+  const parts: string[] = []
+  if (object.size) parts.push(`${object.size} m²`)
+  if (object.plot_area) parts.push(`${object.plot_area} m² tomt`)
+  if (object.rooms) {
+    parts.push(object.bedrooms
+      ? `${object.rooms} R.O.K. (${object.bedrooms} sov)`
+      : `${object.rooms} R.O.K.`)
+  }
+  if (object.construction_year) parts.push(`Byggår ${object.construction_year}`)
+  if (object.tenure) parts.push(object.tenure)
+  if (object.energy_class) parts.push(`Energiklass ${object.energy_class}`)
+
+  if (parts.length === 0) return null
+
+  return (
+    <div style={{
+      margin: '8px 32px 0',
+      padding: '8px 14px',
+      border: '1px solid var(--line)',
+      borderRadius: '8px',
+      background: 'var(--tint)',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '6px',
+      flexWrap: 'wrap',
+    }}>
+      <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '10px', color: 'var(--mute)', letterSpacing: '0.04em', textTransform: 'uppercase', flexShrink: 0 }}>
+        Fakta
+      </span>
+      <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11px', color: 'var(--ink)', letterSpacing: '-0.01em' }}>
+        {parts.join(' · ')}
+      </span>
+    </div>
+  )
 }
 
 function BrandsRow({ brands }: { brands: Record<string, string[]> }) {
