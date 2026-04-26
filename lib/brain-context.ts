@@ -109,7 +109,7 @@ export async function buildStyleContext(agency_id: string): Promise<string> {
     .select('value')
     .eq('agency_id', agency_id)
     .eq('category', 'style_dna')
-    .eq('key', 'analysis')
+    .eq('key', 'voice_profile')
     .single()
 
   console.log('[style_dna] loaded:', data?.value ? 'YES' : 'NO', data?.value?.substring(0, 100))

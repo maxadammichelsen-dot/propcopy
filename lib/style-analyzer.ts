@@ -156,26 +156,35 @@ Returnera ENBART giltig JSON utan markdown:
     const styleDNA = JSON.parse(match[0]) as StyleDNA
     console.log('[style-analyzer] Parsed keys:', Object.keys(styleDNA).length)
 
-    // 4. Save to agency_brain as single JSON blob
+    // 4. Save to agency_brain — delete existing then insert fresh
     const admin = createSupabaseAdminClient()
-    console.log('[style-analyzer] About to upsert to agency_brain')
+    console.log('[style-analyzer] About to save to agency_brain')
 
-    const { error: upsertError } = await admin.from('agency_brain').upsert(
-      {
+    const { error: deleteError } = await admin
+      .from('agency_brain')
+      .delete()
+      .eq('agency_id', agency_id)
+      .eq('category', 'style_dna')
+
+    if (deleteError) {
+      console.error('[style-analyzer] Delete failed:', deleteError.message)
+    }
+
+    const { error: insertError } = await admin
+      .from('agency_brain')
+      .insert({
         agency_id,
         category:   'style_dna',
-        key:        'analysis',
+        key:        'voice_profile',
         value:      JSON.stringify(styleDNA),
         confidence: 0.9,
         source:     'scraped',
-      },
-      { onConflict: 'agency_id,category,key' }
-    )
+      })
 
-    if (upsertError) {
-      console.error('[style-analyzer] Upsert FAILED:', upsertError.message, upsertError.code)
+    if (insertError) {
+      console.error('[style-analyzer] Insert FAILED:', insertError.message, insertError.code)
     } else {
-      console.log('[style-analyzer] Upsert SUCCESS — style_dna saved for', agency_id)
+      console.log('[style-analyzer] Insert SUCCESS — style_dna saved for', agency_id)
     }
 
     return styleDNA
