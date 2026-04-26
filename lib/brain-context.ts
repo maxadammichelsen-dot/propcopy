@@ -102,6 +102,32 @@ export async function getBrainStats(agency_id: string): Promise<{
   }
 }
 
+export interface StyleDNAShape {
+  uses_structural_subheadings?: boolean
+  subheading_examples?: string[]
+  subheading_threshold_sqm?: number
+  sentence_length?: string
+  opening_patterns?: string[]
+  preferred_words?: string[]
+  avoided_words?: string[]
+  example_sentences?: string[]
+  tone_markers?: string[]
+}
+
+export async function getStyleDNA(agency_id: string): Promise<StyleDNAShape | null> {
+  const supabase = createSupabaseAdminClient()
+  const { data } = await supabase
+    .from('agency_brain')
+    .select('value')
+    .eq('agency_id', agency_id)
+    .eq('category', 'style_dna')
+    .eq('key', 'voice_profile')
+    .single()
+  if (!data?.value) return null
+  try { return JSON.parse(data.value) as StyleDNAShape }
+  catch { return null }
+}
+
 export async function buildStyleContext(agency_id: string): Promise<string> {
   const supabase = createSupabaseAdminClient()
   const { data } = await supabase

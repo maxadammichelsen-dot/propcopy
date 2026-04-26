@@ -12,6 +12,9 @@ interface StyleDNA {
   closing_patterns: string[]
   tone_markers: string[]
   example_sentences: string[]
+  uses_structural_subheadings: boolean
+  subheading_examples: string[]
+  subheading_threshold_sqm: number
 }
 
 async function fetchPage(url: string): Promise<string> {
@@ -125,6 +128,8 @@ export async function analyzeStyleDNA(
 Texter:
 ${sample}
 
+Analysera även om byrån strukturerar texter med underrubriker per våning eller område (t.ex. "Entréplan:", "Mellanplan:", "Penthouse:", "Tomt och uteplatser:", "Garage och teknik:", "Området"). Om JA, returnera de exakta underrubriker du ser, samt vid vilken kvadratmeter de börjar användas (analysera bostäderna och se om underrubriker bara används för stora objekt).
+
 Returnera ENBART giltig JSON utan markdown:
 {
   "sentence_length": "kort" | "medel" | "lång",
@@ -136,7 +141,10 @@ Returnera ENBART giltig JSON utan markdown:
   "opening_patterns": ["typisk öppningsmening 1", "typisk öppningsmening 2"],
   "closing_patterns": ["typisk avslutning 1"],
   "tone_markers": ["markör1", "markör2", "markör3"],
-  "example_sentences": ["bästa exempelmening 1", "bästa exempelmening 2"]
+  "example_sentences": ["bästa exempelmening 1", "bästa exempelmening 2"],
+  "uses_structural_subheadings": true | false,
+  "subheading_examples": ["Entréplan:", "Mellanplan:", "Penthouse:"],
+  "subheading_threshold_sqm": 150
 }`,
       }],
     })

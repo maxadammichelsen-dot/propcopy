@@ -1,7 +1,7 @@
 import { anthropic, MODEL } from './anthropic'
 import { Agency, Channel, GenerateResult, ImageAnalysis, KeyInsights, LocationArgument, PropertyObject } from '@/types'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { buildBrainContext, buildStyleContext } from './brain-context'
+import { buildBrainContext, buildStyleContext, getStyleDNA } from './brain-context'
 import { buildCompetitionContext } from './competition-analyzer'
 import { getChannelOptimization } from './channel-optimization'
 
@@ -173,10 +173,11 @@ export async function generateAllChannels(
   const toneString = agency.tone_profile?.tags?.join(', ') ?? 'professionell, varm'
   const channels: Channel[] = ['hemnet', 'meta', 'email', 'social_organic']
 
-  const [styleContext, brainContext, competitionContext] = await Promise.all([
+  const [styleContext, brainContext, competitionContext, styleDNA] = await Promise.all([
     buildStyleContext(agency.id),
     buildBrainContext(agency.id),
     buildCompetitionContext(object.area, object.price, agency.id),
+    getStyleDNA(agency.id),
   ])
   // System: MASTER_SYSTEM + style_dna + brain_context (positions 1-2, 4)
   const systemContext = styleContext + brainContext
@@ -185,8 +186,25 @@ export async function generateAllChannels(
     ? `\n\nMÄKLARENS BERÄTTELSE OCH UNIKA DETALJER:\n${object.story}\nVäv in dessa detaljer naturligt i texten. Detta är guld – använd det.`
     : ''
 
+  // Hemnet subheading instruction — injected only when style_dna signals it and object is large enough
+  let hemnetSubheadingInstruction = ''
+  if (
+    styleDNA?.uses_structural_subheadings &&
+    object.size > (styleDNA.subheading_threshold_sqm ?? 9999)
+  ) {
+    const examples = styleDNA.subheading_examples?.join(', ') ?? ''
+    hemnetSubheadingInstruction =
+      `\n\nOBLIGATORISKT FÖR DETTA OBJEKT (${object.size} kvm överstiger byråns tröskel på ${styleDNA.subheading_threshold_sqm} kvm):` +
+      `\nByrån kräver strukturerade underrubriker för objekt av denna storlek. Dela upp SÄLJTEXT i sektioner med dessa rubriker: ${examples}` +
+      `\nVarje rubrik följs av detaljerad beskrivning av just den sektionen. Skriv INTE löptext för detta objekt.`
+  }
+
   const results = await Promise.all(
-    channels.map((channel) => generateChannel(channel, object, toneString, supabase, systemContext, imageContext, storyContext, competitionContext))
+    channels.map((channel) => generateChannel(
+      channel, object, toneString, supabase, systemContext, imageContext,
+      channel === 'hemnet' ? storyContext + hemnetSubheadingInstruction : storyContext,
+      competitionContext,
+    ))
   )
 
   await saveToSupabase(object.id, results, supabase)
