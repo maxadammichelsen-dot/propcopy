@@ -88,6 +88,18 @@ export interface PropertyObject {
   key_insights: KeyInsights | null
   story: string | null
   brands: Record<string, string[]> | null
+  tenure: string | null
+  plot_area: number | null
+  construction_year: number | null
+  bedrooms: string | null
+  operating_cost_yearly: number | null
+  energy_class: string | null
+  monthly_fee: number | null
+  standard_class: string | null
+  renovations: Record<string, { year: string; note: string }> | null
+  heating: string | null
+  ventilation: string | null
+  parking: string | null
   created_at: string
 }
 
