@@ -73,14 +73,22 @@ export async function analyzeStyleDNA(
   url: string,
   agency_id: string
 ): Promise<StyleDNA | null> {
+  console.log('[style-analyzer] Starting analysis')
+  console.log('[style-analyzer] URL:', url)
+  console.log('[style-analyzer] agency_id:', agency_id)
+
   try {
     const normalized = url.startsWith('http') ? url : `https://${url}`
 
     // 1. Fetch homepage and find listing links
     const homeHtml = await fetchPage(normalized)
-    if (!homeHtml) return null
+    if (!homeHtml) {
+      console.log('[style-analyzer] Failed to fetch homepage')
+      return null
+    }
 
     const links = extractListingLinks(homeHtml, normalized)
+    console.log('[style-analyzer] Found listing links:', links.length)
 
     // 2. Fetch up to 30 listing pages in parallel batches to collect 20-50 texts
     const batchSize = 5
@@ -94,7 +102,12 @@ export async function analyzeStyleDNA(
       }
     }
 
-    if (paragraphs.length < 3) return null
+    console.log('[style-analyzer] Paragraphs collected:', paragraphs.length)
+
+    if (paragraphs.length < 3) {
+      console.log('[style-analyzer] Too few paragraphs, aborting')
+      return null
+    }
 
     const sample = paragraphs
       .slice(0, 50)
@@ -129,30 +142,45 @@ Returnera ENBART giltig JSON utan markdown:
     })
 
     const raw = message.content[0].type === 'text' ? message.content[0].text.trim() : ''
+    console.log('[style-analyzer] Raw response length:', raw.length)
+    console.log('[style-analyzer] First 200 chars:', raw.substring(0, 200))
+
     const match = raw.match(/\{[\s\S]*\}/)
+    console.log('[style-analyzer] JSON match found:', match ? 'YES' : 'NO')
+
     if (!match) {
-      console.error('[analyzeStyleDNA] No JSON found in response, raw:', raw.substring(0, 200))
+      console.error('[style-analyzer] No JSON found in response')
       return null
     }
+
     const styleDNA = JSON.parse(match[0]) as StyleDNA
+    console.log('[style-analyzer] Parsed keys:', Object.keys(styleDNA).length)
 
     // 4. Save to agency_brain as single JSON blob
     const admin = createSupabaseAdminClient()
-    await admin.from('agency_brain').upsert(
+    console.log('[style-analyzer] About to upsert to agency_brain')
+
+    const { error: upsertError } = await admin.from('agency_brain').upsert(
       {
         agency_id,
-        category: 'style_dna',
-        key:      'analysis',
-        value:    JSON.stringify(styleDNA),
+        category:   'style_dna',
+        key:        'analysis',
+        value:      JSON.stringify(styleDNA),
         confidence: 0.9,
-        source:   'scraped',
+        source:     'scraped',
       },
       { onConflict: 'agency_id,category,key' }
     )
 
+    if (upsertError) {
+      console.error('[style-analyzer] Upsert FAILED:', upsertError.message, upsertError.code)
+    } else {
+      console.log('[style-analyzer] Upsert SUCCESS — style_dna saved for', agency_id)
+    }
+
     return styleDNA
   } catch (err) {
-    console.error('[analyzeStyleDNA]', err)
+    console.error('[style-analyzer] Caught error:', err)
     return null
   }
 }
