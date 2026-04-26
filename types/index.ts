@@ -100,7 +100,54 @@ export interface PropertyObject {
   heating: string | null
   ventilation: string | null
   parking: string | null
+  enabled_enrichment_facts?: string[]
   created_at: string
+}
+
+export interface ObjectEnrichment {
+  id: string
+  object_id: string
+  source: 'lantmateriet' | 'trafiklab' | 'openstreetmap' | 'allabrf' | 'scb' | 'skolverket'
+  data: Record<string, any>
+  fetched_at: string
+}
+
+export interface LantmaterietData {
+  fastighetsbeteckning?: string
+  coordinates?: { lat: number; lng: number }
+  building_year?: number
+  total_area_m2?: number
+  num_floors?: number
+  property_type?: string
+}
+
+export interface TrafiklabStop {
+  name: string
+  distance_meters: number
+  walking_minutes: number
+  types: string[]
+  lines: string[]
+  departures_per_hour: number
+  sample_destination?: string
+}
+
+export interface TrafiklabData {
+  stops: TrafiklabStop[]
+}
+
+export interface OSMPlace {
+  name: string
+  distance: number
+  type: string
+}
+
+export interface OSMData {
+  groceries: OSMPlace[]
+  schools: OSMPlace[]
+  parks: OSMPlace[]
+  restaurants: OSMPlace[]
+  coast: OSMPlace[]
+  healthcare: OSMPlace[]
 }
 
 export interface GeneratedContent {
