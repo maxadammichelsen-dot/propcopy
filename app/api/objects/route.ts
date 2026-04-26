@@ -46,7 +46,11 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const { address, area, type, size, price, details, story, image_analysis, brands } = body
+    const {
+      address, area, type, size, price, details, story, image_analysis, brands,
+      tenure, plot_area, construction_year, monthly_fee, operating_cost_yearly,
+      energy_class, bedrooms, standard_class, heating, ventilation, parking, renovations,
+    } = body
 
     if (!address || !area || !type || !size || !price) {
       return NextResponse.json({ error: 'Obligatoriska fält saknas' }, { status: 400 })
@@ -88,6 +92,18 @@ export async function POST(req: NextRequest) {
         story: story ?? null,
         status: 'draft',
         brands: brands && Object.keys(brands).length > 0 ? brands : {},
+        tenure: tenure || null,
+        plot_area: plot_area ?? null,
+        construction_year: construction_year ?? null,
+        monthly_fee: monthly_fee ?? null,
+        operating_cost_yearly: operating_cost_yearly ?? null,
+        energy_class: energy_class || null,
+        bedrooms: bedrooms || null,
+        standard_class: standard_class || null,
+        heating: heating || null,
+        ventilation: ventilation || null,
+        parking: parking || null,
+        renovations: renovations && Object.keys(renovations).length > 0 ? renovations : null,
         ...(image_analysis ? { image_analysis } : {}),
       })
       .select()

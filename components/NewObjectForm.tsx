@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react'
 import LocationCard from './LocationCard'
 import BrandSelector from './BrandSelector'
+import FactsTechStep, { type RenovationEntry } from './FactsTechStep'
 import type { ImageAnalysis } from '@/types'
 
 interface NewObjectFormProps {
@@ -20,7 +21,7 @@ const CHANNELS = [
   { id: 'visning',   icon: '📄', label: 'Visningstext', desc: 'PDF till visning och trycksaker' },
 ]
 
-const STEP_LABELS = ['Adress', 'Argument', 'Bilder', 'Kanaler', 'Granska']
+const STEP_LABELS = ['Adress', 'Fakta', 'Argument', 'Bilder', 'Kanaler', 'Granska']
 const MAX_IMAGES = 15
 
 function readFileAsDataURL(file: File): Promise<string> {
@@ -34,7 +35,17 @@ function readFileAsDataURL(file: File): Promise<string> {
 
 export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProps) {
   const [step, setStep]         = useState(1)
-  const [form, setForm]         = useState({ address: '', area: '', type: 'Lägenhet', size: '', price: '', details: '', story: '' })
+  const [form, setForm]         = useState({
+    address: '', area: '', type: 'Lägenhet', size: '', price: '', details: '', story: '',
+    tenure: 'Friköpt', plot_area: '', construction_year: '', monthly_fee: '',
+    operating_cost_yearly: '', energy_class: '', bedrooms: '',
+    standard_class: 'Normal', heating: '', ventilation: '', parking: '',
+  })
+  const [renovations, setRenovations] = useState<Record<string, RenovationEntry>>({
+    kitchen: { year: '', note: '' },
+    bathroom: { year: '', note: '' },
+    facade: { year: '', note: '' },
+  })
   const [channels, setChannels] = useState<string[]>(['hemnet', 'instagram'])
   const [loading, setLoading]   = useState(false)
   const [error, setError]       = useState('')
@@ -51,6 +62,10 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
 
   function update(field: string, value: string) {
     setForm(f => ({ ...f, [field]: value }))
+  }
+
+  function updateRenovation(section: string, field: 'year' | 'note', value: string) {
+    setRenovations(r => ({ ...r, [section]: { ...r[section], [field]: value } }))
   }
 
   function toggleChannel(id: string) {
@@ -104,9 +119,10 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
 
   function canAdvance(): boolean {
     if (step === 1) return !!form.address.trim() && !!form.area.trim() && !!form.size && !!form.price
-    if (step === 2) return !!form.details.trim()
-    if (step === 3) return true
-    if (step === 4) return channels.length > 0
+    if (step === 2) return true
+    if (step === 3) return !!form.details.trim()
+    if (step === 4) return true
+    if (step === 5) return channels.length > 0
     return true
   }
 
@@ -121,6 +137,21 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
         size: Number(form.size),
         price: Number(form.price.replace(/\s/g, '')),
         story: form.story.trim() || null,
+        tenure: form.tenure || null,
+        plot_area: form.plot_area ? Number(form.plot_area) : null,
+        construction_year: form.construction_year ? Number(form.construction_year) : null,
+        monthly_fee: form.monthly_fee ? Number(form.monthly_fee) : null,
+        operating_cost_yearly: form.operating_cost_yearly ? Number(form.operating_cost_yearly) : null,
+        energy_class: form.energy_class || null,
+        bedrooms: form.bedrooms.trim() || null,
+        standard_class: form.standard_class || null,
+        heating: form.heating || null,
+        ventilation: form.ventilation || null,
+        parking: form.parking.trim() || null,
+        renovations: (() => {
+          const filled = Object.fromEntries(Object.entries(renovations).filter(([, v]) => v.year || v.note))
+          return Object.keys(filled).length > 0 ? filled : null
+        })(),
         brands: Object.fromEntries(Object.entries(brands).filter(([, v]) => v.length > 0)),
         ...(imageAnalysis ? { image_analysis: imageAnalysis } : {}),
       }),
@@ -134,7 +165,7 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
     onCreated(data.object)
   }
 
-  const progressPct = (step / 5) * 100
+  const progressPct = (step / 6) * 100
 
   return (
     <div style={{ position: 'absolute', inset: 0, background: 'var(--bg)' }}>
@@ -173,19 +204,25 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           marginBottom: '28px', fontFamily: "'Geist Mono', monospace", fontSize: '11px', color: 'var(--mute)',
         }}>
-          <span>Steg {step} av 5</span>
+          <span>Steg {step} av 6</span>
           <span style={{ letterSpacing: '0.04em', textTransform: 'uppercase' }}>{STEP_LABELS[step - 1]}</span>
         </div>
 
         <div style={{ marginBottom: '28px' }}>
           <h1 style={{ fontSize: '26px', fontWeight: 600, letterSpacing: '-0.024em', lineHeight: 1.2, color: 'var(--ink)' }}>
             {step === 1 && 'Vilket objekt ska vi hjälpa dig med?'}
-            {step === 2 && 'Vad är de starkaste säljargumenten?'}
-            {step === 3 && 'Lägg till bilder för djupare analys.'}
-            {step === 4 && 'Vilka kanaler ska vi skriva för?'}
-            {step === 5 && 'Granska och spara objektet.'}
+            {step === 2 && 'Fakta och teknisk information.'}
+            {step === 3 && 'Vad är de starkaste säljargumenten?'}
+            {step === 4 && 'Lägg till bilder för djupare analys.'}
+            {step === 5 && 'Vilka kanaler ska vi skriva för?'}
+            {step === 6 && 'Granska och spara objektet.'}
           </h1>
-          {step === 3 && (
+          {step === 2 && (
+            <p style={{ marginTop: '6px', fontSize: '13px', color: 'var(--mute)', letterSpacing: '-0.01em' }}>
+              Valfritt — ju mer fakta, desto mer korrekt och trovärdig annonstext.
+            </p>
+          )}
+          {step === 4 && (
             <p style={{ marginTop: '6px', fontSize: '13px', color: 'var(--mute)', letterSpacing: '-0.01em' }}>
               Valfritt — bilder hjälper AI:n skriva mer precisa och visuellt träffsäkra texter.
             </p>
@@ -236,8 +273,18 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
           </div>
         )}
 
-        {/* ── Step 2: Argument ─────────────────────── */}
+        {/* ── Step 2: Fakta & teknik ───────────────── */}
         {step === 2 && (
+          <FactsTechStep
+            formData={form}
+            updateField={update}
+            renovations={renovations}
+            updateRenovation={updateRenovation}
+          />
+        )}
+
+        {/* ── Step 3: Argument ─────────────────────── */}
+        {step === 3 && (
           <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '28px', flex: 1, minHeight: 0 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', overflowY: 'auto' }}>
               <span style={sectionLabel}>Platsanalys</span>
@@ -273,8 +320,8 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
           </div>
         )}
 
-        {/* ── Step 3: Bilder ───────────────────────── */}
-        {step === 3 && (
+        {/* ── Step 4: Bilder ───────────────────────── */}
+        {step === 4 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', flex: 1 }}>
             <input
               ref={fileInputRef}
@@ -397,8 +444,8 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
           </div>
         )}
 
-        {/* ── Step 4: Kanaler ──────────────────────── */}
-        {step === 4 && (
+        {/* ── Step 5: Kanaler ──────────────────────── */}
+        {step === 5 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxWidth: '560px' }}>
             {CHANNELS.map(ch => {
               const active = channels.includes(ch.id)
@@ -432,8 +479,8 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
           </div>
         )}
 
-        {/* ── Step 5: Granska ──────────────────────── */}
-        {step === 5 && (
+        {/* ── Step 6: Granska ──────────────────────── */}
+        {step === 6 && (
           <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr 220px', gap: '20px', flex: 1, minHeight: 0 }}>
             {/* Left: object summary */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '20px', border: '1px solid var(--line)', borderRadius: '10px', background: 'var(--tint)', alignSelf: 'flex-start' }}>
@@ -443,6 +490,9 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
               <ReviewItem label="Typ"     value={form.type} />
               <ReviewItem label="Storlek" value={form.size ? `${form.size} kvm` : '—'} />
               <ReviewItem label="Pris"    value={form.price ? `${form.price} kr` : '—'} />
+              <ReviewItem label="Upplåtelse" value={form.tenure} />
+              {form.construction_year ? <ReviewItem label="Byggår" value={form.construction_year} /> : null}
+              {form.energy_class ? <ReviewItem label="Energiklass" value={form.energy_class} /> : null}
               <ReviewItem label="Berättelse" value={form.story.trim() ? `${form.story.trim().slice(0, 40)}…` : '—'} />
               <ReviewItem label="Specifikation" value={(() => { const n = Object.values(brands).flat().length; return n > 0 ? `${n} varumärken` : '—' })()} />
               <ReviewItem
@@ -504,7 +554,7 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
         </button>
         <button
           type="button"
-          onClick={step < 5 ? () => { if (canAdvance()) setStep(s => s + 1) } : handleSubmit}
+          onClick={step < 6 ? () => { if (canAdvance()) setStep(s => s + 1) } : handleSubmit}
           disabled={!canAdvance() || loading}
           style={{
             padding: '8px 14px',
@@ -517,7 +567,7 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
             letterSpacing: '-0.01em', fontFamily: 'inherit',
           }}
         >
-          {step < 5 ? 'Nästa →' : loading ? 'Sparar…' : 'Spara objekt'}
+          {step < 6 ? 'Nästa →' : loading ? 'Sparar…' : 'Spara objekt'}
         </button>
       </div>
 
