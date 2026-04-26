@@ -130,6 +130,11 @@ function AgencyInfoSection({ agency, onAgencyUpdated }: {
   const [toneProfile, setToneProfile] = useState<ToneProfile | null>(agency.tone_profile)
   const [visibleTags, setVisibleTags] = useState(toneProfile?.tags.length ?? 0)
 
+  // Deep style scan state
+  const [deepScanning, setDeepScanning] = useState(false)
+  const [deepResult,   setDeepResult]   = useState<{ patterns: number } | null>(null)
+  const [deepError,    setDeepError]    = useState('')
+
   function update(field: string, value: string) {
     setForm(f => ({ ...f, [field]: value }))
     setSaved(false)
@@ -186,6 +191,19 @@ function AgencyInfoSection({ agency, onAgencyUpdated }: {
   }
 
   const hasTone = !!toneProfile?.tags?.length
+
+  async function handleDeepScan() {
+    setDeepScanning(true)
+    setDeepError('')
+    setDeepResult(null)
+    try {
+      const res = await fetch('/api/brain/scan-style', { method: 'POST' })
+      const d   = await res.json()
+      if (!res.ok) setDeepError(d.error ?? 'Fel vid skanning')
+      else         setDeepResult(d)
+    } catch { setDeepError('Nätverksfel') }
+    finally  { setDeepScanning(false) }
+  }
 
   return (
     <Section title="Byråinformation">
@@ -255,6 +273,29 @@ function AgencyInfoSection({ agency, onAgencyUpdated }: {
                       {tag}
                     </span>
                   ))}
+                </div>
+              )}
+
+              {hasTone && form.url && (
+                <div className="pl-4 pt-1 space-y-1.5">
+                  <button
+                    onClick={handleDeepScan}
+                    disabled={deepScanning}
+                    className="font-data text-[10px] text-mute border border-line rounded-full px-3 py-1 hover:text-ink transition-colors disabled:opacity-40 flex items-center gap-1.5"
+                  >
+                    {deepScanning && (
+                      <span className="w-2 h-2 border border-current border-t-transparent rounded-full animate-spin inline-block" />
+                    )}
+                    {deepScanning ? 'Analyserar byråns texter…' : 'Skanna byråns skrivstil (djup)'}
+                  </button>
+                  {deepResult && (
+                    <p className="font-data text-[10px] text-ink tracking-snug">
+                      ✓ Klart – {deepResult.patterns} mönster identifierade
+                    </p>
+                  )}
+                  {deepError && (
+                    <p className="font-data text-[10px] text-accent tracking-snug">{deepError}</p>
+                  )}
                 </div>
               )}
             </div>
@@ -718,7 +759,9 @@ function BrainSection() {
   const [loading, setLoading]   = useState(true)
   const [expanded, setExpanded] = useState(false)
   const [allEntries, setAllEntries] = useState<BrainStats['topSignals']>([])
-  const [resetting, setResetting] = useState(false)
+  const [resetting, setResetting]   = useState(false)
+  const [inspectJson, setInspectJson] = useState<string | null>(null)
+  const [inspecting, setInspecting]   = useState(false)
 
   useEffect(() => {
     fetch('/api/brain/stats')
@@ -734,6 +777,16 @@ function BrainSection() {
     setStats(d)
     setAllEntries(d.topSignals ?? [])
     setExpanded(true)
+  }
+
+  async function handleInspect() {
+    if (inspectJson) { setInspectJson(null); return }
+    setInspecting(true)
+    try {
+      const res = await fetch('/api/brain/inspect')
+      const d   = await res.json()
+      setInspectJson(JSON.stringify(d, null, 2))
+    } finally { setInspecting(false) }
   }
 
   async function handleReset() {
@@ -1009,7 +1062,7 @@ function BrainSection() {
         )}
 
         {/* Action buttons */}
-        <div style={{ display: 'flex', gap: '8px', paddingTop: '4px' }}>
+        <div style={{ display: 'flex', gap: '8px', paddingTop: '4px', flexWrap: 'wrap' }}>
           {!noData && (
             <button
               onClick={handleExpand}
@@ -1032,6 +1085,24 @@ function BrainSection() {
             </button>
           )}
           <button
+            onClick={handleInspect}
+            disabled={inspecting}
+            style={{
+              fontFamily: "'Geist Mono', monospace",
+              fontSize: '11px',
+              color: 'var(--mute)',
+              border: '1px solid var(--line)',
+              borderRadius: '100px',
+              padding: '6px 14px',
+              background: 'none',
+              cursor: inspecting ? 'default' : 'pointer',
+              opacity: inspecting ? 0.5 : 1,
+              letterSpacing: '0',
+            }}
+          >
+            {inspecting ? 'Hämtar…' : inspectJson ? 'Dölj debug' : 'Visa hjärnan (debug)'}
+          </button>
+          <button
             onClick={handleReset}
             disabled={resetting || noData}
             style={{
@@ -1050,6 +1121,42 @@ function BrainSection() {
             {resetting ? 'Återställer…' : 'Återställ hjärnan'}
           </button>
         </div>
+
+        {/* Debug inspect panel */}
+        {inspectJson && (
+          <details open style={{ marginTop: '8px' }}>
+            <summary
+              style={{
+                fontFamily: "'Geist Mono', monospace",
+                fontSize: '10px',
+                color: 'var(--mute)',
+                cursor: 'pointer',
+                letterSpacing: '0.01em',
+                userSelect: 'none',
+              }}
+            >
+              agency_brain raw JSON
+            </summary>
+            <pre
+              style={{
+                marginTop: '8px',
+                padding: '12px',
+                background: 'var(--tint)',
+                border: '1px solid var(--line)',
+                borderRadius: '6px',
+                fontFamily: "'Geist Mono', monospace",
+                fontSize: '10px',
+                color: 'var(--ink-2)',
+                lineHeight: 1.5,
+                overflow: 'auto',
+                maxHeight: '400px',
+                whiteSpace: 'pre',
+              }}
+            >
+              {inspectJson}
+            </pre>
+          </details>
+        )}
       </div>
     </Section>
   )

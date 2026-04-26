@@ -112,6 +112,8 @@ export async function buildStyleContext(agency_id: string): Promise<string> {
     .eq('key', 'analysis')
     .single()
 
+  console.log('[style_dna] loaded:', data?.value ? 'YES' : 'NO', data?.value?.substring(0, 100))
+
   if (!data?.value) return ''
 
   try {

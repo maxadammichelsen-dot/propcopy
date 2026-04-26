@@ -129,8 +129,12 @@ Returnera ENBART giltig JSON utan markdown:
     })
 
     const raw = message.content[0].type === 'text' ? message.content[0].text.trim() : ''
-    const json = raw.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim()
-    const styleDNA = JSON.parse(json) as StyleDNA
+    const match = raw.match(/\{[\s\S]*\}/)
+    if (!match) {
+      console.error('[analyzeStyleDNA] No JSON found in response, raw:', raw.substring(0, 200))
+      return null
+    }
+    const styleDNA = JSON.parse(match[0]) as StyleDNA
 
     // 4. Save to agency_brain as single JSON blob
     const admin = createSupabaseAdminClient()
