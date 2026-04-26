@@ -22,10 +22,7 @@ interface AreaCompetition {
   withViewing: number
 }
 
-const ALL_CHANNELS: Channel[] = [
-  'hemnet', 'hemnet_raket', 'meta', 'mail', 'website',
-  'booli', 'boneo', 'boneo_kommande', 'hjem', 'bovision',
-]
+const ALL_CHANNELS: Channel[] = ['hemnet', 'meta', 'email', 'social_organic']
 
 const EMPTY_RESULTS = Object.fromEntries(
   ALL_CHANNELS.map((c) => [c, null])

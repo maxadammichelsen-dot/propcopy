@@ -128,18 +128,17 @@ export default function MetaPublishView({ object, agency, results }: MetaPublish
 // ─── Hemnet tab ───────────────────────────────────────────────
 
 function HemnetTab({ results }: { results?: Record<Channel, GenerateResult | null> }) {
-  const [copied, setCopied] = useState<'hemnet' | 'raket' | null>(null)
+  const [copied, setCopied] = useState(false)
 
   const hemnet = results?.hemnet?.content ?? null
-  const raket  = results?.hemnet_raket?.content ?? null
 
-  async function copy(text: string, key: 'hemnet' | 'raket') {
+  async function copy(text: string) {
     await navigator.clipboard.writeText(text)
-    setCopied(key)
-    setTimeout(() => setCopied(null), 2000)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
   }
 
-  if (!hemnet && !raket) {
+  if (!hemnet) {
     return (
       <div className="py-10 text-center">
         <p className="font-data text-[11px] text-mute-2 tracking-snug leading-relaxed">
@@ -173,12 +172,12 @@ function HemnetTab({ results }: { results?: Record<Channel, GenerateResult | nul
                 {hemnet.length} tecken
               </span>
               <button
-                onClick={() => copy(hemnet, 'hemnet')}
+                onClick={() => copy(hemnet)}
                 style={{
                   fontFamily: "'Geist Mono', monospace",
                   fontSize: '11px',
                   padding: '4px 10px',
-                  background: copied === 'hemnet' ? 'var(--ok)' : 'var(--ink)',
+                  background: copied ? 'var(--ok)' : 'var(--ink)',
                   color: '#fff',
                   border: 'none',
                   borderRadius: '4px',
@@ -188,7 +187,7 @@ function HemnetTab({ results }: { results?: Record<Channel, GenerateResult | nul
                   whiteSpace: 'nowrap',
                 }}
               >
-                {copied === 'hemnet' ? '✓ Kopierad' : 'Kopiera Hemnet-text'}
+                {copied ? '✓ Kopierad' : 'Kopiera Hemnet-text'}
               </button>
             </div>
           </div>
@@ -255,67 +254,6 @@ function HemnetTab({ results }: { results?: Record<Channel, GenerateResult | nul
         </div>
       )}
 
-      {/* Hemnet Raket */}
-      {raket && (
-        <div>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: '10px',
-            }}
-          >
-            <p className="font-data text-[10px] text-mute tracking-[0.02em] uppercase">
-              Hemnet Raket
-            </p>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span className="font-data text-[10px] text-mute-2">
-                {raket.length} tecken
-              </span>
-              <button
-                onClick={() => copy(raket, 'raket')}
-                style={{
-                  fontFamily: "'Geist Mono', monospace",
-                  fontSize: '11px',
-                  padding: '4px 10px',
-                  background: copied === 'raket' ? 'var(--ok)' : 'var(--ink)',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  letterSpacing: '-0.01em',
-                  transition: 'background 0.15s',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {copied === 'raket' ? '✓ Kopierad' : 'Kopiera Raket-text'}
-              </button>
-            </div>
-          </div>
-
-          <div
-            style={{
-              padding: '16px',
-              border: '1px solid var(--line)',
-              borderRadius: '8px',
-              background: 'var(--tint)',
-            }}
-          >
-            <p
-              style={{
-                fontSize: '13px',
-                lineHeight: 1.65,
-                color: 'var(--ink-2)',
-                letterSpacing: '-0.003em',
-                whiteSpace: 'pre-wrap',
-              }}
-            >
-              {raket}
-            </p>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
@@ -329,7 +267,7 @@ function EmailTab({
   object: PropertyObject
   results?: Record<Channel, GenerateResult | null>
 }) {
-  const mailResult = results?.mail?.content ?? null
+  const mailResult = results?.email?.content ?? null
 
   // Parse subject + body from mail result (first line = subject, rest = body)
   const mailLines  = mailResult?.split('\n') ?? []

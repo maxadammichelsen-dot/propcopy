@@ -101,15 +101,9 @@ export interface GeneratedContent {
 
 export type Channel =
   | 'hemnet'
-  | 'hemnet_raket'
   | 'meta'
-  | 'mail'
-  | 'website'
-  | 'booli'
-  | 'boneo'
-  | 'boneo_kommande'
-  | 'hjem'
-  | 'bovision'
+  | 'email'
+  | 'social_organic'
 
 export interface GenerateResult {
   channel: Channel

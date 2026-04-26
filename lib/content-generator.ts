@@ -57,12 +57,6 @@ HEMNET (1500-1875 tecken):
 - Stycke 4: Området som livsstilsval
 - Avslut: En mening som stannar kvar
 
-HEMNET RAKET (max 458 tecken):
-- Första meningen är allt – den ska stoppa scrollet
-- Konkret, specifik, skapar omedelbart begär
-- Ingen generisk information
-- Exempel: "Havet syns från köket. Varje dag. 184 kvm på en våning, 707 kvm tomt, Långedrag."
-
 META ADS:
 HOOK (max 125 tecken):
   - Ska stoppa scrollet på 0.3 sekunder
@@ -80,33 +74,10 @@ E-POST:
 - Max 3 stycken
 - Tydlig uppmaning i slutet
 
-HEMSIDA (max 2500 tecken):
-- Mer berättande än Hemnet
-- Kan inkludera mer historia och kontext
-- SEO-anpassad med naturliga sökord
-
-BOOLI:
-- Datadriven köpare – inkludera nyckeltal
-- Jämförelsedata mot området
-- Faktabaserad men inte torr
-
-BONEO:
-- Samma kvalitet som Hemnet
-- Lyft fram föreningens styrkor om BRF
-
-BONEO KOMMANDE:
-- Teaser – väck intresse utan att avslöja allt
-- "Snart till salu" – skapa förväntan
-- Max 400 tecken
-
-HJEM:
-- Skandinavisk direkthet
-- Kortare meningar
-- Internationell köpare kan vara mottagare
-
-BOVISION:
-- Lyft fram det som är genuint unikt
-- Starka säljargument tydligt
+SOCIALT ORGANISKT (max 2200 tecken):
+- Personlig, äkta ton – behind-the-scenes känsla
+- Berätta varför du personligen tycker om objektet
+- Avsluta med relevanta hashtags
 
 KVALITETSKONTROLL – innan du svarar, kontrollera att texten:
 ✓ Öppnar med något konkret och unikt
@@ -137,22 +108,6 @@ RUBRIK: [rubrik]
 SÄLJTEXT:
 [text]`,
 
-  hemnet_raket: (obj, tone) => `
-Du skriver en Hemnet Raket-annons på svenska. Byrån har tonalitet: ${tone}.
-
-Objekt: ${obj.type}, ${obj.size} kvm, ${obj.address}, ${obj.area}, ${formatPrice(obj.price)} kr
-Detaljer: ${obj.details}
-
-Skriv:
-1. HOOK (max 50 tecken) – den starkaste möjliga inledningen
-2. TEXT (max 400 tecken) – komprimerad, emotionell, handlingsdrivande
-
-Format:
-HOOK: [hook]
-
-TEXT:
-[text]`,
-
   meta: (obj, tone) => `
 Du skriver en Meta-annons (Facebook/Instagram) på svenska. Byrån har tonalitet: ${tone}.
 
@@ -172,7 +127,7 @@ PRIMARY TEXT:
 
 CTA: [cta]`,
 
-  mail: (obj, tone) => `
+  email: (obj, tone) => `
 Du skriver ett e-postutskick på svenska till potentiella köpare. Byrån har tonalitet: ${tone}.
 
 Objekt: ${obj.type}, ${obj.size} kvm, ${obj.address}, ${obj.area}, ${formatPrice(obj.price)} kr
@@ -188,115 +143,16 @@ Format:
 BRÖDTEXT:
 [text]`,
 
-  website: (obj, tone) => `
-Du skriver en poetisk objektbeskrivning för mäklarbyråns hemsida på svenska. Byrån har tonalitet: ${tone}.
+  social_organic: (obj, tone) => `
+Du skriver ett organiskt Instagram/Facebook-inlägg om denna fastighet på svenska. Tonen ska vara personlig, äkta och ge en behind-the-scenes känsla. Byrån har tonalitet: ${tone}.
 
 Objekt: ${obj.type}, ${obj.size} kvm, ${obj.address}, ${obj.area}, ${formatPrice(obj.price)} kr
 Detaljer: ${obj.details}
 
-Skriv en längre, flytande och atmosfärisk beskrivning (300–500 ord) som målar upp en bild av boendet och livsstilen. Använd berättarteknik, konkreta sinnesintryck och poetiskt språk. Inga bullet points.
-
-TEXT:
-[text]`,
-
-  booli: (obj, tone) => `
-Du skriver en Booli-annons på svenska. Booli är en datadriven portal – texten ska vara faktabaserad, tydlig och saklig. Byrån har tonalitet: ${tone}.
-
-Objekt:
-- Adress: ${obj.address}, ${obj.area}
-- Typ: ${obj.type}
-- Storlek: ${obj.size} kvm
-- Pris: ${formatPrice(obj.price)} kr
-- Detaljer: ${obj.details}
-
-Skriv:
-1. RUBRIK (max 75 tecken) – konkret och informativ, lyft det viktigaste faktumet
-2. BESKRIVNING (max 2000 tecken) – börja med nyckeldata (storlek, rum, år, drift), följt av en faktaorienterad genomgång av bostadens planlösning och skick. Avsluta med läge och kommunikationer. Undvik poetiska svepningar – var precis och trovärdig.
+Skriv ett organiskt inlägg (max 2200 tecken) – personlig ton, behind-the-scenes känsla, berätta varför du personligen tycker om objektet, avsluta med hashtags.
 
 Format:
-RUBRIK: [rubrik]
-
-BESKRIVNING:
-[text]`,
-
-  boneo: (obj, tone) => `
-Du skriver en Boneo-annons på svenska. Byrån har tonalitet: ${tone}.
-
-Objekt:
-- Adress: ${obj.address}, ${obj.area}
-- Typ: ${obj.type}
-- Storlek: ${obj.size} kvm
-- Pris: ${formatPrice(obj.price)} kr
-- Detaljer: ${obj.details}
-
-Skriv:
-1. RUBRIK (max 75 tecken) – säljande och specifik
-2. SÄLJTEXT (max 1800 tecken) – strukturerad med korta stycken. Poetisk ingress, rum-för-rum-beskrivning, avsluta med läge och livsstil.
-
-Format:
-RUBRIK: [rubrik]
-
-SÄLJTEXT:
-[text]`,
-
-  boneo_kommande: (obj, tone) => `
-Du skriver en "Kommande"-teaser för Boneo på svenska. Bostaden är ännu inte officiellt till salu – texten ska skapa nyfikenhet och få spekulanter att anmäla intresse. Byrån har tonalitet: ${tone}.
-
-Objekt:
-- Adress: ${obj.address}, ${obj.area}
-- Typ: ${obj.type}
-- Storlek: ${obj.size} kvm
-- Ungefärligt pris: ${formatPrice(obj.price)} kr
-- Detaljer: ${obj.details}
-
-Skriv:
-1. RUBRIK (max 60 tecken) – skapa förväntan utan att avslöja för mycket
-2. TEASERTEXT (max 400 tecken) – mystisk, lockande. Nämn area och typ, men håll tillbaka detaljer. Avsluta med en CTA som "Anmäl intresse redan idag".
-
-Format:
-RUBRIK: [rubrik]
-
-TEASERTEXT:
-[text]`,
-
-  hjem: (obj, tone) => `
-Du skriver en annons för Hjem – en skandinavisk portal med internationell räckvidd. Tonen ska vara direkt, modern och skandinavisk utan att vara pompös. Skriv på svenska. Byrån har tonalitet: ${tone}.
-
-Objekt:
-- Adress: ${obj.address}, ${obj.area}
-- Typ: ${obj.type}
-- Storlek: ${obj.size} kvm
-- Pris: ${formatPrice(obj.price)} kr
-- Detaljer: ${obj.details}
-
-Skriv:
-1. RUBRIK (max 65 tecken) – kort, slagkraftigt, skandinavisk känsla
-2. TEXT (max 900 tecken) – direkt och konkret. Presentera bostadens starka sidor på 3–4 meningar. Kortare stycken än en standard Hemnet-text. Internationellt tillgänglig ton.
-
-Format:
-RUBRIK: [rubrik]
-
-TEXT:
-[text]`,
-
-  bovision: (obj, tone) => `
-Du skriver en Bovision-annons på svenska. Fokus ska ligga på det som verkligen särskiljer bostaden – unika särdrag, karaktär och det som ingen annan liknande bostad i området har. Byrån har tonalitet: ${tone}.
-
-Objekt:
-- Adress: ${obj.address}, ${obj.area}
-- Typ: ${obj.type}
-- Storlek: ${obj.size} kvm
-- Pris: ${formatPrice(obj.price)} kr
-- Detaljer: ${obj.details}
-
-Skriv:
-1. RUBRIK (max 75 tecken) – lyfta det mest unika draget
-2. BESKRIVNING (max 1500 tecken) – börja med vad som gör just denna bostad speciell, beskriv sedan planlösning och skick med fokus på särdragen. Avsluta med läge.
-
-Format:
-RUBRIK: [rubrik]
-
-BESKRIVNING:
+INLÄGG:
 [text]`,
 }
 
@@ -348,10 +204,7 @@ export async function generateAllChannels(
   supabase: SupabaseClient
 ): Promise<GenerateResult[]> {
   const toneString = agency.tone_profile?.tags?.join(', ') ?? 'professionell, varm'
-  const channels: Channel[] = [
-    'hemnet', 'hemnet_raket', 'meta', 'mail', 'website',
-    'booli', 'boneo', 'boneo_kommande', 'hjem', 'bovision',
-  ]
+  const channels: Channel[] = ['hemnet', 'meta', 'email', 'social_organic']
 
   const [styleContext, brainContext, competitionContext] = await Promise.all([
     buildStyleContext(agency.id),
@@ -395,10 +248,9 @@ async function generateChannel(
       refs.map((r, i) => `--- Exempel ${i + 1} ---\n${r}`).join('\n\n')
   }
 
-  const longChannels: Channel[] = ['website', 'booli', 'boneo', 'bovision']
   const message = await anthropic.messages.create({
     model: MODEL,
-    max_tokens: longChannels.includes(channel) ? 2048 : 1024,
+    max_tokens: 1500,
     system: MASTER_SYSTEM + brainContext,
     messages: [{ role: 'user', content: prompt }],
   })

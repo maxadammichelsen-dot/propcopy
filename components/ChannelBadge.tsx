@@ -57,16 +57,10 @@ function IconClock() {
 }
 
 export const CHANNEL_CONFIG: Record<Channel, ChannelConfig> = {
-  hemnet:         { label: 'Hemnet',         color: '#E02020', icon: <Letter font="serif">H</Letter> },
-  hemnet_raket:   { label: 'Hemnet Raket',   color: '#E02020', icon: <IconRocket /> },
-  meta:           { label: 'Meta Ads',       color: '#1877F2', icon: <Letter font="sans">M</Letter> },
-  mail:           { label: 'E-post',         color: '#4B5563', icon: <IconEnvelope /> },
-  website:        { label: 'Hemsida',        color: '#6366F1', icon: <IconGlobe /> },
-  booli:          { label: 'Booli',          color: '#00A651', icon: <Letter font="sans">B</Letter> },
-  boneo:          { label: 'Boneo',          color: '#FF6B00', icon: <Letter font="sans">B</Letter> },
-  boneo_kommande: { label: 'Boneo Kommande', color: '#FF6B00', icon: <IconClock /> },
-  hjem:           { label: 'Hjem',           color: '#1B2A4A', icon: <Letter font="serif">H</Letter> },
-  bovision:       { label: 'Bovision',       color: '#6B46C1', icon: <Letter font="sans">B</Letter> },
+  hemnet:        { label: 'Hemnet',          color: '#E02020', icon: <Letter font="serif">H</Letter> },
+  meta:          { label: 'Meta Ads',        color: '#1877F2', icon: <Letter font="sans">M</Letter> },
+  email:         { label: 'E-post',          color: '#4B5563', icon: <IconEnvelope /> },
+  social_organic:{ label: 'Socialt organiskt', color: '#E1306C', icon: <Letter font="sans">S</Letter> },
 }
 
 interface ChannelBadgeProps {

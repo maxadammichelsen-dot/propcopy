@@ -14,16 +14,10 @@ interface ContentCardProps {
 }
 
 const CHANNEL_META: Record<Channel, { maxChars: number; description: string }> = {
-  hemnet:         { maxChars: 1875, description: 'Rubrik + säljtext' },
-  hemnet_raket:   { maxChars: 450,  description: 'Hook + komprimerad text' },
+  hemnet:         { maxChars: 1875, description: 'Hemnet + alla portaler via Vitec' },
   meta:           { maxChars: 430,  description: 'Hook + primary text + CTA' },
-  mail:           { maxChars: 900,  description: 'Ämnesrad + brödtext' },
-  website:        { maxChars: 2500, description: 'Poetisk beskrivning' },
-  booli:          { maxChars: 2075, description: 'Rubrik + faktabaserad beskrivning' },
-  boneo:          { maxChars: 1875, description: 'Rubrik + säljtext' },
-  boneo_kommande: { maxChars: 460,  description: 'Teaser för förhandsvisning' },
-  hjem:           { maxChars: 965,  description: 'Rubrik + skandinavisk direkttext' },
-  bovision:       { maxChars: 1575, description: 'Rubrik + unika särdrag' },
+  email:          { maxChars: 900,  description: 'Ämnesrad + brödtext' },
+  social_organic: { maxChars: 2200, description: 'Organiskt Instagram/Facebook-inlägg' },
 }
 
 export default function ContentCard({ channel, result, isActive, onToggle, objectId, agencyId }: ContentCardProps) {
