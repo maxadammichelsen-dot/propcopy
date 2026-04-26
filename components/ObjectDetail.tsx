@@ -206,6 +206,9 @@ export default function ObjectDetail({ object, agency, onNavigateToMarket }: Obj
               />
             )}
             <InsightsCard insights={insights} loading={insightsLoading} />
+            {object.brands && Object.values(object.brands).some(v => v.length > 0) && (
+              <BrandsRow brands={object.brands} />
+            )}
             {generating ? (
               <div className="flex flex-col items-center justify-center py-20 text-center">
                 <div className="w-5 h-5 border-[1.5px] border-line border-t-accent rounded-full animate-spin mb-4" />
@@ -319,4 +322,34 @@ function CompetitionCard({
 
 function Sep() {
   return <span style={{ color: 'var(--line)', fontSize: '11px' }}>·</span>
+}
+
+function BrandsRow({ brands }: { brands: Record<string, string[]> }) {
+  const items = Object.values(brands).flat().filter(Boolean)
+  if (items.length === 0) return null
+  return (
+    <div style={{
+      margin: '8px 32px 0',
+      padding: '8px 14px',
+      border: '1px solid var(--line)',
+      borderRadius: '8px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '6px',
+      flexWrap: 'wrap',
+      background: 'var(--tint)',
+    }}>
+      <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '10px', color: 'var(--mute)', letterSpacing: '0.04em', textTransform: 'uppercase', flexShrink: 0 }}>
+        Specifikation
+      </span>
+      {items.map((item, i) => (
+        <span key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          {i > 0 && <span style={{ color: 'var(--line)', fontSize: '11px' }}>·</span>}
+          <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11px', color: 'var(--ink)', letterSpacing: '-0.01em' }}>
+            {item}
+          </span>
+        </span>
+      ))}
+    </div>
+  )
 }

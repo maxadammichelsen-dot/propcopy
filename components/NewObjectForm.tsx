@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react'
 import LocationCard from './LocationCard'
+import BrandSelector from './BrandSelector'
 import type { ImageAnalysis } from '@/types'
 
 interface NewObjectFormProps {
@@ -38,6 +39,8 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
   const [loading, setLoading]   = useState(false)
   const [error, setError]       = useState('')
   const detailsRef              = useRef<HTMLTextAreaElement>(null)
+
+  const [brands, setBrands]               = useState<Record<string, string[]>>({})
 
   const [imageBase64s, setImageBase64s]   = useState<string[]>([])
   const [imageAnalysis, setImageAnalysis] = useState<ImageAnalysis | null>(null)
@@ -118,6 +121,7 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
         size: Number(form.size),
         price: Number(form.price.replace(/\s/g, '')),
         story: form.story.trim() || null,
+        brands: Object.fromEntries(Object.entries(brands).filter(([, v]) => v.length > 0)),
         ...(imageAnalysis ? { image_analysis: imageAnalysis } : {}),
       }),
     })
@@ -264,6 +268,7 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
                   onBlur={e => { e.currentTarget.style.borderColor = 'var(--line)'; e.currentTarget.style.boxShadow = 'none' }}
                 />
               </div>
+              <BrandSelector value={brands} onChange={setBrands} />
             </div>
           </div>
         )}
@@ -439,6 +444,7 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
               <ReviewItem label="Storlek" value={form.size ? `${form.size} kvm` : '—'} />
               <ReviewItem label="Pris"    value={form.price ? `${form.price} kr` : '—'} />
               <ReviewItem label="Berättelse" value={form.story.trim() ? `${form.story.trim().slice(0, 40)}…` : '—'} />
+              <ReviewItem label="Specifikation" value={(() => { const n = Object.values(brands).flat().length; return n > 0 ? `${n} varumärken` : '—' })()} />
               <ReviewItem
                 label="Bilder"
                 value={

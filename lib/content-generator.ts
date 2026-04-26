@@ -4,6 +4,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { buildBrainContext, buildStyleContext, getStyleDNA } from './brain-context'
 import { buildCompetitionContext } from './competition-analyzer'
 import { getChannelOptimization } from './channel-optimization'
+import { CATEGORY_LABELS } from './brand-registry'
 
 const MASTER_SYSTEM = `Du är Sveriges bästa copywriter för fastighetsmäklare.
 Du har skrivit texter som lett till budgivningar 15-30% över utgångspris för premiumobjekt.
@@ -239,6 +240,33 @@ export async function generateAllChannels(
   return results
 }
 
+function buildBrandsContext(brands: Record<string, string[]> | null | undefined, channel: Channel): string {
+  if (!brands) return ''
+  const lines: string[] = []
+  for (const [key, values] of Object.entries(brands)) {
+    if (!values || values.length === 0) continue
+    const label = CATEGORY_LABELS[key] ?? key
+    lines.push(`- ${label}: ${values.join(', ')}`)
+  }
+  if (lines.length === 0) return ''
+
+  const channelInstruction =
+    channel === 'hemnet'
+      ? 'För Hemnet: använd alla relevanta varumärken där det passar naturligt.'
+      : channel === 'meta'
+      ? 'För Meta-annons: nämn max 1–2 varumärken – välj det mest imponerande.'
+      : channel === 'email'
+      ? 'För e-post: nämn max 1–2 varumärken – välj det mest relevanta.'
+      : 'För socialt organiskt: använd INGA varumärken alls i texten.'
+
+  return (
+    '\n\nVARUMÄRKEN OCH SPECIFIKATION FÖR DETTA OBJEKT:\n' +
+    lines.join('\n') +
+    '\n\nINSTRUKTION: Använd dessa EXAKT som de står där det är naturligt. Hitta inte på andra varumärken. Hitta inte på modellnamn. Om en kategori saknas – nämn inte den alls. ' +
+    channelInstruction
+  )
+}
+
 async function generateChannel(
   channel: Channel,
   object: PropertyObject,
@@ -252,9 +280,10 @@ async function generateChannel(
   const priceRange = getPriceRange(object.price)
   const refs = await fetchReferenceTexts(channel, object.type, priceRange, supabase)
 
-  // Prompt order: 3. channelOptimization → 5. objektdata → 6. story → 7. bild → 8. konkurrens
+  // Prompt order: 3. channelOptimization → 3b. brands → 5. objektdata → 6. story → 7. bild → 8. konkurrens
   const channelOpt = getChannelOptimization(channel)
-  let prompt = channelOpt + '\n\n' + CHANNEL_PROMPTS[channel](object, tone)
+  const brandsContext = buildBrandsContext(object.brands, channel)
+  let prompt = channelOpt + brandsContext + '\n\n' + CHANNEL_PROMPTS[channel](object, tone)
   if (storyContext) prompt += storyContext
   if (imageContext) prompt += imageContext
   if (competitionContext) prompt += competitionContext
