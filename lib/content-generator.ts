@@ -103,11 +103,8 @@ Skriv:
 1. RUBRIK (max 75 tecken) – säljande och specifik
 2. SÄLJTEXT (max 1800 tecken) – strukturerad med korta stycken per plan/rum. Börja med en poetisk ingress, beskriv sedan bostaden rum för rum, avsluta med läge och livsstil.
 
-Format:
-RUBRIK: [rubrik]
-
-SÄLJTEXT:
-[text]`,
+Returnera ENBART giltig JSON, inget annat:
+{"rubrik": "rubrik här", "saljtext": "säljtext här"}`,
 
   meta: (obj, tone) => `
 Du skriver en Meta-annons (Facebook/Instagram) på svenska. Byrån har tonalitet: ${tone}.
@@ -118,15 +115,10 @@ Detaljer: ${obj.details}
 Skriv:
 1. HOOK (max 90 tecken) – stopper i flödet
 2. PRIMARY TEXT (max 250 tecken) – engagerande brödtext
-3. CTA – en kort uppmaning (t.ex. "Boka visning →")
+3. HEADLINE – kort rubrik under bild (max 40 tecken)
 
-Format:
-HOOK: [hook]
-
-PRIMARY TEXT:
-[text]
-
-CTA: [cta]`,
+Returnera ENBART giltig JSON, inget annat:
+{"hook": "hook här", "primary_text": "brödtext här", "headline": "rubrik här"}`,
 
   email: (obj, tone) => `
 Du skriver ett e-postutskick på svenska till potentiella köpare. Byrån har tonalitet: ${tone}.
@@ -138,11 +130,8 @@ Skriv:
 1. ÄMNESRAD – nyfiken och personlig (max 60 tecken)
 2. BRÖDTEXT (max 150 ord) – personlig hälsning, presentera objektet, avsluta med visningsinbjudan
 
-Format:
-ÄMNESRAD: [ämnesrad]
-
-BRÖDTEXT:
-[text]`,
+Returnera ENBART giltig JSON, inget annat:
+{"subject": "ämnesrad här", "body": "brödtext här"}`,
 
   social_organic: (obj, tone) => `
 Du skriver ett organiskt Instagram/Facebook-inlägg om denna fastighet på svenska. Tonen ska vara personlig, äkta och ge en behind-the-scenes känsla. Byrån har tonalitet: ${tone}.
@@ -152,9 +141,8 @@ Detaljer: ${obj.details}
 
 Skriv ett organiskt inlägg (max 2200 tecken) – personlig ton, behind-the-scenes känsla, berätta varför du personligen tycker om objektet, avsluta med hashtags.
 
-Format:
-INLÄGG:
-[text]`,
+Returnera ENBART giltig JSON, inget annat:
+{"post": "hela inlägget med hashtags här"}`,
 }
 
 function formatImageContext(analysis: ImageAnalysis): string {
@@ -256,8 +244,16 @@ async function generateChannel(
     messages: [{ role: 'user', content: prompt }],
   })
 
-  const content = message.content[0].type === 'text' ? message.content[0].text.trim() : ''
-  return { channel, content, char_count: content.length }
+  const raw = message.content[0].type === 'text' ? message.content[0].text.trim() : ''
+  const match = raw.match(/\{[\s\S]*\}/)
+  const content = match ? match[0] : raw
+  let charCount = content.length
+  if (match) {
+    try {
+      charCount = Object.values(JSON.parse(match[0]) as Record<string, string>).join('').length
+    } catch {}
+  }
+  return { channel, content, char_count: charCount }
 }
 
 async function saveToSupabase(objectId: string, results: GenerateResult[], supabase: SupabaseClient) {

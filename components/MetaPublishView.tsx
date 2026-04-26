@@ -127,10 +127,23 @@ export default function MetaPublishView({ object, agency, results }: MetaPublish
 
 // ─── Hemnet tab ───────────────────────────────────────────────
 
+function parseJson(content: string | null | undefined): Record<string, string> {
+  if (!content) return {}
+  try {
+    const match = content.match(/\{[\s\S]*\}/)
+    if (match) return JSON.parse(match[0]) ?? {}
+  } catch {}
+  return {}
+}
+
 function HemnetTab({ results }: { results?: Record<Channel, GenerateResult | null> }) {
   const [copied, setCopied] = useState(false)
 
-  const hemnet = results?.hemnet?.content ?? null
+  const hemnetContent = results?.hemnet?.content ?? null
+  const fields = parseJson(hemnetContent)
+  const rubrik   = fields.rubrik   ?? ''
+  const saljtext = fields.saljtext ?? ''
+  const hemnet   = rubrik || saljtext ? (rubrik + (saljtext ? '\n\n' + saljtext : '')) : hemnetContent
 
   async function copy(text: string) {
     await navigator.clipboard.writeText(text)
@@ -267,12 +280,10 @@ function EmailTab({
   object: PropertyObject
   results?: Record<Channel, GenerateResult | null>
 }) {
-  const mailResult = results?.email?.content ?? null
-
-  // Parse subject + body from mail result (first line = subject, rest = body)
-  const mailLines  = mailResult?.split('\n') ?? []
-  const subjectRaw = mailLines[0]?.replace(/^ÄMNESRAD:\s*/i, '').trim() ?? ''
-  const bodyRaw    = mailLines.slice(1).join('\n').replace(/^BRÖDTEXT:\s*/i, '').trim()
+  const emailFields = parseJson(results?.email?.content)
+  const subjectRaw  = emailFields.subject ?? ''
+  const bodyRaw     = emailFields.body    ?? ''
+  const mailResult  = results?.email?.content ?? null
 
   const [recipients, setRecipients] = useState('')
   const [subject,    setSubject]    = useState(subjectRaw)

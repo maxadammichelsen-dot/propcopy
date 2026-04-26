@@ -13,36 +13,68 @@ interface ContentCardProps {
   agencyId?: string
 }
 
-const CHANNEL_META: Record<Channel, { maxChars: number; description: string }> = {
-  hemnet:         { maxChars: 1875, description: 'Hemnet + alla portaler via Vitec' },
-  meta:           { maxChars: 430,  description: 'Hook + primary text + CTA' },
-  email:          { maxChars: 900,  description: 'Ämnesrad + brödtext' },
-  social_organic: { maxChars: 2200, description: 'Organiskt Instagram/Facebook-inlägg' },
+interface FieldDef {
+  key: string
+  label: string
+  maxChars?: number
+}
+
+const CHANNEL_FIELDS: Record<Channel, FieldDef[]> = {
+  hemnet: [
+    { key: 'rubrik',   label: 'RUBRIK' },
+    { key: 'saljtext', label: 'SÄLJTEXT', maxChars: 1875 },
+  ],
+  meta: [
+    { key: 'hook',         label: 'HOOK / PRIMÄR TEXT' },
+    { key: 'primary_text', label: 'BRÖDTEXT', maxChars: 250 },
+    { key: 'headline',     label: 'RUBRIK (under bild)' },
+  ],
+  email: [
+    { key: 'subject', label: 'ÄMNESRAD' },
+    { key: 'body',    label: 'BRÖDTEXT', maxChars: 900 },
+  ],
+  social_organic: [
+    { key: 'post', label: 'INLÄGG', maxChars: 2200 },
+  ],
+}
+
+const CHANNEL_PATH: Record<Channel, string> = {
+  hemnet:         '→ Vitec · Objektet · Marknadsföring · Hemnet',
+  meta:           '→ Publicera direkt eller Meta Ads Manager',
+  email:          '→ Vitec · Kommunikation · Utskick',
+  social_organic: '→ Klistra in i Instagram/Facebook',
+}
+
+function parseFields(channel: Channel, content: string): Record<string, string> {
+  try {
+    const match = content.match(/\{[\s\S]*\}/)
+    if (match) {
+      const parsed = JSON.parse(match[0])
+      if (parsed && typeof parsed === 'object') return parsed as Record<string, string>
+    }
+  } catch {}
+  // Fallback for legacy plain-text content
+  const lines = content.split('\n')
+  const first = lines[0]?.trim() ?? ''
+  const rest  = lines.slice(1).join('\n').trim()
+  switch (channel) {
+    case 'hemnet':         return { rubrik: first, saljtext: rest || first }
+    case 'meta':           return { hook: first, primary_text: rest, headline: '' }
+    case 'email':          return { subject: first, body: rest || first }
+    case 'social_organic': return { post: content }
+  }
 }
 
 export default function ContentCard({ channel, result, isActive, onToggle, objectId, agencyId }: ContentCardProps) {
-  const [copied, setCopied] = useState(false)
-  const [editing, setEditing] = useState(false)
-  const [editedText, setEditedText] = useState('')
+  const [editing, setEditing]           = useState(false)
+  const [editedText, setEditedText]     = useState('')
   const [feedbackSent, setFeedbackSent] = useState<'approved' | 'rejected' | 'edited' | null>(null)
-  const [sending, setSending] = useState(false)
+  const [sending, setSending]           = useState(false)
 
-  const meta = CHANNEL_META[channel]
-  const cfg = CHANNEL_CONFIG[channel]
-  const charCount = result?.char_count ?? 0
-  const wordCount = result?.content
-    ? result.content.trim().split(/\s+/).filter(Boolean).length
-    : 0
-  const overLimit = charCount > meta.maxChars
-  const tooShort = !!result && charCount < meta.maxChars * 0.4
-  const fillPct = Math.min((charCount / meta.maxChars) * 100, 100)
-
-  async function handleCopy() {
-    if (!result?.content) return
-    await navigator.clipboard.writeText(result.content)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
+  const cfg    = CHANNEL_CONFIG[channel]
+  const fields = CHANNEL_FIELDS[channel]
+  const parsed = result ? parseFields(channel, result.content) : {}
+  const fullText = Object.values(parsed).filter(Boolean).join('\n\n')
 
   async function sendFeedback(action: 'approved' | 'rejected' | 'edited', editedVersion?: string) {
     if (!result?.content || !objectId || !agencyId || sending) return
@@ -55,7 +87,7 @@ export default function ContentCard({ channel, result, isActive, onToggle, objec
           agency_id: agencyId,
           object_id: objectId,
           channel,
-          generated_text: result.content,
+          generated_text: fullText,
           action,
           edited_version: editedVersion ?? null,
         }),
@@ -68,15 +100,9 @@ export default function ContentCard({ channel, result, isActive, onToggle, objec
   }
 
   function startEdit() {
-    setEditedText(result?.content ?? '')
+    setEditedText(fullText)
     setEditing(true)
   }
-
-  // Treat first non-empty line as headline if there are subsequent lines
-  const lines = result?.content?.split('\n') ?? []
-  const firstLine = lines[0]?.trim() ?? ''
-  const rest = lines.slice(1).join('\n').trim()
-  const hasStructure = firstLine && rest
 
   const showFeedback = !!result && isActive && !!objectId && !!agencyId && !feedbackSent
 
@@ -88,193 +114,124 @@ export default function ContentCard({ channel, result, isActive, onToggle, objec
         style={{
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
           padding: '12px 16px',
           borderBottom: '1px solid var(--line)',
           background: 'var(--tint-2)',
         }}
       >
-        <div className="flex items-center gap-3">
-
-          {/* Toggle */}
-          <button
-            onClick={onToggle}
-            aria-label={isActive ? 'Inaktivera kanal' : 'Aktivera kanal'}
-            className="w-8 h-[18px] rounded-full transition-colors relative shrink-0"
-            style={{ background: isActive ? cfg.color : 'var(--line-2)' }}
-          >
-            <span
-              className={`absolute top-[3px] w-3 h-3 rounded-full bg-bg transition-transform ${
-                isActive ? 'translate-x-[17px]' : 'translate-x-[3px]'
-              }`}
-            />
-          </button>
-
-          <ChannelBadge channel={channel} size={22} />
-
-          <div>
-            <p className="text-[13px] font-medium text-ink">{cfg.label}</p>
-            <p className="font-data text-[10px] text-mute tracking-snug">{meta.description}</p>
-          </div>
-        </div>
-
-        {result && (
-          <div className="flex items-center gap-4 shrink-0">
-            {/* Char fill bar */}
-            <div className="text-right hidden sm:block">
-              <p className={`font-data text-[11px] tabular-nums ${overLimit ? 'text-accent' : 'text-mute'}`}>
-                {charCount} / {meta.maxChars}
-              </p>
-              <div className="w-20 bg-line rounded-full mt-1 overflow-hidden" style={{ height: '3px' }}>
-                <div
-                  className="h-full rounded-full transition-all"
-                  style={{
-                    width: `${fillPct}%`,
-                    background: overLimit ? 'var(--accent)' : cfg.color,
-                  }}
-                />
-              </div>
-            </div>
-
-            {/* Copy */}
-            <button
-              onClick={handleCopy}
-              style={{
-                fontFamily: "'Geist Mono', monospace",
-                fontSize: '11.5px',
-                padding: '5px 10px',
-                background: copied ? 'var(--ok)' : 'var(--ink)',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                letterSpacing: '-0.01em',
-                transition: 'background 0.15s',
-              }}
-            >
-              {copied ? '✓ Kopierad' : 'Kopiera'}
-            </button>
-          </div>
-        )}
+        <button
+          onClick={onToggle}
+          aria-label={isActive ? 'Inaktivera kanal' : 'Aktivera kanal'}
+          className="w-8 h-[18px] rounded-full transition-colors relative shrink-0"
+          style={{ background: isActive ? cfg.color : 'var(--line-2)', marginRight: '12px' }}
+        >
+          <span
+            className={`absolute top-[3px] w-3 h-3 rounded-full bg-bg transition-transform ${
+              isActive ? 'translate-x-[17px]' : 'translate-x-[3px]'
+            }`}
+          />
+        </button>
+        <ChannelBadge channel={channel} size={22} />
+        <p className="text-[13px] font-medium text-ink" style={{ marginLeft: '10px' }}>{cfg.label}</p>
       </div>
 
       {/* Expanded content */}
       {isActive && (
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_160px] divide-y lg:divide-y-0 lg:divide-x divide-line border-t border-line">
-
-          {/* Editorial text */}
-          <div className="px-6 py-5">
-            {result ? (
-              <div className="space-y-3">
-                {editing ? (
-                  /* Edit mode */
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    <textarea
-                      value={editedText}
-                      onChange={e => setEditedText(e.target.value)}
-                      style={{
-                        width: '100%',
-                        minHeight: '200px',
-                        fontSize: '13.5px',
-                        lineHeight: 1.65,
-                        color: 'var(--ink)',
-                        letterSpacing: '-0.003em',
-                        padding: '10px 12px',
-                        border: '1px solid var(--line)',
-                        borderRadius: '6px',
-                        background: 'var(--bg)',
-                        resize: 'vertical',
-                        fontFamily: 'inherit',
-                        outline: 'none',
-                      }}
-                      onFocus={e => {
-                        e.currentTarget.style.borderColor = 'var(--ink)'
-                        e.currentTarget.style.boxShadow = '0 0 0 3px rgba(10,10,9,0.04)'
-                      }}
-                      onBlur={e => {
-                        e.currentTarget.style.borderColor = 'var(--line)'
-                        e.currentTarget.style.boxShadow = 'none'
-                      }}
-                    />
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <button
-                        onClick={() => sendFeedback('edited', editedText)}
-                        disabled={sending}
-                        style={{
-                          padding: '6px 12px',
-                          background: 'var(--ink)',
-                          color: '#fff',
-                          border: 'none',
-                          borderRadius: '5px',
-                          fontSize: '12.5px',
-                          fontWeight: 500,
-                          cursor: sending ? 'default' : 'pointer',
-                          fontFamily: 'inherit',
-                          letterSpacing: '-0.005em',
-                          opacity: sending ? 0.5 : 1,
-                        }}
-                      >
-                        {sending ? 'Sparar…' : 'Spara redigering'}
-                      </button>
-                      <button
-                        onClick={() => setEditing(false)}
-                        style={{
-                          padding: '6px 12px',
-                          background: 'none',
-                          color: 'var(--ink-2)',
-                          border: '1px solid var(--line)',
-                          borderRadius: '5px',
-                          fontSize: '12.5px',
-                          cursor: 'pointer',
-                          fontFamily: 'inherit',
-                          letterSpacing: '-0.005em',
-                        }}
-                      >
-                        Avbryt
-                      </button>
-                    </div>
-                  </div>
-                ) : hasStructure ? (
-                  <>
-                    <h2
-                      style={{
-                        fontSize: '20px',
-                        fontWeight: 600,
-                        letterSpacing: '-0.022em',
-                        lineHeight: 1.3,
-                        color: 'var(--ink)',
-                      }}
-                    >
-                      {firstLine}
-                    </h2>
-                    <p
-                      style={{
-                        fontSize: '13.5px',
-                        lineHeight: 1.65,
-                        color: 'var(--ink-2)',
-                        letterSpacing: '-0.003em',
-                        whiteSpace: 'pre-wrap',
-                      }}
-                    >
-                      {rest}
-                    </p>
-                  </>
-                ) : (
-                  <p
+        <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {result ? (
+            editing ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <textarea
+                  value={editedText}
+                  onChange={e => setEditedText(e.target.value)}
+                  style={{
+                    width: '100%',
+                    minHeight: '200px',
+                    fontSize: '13.5px',
+                    lineHeight: 1.65,
+                    color: 'var(--ink)',
+                    letterSpacing: '-0.003em',
+                    padding: '10px 12px',
+                    border: '1px solid var(--line)',
+                    borderRadius: '6px',
+                    background: 'var(--bg)',
+                    resize: 'vertical',
+                    fontFamily: 'inherit',
+                    outline: 'none',
+                  }}
+                  onFocus={e => {
+                    e.currentTarget.style.borderColor = 'var(--ink)'
+                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(10,10,9,0.04)'
+                  }}
+                  onBlur={e => {
+                    e.currentTarget.style.borderColor = 'var(--line)'
+                    e.currentTarget.style.boxShadow = 'none'
+                  }}
+                />
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    onClick={() => sendFeedback('edited', editedText)}
+                    disabled={sending}
                     style={{
-                      fontSize: '13.5px',
-                      lineHeight: 1.65,
-                      color: 'var(--ink-2)',
-                      letterSpacing: '-0.003em',
-                      whiteSpace: 'pre-wrap',
+                      padding: '6px 12px',
+                      background: 'var(--ink)',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '5px',
+                      fontSize: '12.5px',
+                      fontWeight: 500,
+                      cursor: sending ? 'default' : 'pointer',
+                      fontFamily: 'inherit',
+                      letterSpacing: '-0.005em',
+                      opacity: sending ? 0.5 : 1,
                     }}
                   >
-                    {result.content}
-                  </p>
-                )}
+                    {sending ? 'Sparar…' : 'Spara redigering'}
+                  </button>
+                  <button
+                    onClick={() => setEditing(false)}
+                    style={{
+                      padding: '6px 12px',
+                      background: 'none',
+                      color: 'var(--ink-2)',
+                      border: '1px solid var(--line)',
+                      borderRadius: '5px',
+                      fontSize: '12.5px',
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                      letterSpacing: '-0.005em',
+                    }}
+                  >
+                    Avbryt
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
+                {fields.map(field => (
+                  <CopyField
+                    key={field.key}
+                    label={field.label}
+                    value={parsed[field.key] ?? ''}
+                    maxChars={field.maxChars}
+                  />
+                ))}
+
+                {/* Channel path */}
+                <p
+                  style={{
+                    fontFamily: "'Geist Mono', monospace",
+                    fontSize: '10px',
+                    color: 'var(--mute-2)',
+                    letterSpacing: '0.01em',
+                    paddingTop: '2px',
+                  }}
+                >
+                  {CHANNEL_PATH[channel]}
+                </p>
 
                 {/* Feedback row */}
-                {showFeedback && !editing && (
+                {showFeedback && (
                   <div
                     style={{
                       display: 'flex',
@@ -295,27 +252,9 @@ export default function ContentCard({ channel, result, isActive, onToggle, objec
                     >
                       Feedback
                     </span>
-                    <FeedbackBtn
-                      label="✓ Godkänn"
-                      title="Godkänn texten"
-                      onClick={() => sendFeedback('approved')}
-                      disabled={sending}
-                      variant="positive"
-                    />
-                    <FeedbackBtn
-                      label="✗ Avvisa"
-                      title="Avvisa texten"
-                      onClick={() => sendFeedback('rejected')}
-                      disabled={sending}
-                      variant="negative"
-                    />
-                    <FeedbackBtn
-                      label="✎ Redigera"
-                      title="Redigera och spara"
-                      onClick={startEdit}
-                      disabled={sending}
-                      variant="neutral"
-                    />
+                    <FeedbackBtn label="✓ Godkänn" title="Godkänn texten" onClick={() => sendFeedback('approved')} disabled={sending} variant="positive" />
+                    <FeedbackBtn label="✗ Avvisa" title="Avvisa texten" onClick={() => sendFeedback('rejected')} disabled={sending} variant="negative" />
+                    <FeedbackBtn label="✎ Redigera" title="Redigera och spara" onClick={startEdit} disabled={sending} variant="neutral" />
                   </div>
                 )}
 
@@ -325,7 +264,6 @@ export default function ContentCard({ channel, result, isActive, onToggle, objec
                     style={{
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '6px',
                       paddingTop: '12px',
                       borderTop: '1px solid var(--line)',
                     }}
@@ -339,43 +277,115 @@ export default function ContentCard({ channel, result, isActive, onToggle, objec
                     >
                       {feedbackSent === 'approved' && '✓ Godkänd — hjärnan lär sig'}
                       {feedbackSent === 'rejected' && '✗ Avvisad — hjärnan noterar'}
-                      {feedbackSent === 'edited' && '✎ Redigering sparad — hjärnan analyserar'}
+                      {feedbackSent === 'edited'   && '✎ Redigering sparad — hjärnan analyserar'}
                     </span>
                   </div>
                 )}
-              </div>
-            ) : (
-              <p className="font-data text-[11px] text-mute-2 tracking-snug">
-                Aktivera kanalen och generera texter för att se innehåll här
-              </p>
-            )}
-          </div>
-
-          {/* Metrics rail */}
-          {result && (
-            <div className="px-5 py-5 space-y-5">
-              <MetricItem
-                label="Tecken"
-                value={charCount}
-                note={`/ ${meta.maxChars}`}
-                alert={overLimit}
-              />
-              <MetricItem label="Ord" value={wordCount} />
-
-              {overLimit && (
-                <p className="font-data text-[10px] text-accent tracking-snug leading-relaxed">
-                  {charCount - meta.maxChars} tecken över gränsen
-                </p>
-              )}
-              {tooShort && (
-                <p className="font-data text-[10px] text-mute-2 tracking-snug leading-relaxed">
-                  Texten kan vara kort för kanalen
-                </p>
-              )}
-            </div>
+              </>
+            )
+          ) : (
+            <p className="font-data text-[11px] text-mute-2 tracking-snug">
+              Aktivera kanalen och generera texter för att se innehåll här
+            </p>
           )}
         </div>
       )}
+    </div>
+  )
+}
+
+function CopyField({ label, value, maxChars }: { label: string; value: string; maxChars?: number }) {
+  const [copied, setCopied] = useState(false)
+
+  async function handleCopy() {
+    if (!value) return
+    await navigator.clipboard.writeText(value)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  const count = value.length
+  const over  = !!maxChars && count > maxChars
+
+  return (
+    <div
+      style={{
+        border: '1px solid var(--line)',
+        borderRadius: '8px',
+        background: 'var(--tint)',
+        overflow: 'hidden',
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '7px 12px',
+          borderBottom: '1px solid var(--line)',
+          background: 'var(--bg)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span
+            style={{
+              fontFamily: "'Geist Mono', monospace",
+              fontSize: '10px',
+              color: 'var(--mute)',
+              letterSpacing: '0.04em',
+            }}
+          >
+            {label}
+          </span>
+          {maxChars && value && (
+            <span
+              style={{
+                fontFamily: "'Geist Mono', monospace",
+                fontSize: '10px',
+                color: over ? 'var(--accent)' : 'var(--mute-2)',
+              }}
+            >
+              {count}/{maxChars}
+            </span>
+          )}
+        </div>
+        <button
+          onClick={handleCopy}
+          disabled={!value}
+          style={{
+            fontFamily: "'Geist Mono', monospace",
+            fontSize: '10.5px',
+            padding: '3px 8px',
+            background: copied ? 'var(--ok)' : 'var(--ink)',
+            color: '#fff',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: value ? 'pointer' : 'default',
+            opacity: value ? 1 : 0.3,
+            letterSpacing: '-0.01em',
+            transition: 'background 0.15s',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {copied ? '✓ Kopierat' : 'Kopiera'}
+        </button>
+      </div>
+
+      <div style={{ padding: '12px 14px' }}>
+        <p
+          style={{
+            fontSize: '13.5px',
+            lineHeight: 1.65,
+            color: value ? 'var(--ink-2)' : 'var(--mute-2)',
+            letterSpacing: '-0.003em',
+            whiteSpace: 'pre-wrap',
+            margin: 0,
+            fontStyle: value ? 'normal' : 'italic',
+          }}
+        >
+          {value || 'Ingen text genererad'}
+        </p>
+      </div>
     </div>
   )
 }
@@ -416,28 +426,5 @@ function FeedbackBtn({
     >
       {label}
     </button>
-  )
-}
-
-function MetricItem({
-  label, value, note = '', alert = false,
-}: {
-  label: string; value: number; note?: string; alert?: boolean
-}) {
-  return (
-    <div>
-      <p className="font-data text-[10px] text-mute tracking-[0.02em] uppercase">{label}</p>
-      <div className="flex items-baseline gap-1 mt-0.5">
-        <span
-          className="font-data text-[20px] font-medium tabular-nums leading-none"
-          style={{ color: alert ? 'var(--accent)' : 'var(--ink)' }}
-        >
-          {value}
-        </span>
-        {note && (
-          <span className="font-data text-[10px] text-mute-2">{note}</span>
-        )}
-      </div>
-    </div>
   )
 }
