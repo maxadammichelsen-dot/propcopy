@@ -1,4 +1,4 @@
-const TOKEN_URL = 'https://apimanager.lantmateriet.se/token'
+const TOKEN_URL = 'https://apimanager.lantmateriet.se/oauth2/token'
 
 let tokenCache: { value: string; expiresAt: number } | null = null
 
