@@ -52,7 +52,7 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
   const [error, setError]       = useState('')
   const detailsRef              = useRef<HTMLTextAreaElement>(null)
 
-  const [coordinates, setCoordinates]     = useState<{ lat: number; lng: number } | null>(null)
+  const [, setCoordinates]                = useState<{ lat: number; lng: number } | null>(null)
   const [brands, setBrands]               = useState<Record<string, string[]>>({})
 
   const [imageBase64s, setImageBase64s]   = useState<string[]>([])

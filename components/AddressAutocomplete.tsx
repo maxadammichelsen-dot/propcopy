@@ -28,21 +28,30 @@ export default function AddressAutocomplete({
   const containerRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
+  useEffect(() => {
+    console.log('[AddressAutocomplete] mounted')
+    return () => console.log('[AddressAutocomplete] unmounted')
+  }, [])
+
   const fetchSuggestions = useCallback(async (q: string) => {
-    if (q.trim().length < 3) {
+    if (q.trim().length < 2) {
       setSuggestions([])
       setOpen(false)
       return
     }
+    console.log('[AddressAutocomplete] fetching:', q)
     setLoading(true)
     try {
-      const res = await fetch(`/api/address/suggest?q=${encodeURIComponent(q)}`)
-      if (!res.ok) throw new Error('suggest failed')
+      const url = `/api/address/suggest?q=${encodeURIComponent(q)}`
+      const res = await fetch(url)
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data: AddressSuggestion[] = await res.json()
+      console.log('[AddressAutocomplete] response:', data)
       setSuggestions(data)
       setOpen(data.length > 0)
       setActiveIndex(-1)
-    } catch {
+    } catch (err) {
+      console.error('[AddressAutocomplete] error:', err)
       setSuggestions([])
       setOpen(false)
     } finally {
@@ -52,6 +61,7 @@ export default function AddressAutocomplete({
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const v = e.target.value
+    console.log('[AddressAutocomplete] input changed:', v)
     onChange(v)
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => fetchSuggestions(v), 280)
