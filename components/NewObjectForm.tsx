@@ -1,11 +1,14 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import LocationCard from './LocationCard'
 import BrandSelector from './BrandSelector'
 import FactsTechStep, { type RenovationEntry } from './FactsTechStep'
 import AddressAutocomplete from './AddressAutocomplete'
 import type { AddressSuggestion, ImageAnalysis } from '@/types'
+
+const AUTO_ANALYZE_DEBOUNCE_MS = 1500
+type AnalysisStatus = 'idle' | 'fresh' | 'partially-stale'
 
 interface NewObjectFormProps {
   onCreated: (object: any) => void
@@ -57,10 +60,14 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
 
   const [imageBase64s, setImageBase64s]   = useState<string[]>([])
   const [imageAnalysis, setImageAnalysis] = useState<ImageAnalysis | null>(null)
+  const [analysisStatus, setAnalysisStatus] = useState<AnalysisStatus>('idle')
   const [analyzing, setAnalyzing]         = useState(false)
   const [analyzeError, setAnalyzeError]   = useState('')
   const [dragOver, setDragOver]           = useState(false)
+  const [showAnalysisWarning, setShowAnalysisWarning] = useState(false)
   const fileInputRef                      = useRef<HTMLInputElement>(null)
+  const debounceTimerRef                  = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const analyzeRef                        = useRef<() => Promise<void>>(async () => {})
 
   function update(field: string, value: string) {
     setForm(f => ({ ...f, [field]: value }))
@@ -84,23 +91,36 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
     }, 50)
   }
 
+  function scheduleAutoAnalyze() {
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current)
+    debounceTimerRef.current = setTimeout(() => {
+      void analyzeRef.current()
+    }, AUTO_ANALYZE_DEBOUNCE_MS)
+  }
+
   async function addImages(files: FileList | File[]) {
     const arr = Array.from(files).filter(f => f.type.startsWith('image/'))
     const remaining = MAX_IMAGES - imageBase64s.length
     if (remaining <= 0) return
     const dataUrls = await Promise.all(arr.slice(0, remaining).map(readFileAsDataURL))
     setImageBase64s(prev => [...prev, ...dataUrls])
-    setImageAnalysis(null)
     setAnalyzeError('')
+    setAnalysisStatus(prev => (imageAnalysis ? 'partially-stale' : prev))
+    scheduleAutoAnalyze()
   }
 
   function removeImage(idx: number) {
     setImageBase64s(prev => prev.filter((_, i) => i !== idx))
-    setImageAnalysis(null)
+    setAnalysisStatus(prev => (imageAnalysis ? 'partially-stale' : prev))
+    scheduleAutoAnalyze()
   }
 
   async function handleAnalyzeImages() {
     if (imageBase64s.length === 0 || analyzing) return
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current)
+      debounceTimerRef.current = null
+    }
     setAnalyzing(true)
     setAnalyzeError('')
     try {
@@ -112,12 +132,21 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Analys misslyckades')
       setImageAnalysis(data.image_analysis)
+      setAnalysisStatus('fresh')
     } catch (err) {
       setAnalyzeError(err instanceof Error ? err.message : 'Analys misslyckades')
     } finally {
       setAnalyzing(false)
     }
   }
+
+  analyzeRef.current = handleAnalyzeImages
+
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current)
+    }
+  }, [])
 
   function canAdvance(): boolean {
     if (step === 1) return !!form.address.trim() && !!form.area.trim() && !!form.size && !!form.price
@@ -129,6 +158,11 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
   }
 
   async function handleSubmit() {
+    if (imageBase64s.length > 0 && !imageAnalysis && !analyzing && !showAnalysisWarning) {
+      setShowAnalysisWarning(true)
+      return
+    }
+    setShowAnalysisWarning(false)
     setLoading(true)
     setError('')
     const res = await fetch('/api/objects', {
@@ -420,9 +454,19 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
                   <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11px', color: 'var(--mute)' }}>
                     {imageBase64s.length} av {MAX_IMAGES} bilder
                   </span>
-                  {imageAnalysis && !analyzing && (
+                  {imageAnalysis && !analyzing && analysisStatus === 'fresh' && (
                     <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11px', color: '#16a34a' }}>
-                      ✓ Analys klar
+                      ✓ Analys klar{imageAnalysis.rooms?.length ? ` (${imageAnalysis.rooms.length} rum)` : ''}
+                    </span>
+                  )}
+                  {imageAnalysis && !analyzing && analysisStatus === 'partially-stale' && (
+                    <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11px', color: 'var(--mute)' }}>
+                      Analys delvis föråldrad — uppdaterar…
+                    </span>
+                  )}
+                  {analyzing && (
+                    <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11px', color: 'var(--mute)' }}>
+                      Analyserar bilder i bakgrunden…
                     </span>
                   )}
                   {analyzeError && (
@@ -439,14 +483,71 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <div style={{ height: '1px', background: 'var(--line)' }} />
                 <span style={sectionLabel}>Analysresultat</span>
-                <TagRow label="Material"   items={imageAnalysis.materials} />
-                <TagRow label="Ljus"       items={imageAnalysis.lighting} />
-                <TagRow label="Takhöjd"    items={[imageAnalysis.ceiling_height]} accent />
-                <TagRow label="Skick"      items={[imageAnalysis.renovation_status]} accent />
-                {imageAnalysis.special_features.length > 0 && (
-                  <TagRow label="Särdrag"  items={imageAnalysis.special_features} />
+                {imageAnalysis.rooms && imageAnalysis.rooms.length > 0 ? (
+                  <>
+                    {imageAnalysis.rooms.map((room, i) => {
+                      const label = room.room_label
+                        ? `${room.room_type} (${room.room_label})`
+                        : room.room_type
+                      return (
+                        <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11px', color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                            {label}
+                          </span>
+                          {room.materials?.length > 0 && <TagRow label="Material"  items={room.materials} />}
+                          {room.fixtures?.length > 0 && <TagRow label="Fixturer"  items={room.fixtures} />}
+                          {room.light?.length > 0     && <TagRow label="Ljus"     items={room.light} />}
+                          {room.spatial?.length > 0   && <TagRow label="Rymd"     items={room.spatial} />}
+                          {room.notable_details?.length > 0 && <TagRow label="Särdrag" items={room.notable_details} />}
+                          {room.condition && room.condition !== 'okänt' && (
+                            <TagRow label="Skick" items={[room.condition]} accent />
+                          )}
+                        </div>
+                      )
+                    })}
+                    {imageAnalysis.overall_style && (
+                      <TagRow label="Stil" items={[imageAnalysis.overall_style]} accent />
+                    )}
+                    {imageAnalysis.architectural_period && (
+                      <TagRow label="Period" items={[imageAnalysis.architectural_period]} accent />
+                    )}
+                  </>
+                ) : (
+                  <>
+                    {imageAnalysis.materials?.length ? <TagRow label="Material" items={imageAnalysis.materials} /> : null}
+                    {imageAnalysis.lighting?.length ? <TagRow label="Ljus" items={imageAnalysis.lighting} /> : null}
+                    {imageAnalysis.ceiling_height ? <TagRow label="Takhöjd" items={[imageAnalysis.ceiling_height]} accent /> : null}
+                    {imageAnalysis.renovation_status ? <TagRow label="Skick" items={[imageAnalysis.renovation_status]} accent /> : null}
+                    {imageAnalysis.special_features?.length ? <TagRow label="Särdrag" items={imageAnalysis.special_features} /> : null}
+                    {imageAnalysis.key_selling_points?.length ? <TagRow label="Säljpunkter" items={imageAnalysis.key_selling_points} strong /> : null}
+                  </>
                 )}
-                <TagRow label="Säljpunkter" items={imageAnalysis.key_selling_points} strong />
+              </div>
+            )}
+
+            {showAnalysisWarning && (
+              <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+                <div style={{ background: 'var(--bg)', border: '1px solid var(--line)', borderRadius: 10, padding: 24, maxWidth: 440, display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  <span style={{ fontSize: 14, color: 'var(--ink)', letterSpacing: '-0.01em' }}>
+                    Bildanalys saknas — texterna blir mindre specifika utan den. Vill du analysera nu?
+                  </span>
+                  <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                    <button
+                      type="button"
+                      onClick={() => { setShowAnalysisWarning(false); void handleSubmit() }}
+                      style={{ padding: '8px 14px', borderRadius: 6, border: '1px solid var(--line)', background: 'transparent', cursor: 'pointer', fontSize: 13, color: 'var(--mute)', fontFamily: 'inherit' }}
+                    >
+                      Spara ändå
+                    </button>
+                    <button
+                      type="button"
+                      onClick={async () => { setShowAnalysisWarning(false); await handleAnalyzeImages(); }}
+                      style={{ padding: '8px 14px', borderRadius: 6, border: '1px solid var(--ink)', background: 'var(--ink)', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 500, fontFamily: 'inherit' }}
+                    >
+                      Analysera nu
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
           </div>

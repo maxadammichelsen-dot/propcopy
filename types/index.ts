@@ -61,13 +61,35 @@ export interface BrandColors {
   accent?: string
 }
 
-export interface ImageAnalysis {
+export interface RoomObservation {
+  room_type:
+    | 'kök' | 'badrum' | 'sovrum' | 'vardagsrum' | 'matrum' | 'hall'
+    | 'arbetsrum' | 'allrum' | 'walk-in-closet' | 'tvättstuga'
+    | 'gillestuga' | 'uteplats' | 'balkong' | 'altan' | 'trädgård'
+    | 'fasad' | 'entré' | 'trapphus' | 'förråd' | 'övrigt'
+  room_label?: string
   materials: string[]
-  lighting: string[]
-  ceiling_height: 'standard' | 'högt' | 'mycket högt'
-  renovation_status: 'nytt' | 'välbevarat' | 'original' | 'blandat'
-  special_features: string[]
-  key_selling_points: string[]
+  fixtures: string[]
+  light: string[]
+  spatial: string[]
+  condition: 'nyrenoverat' | 'välbevarat' | 'original' | 'slitet' | 'okänt'
+  notable_details: string[]
+}
+
+export interface ImageAnalysis {
+  rooms?: RoomObservation[]
+  overall_style?: string
+  overall_condition?: 'nyrenoverat' | 'välbevarat' | 'original' | 'blandat'
+  architectural_period?: string
+  analyzed_at?: string
+  image_count?: number
+  // Legacy fields — kept for backwards-compat with old analyses; do not populate in new ones.
+  materials?: string[]
+  lighting?: string[]
+  ceiling_height?: string
+  renovation_status?: string
+  special_features?: string[]
+  key_selling_points?: string[]
 }
 
 export interface PropertyObject {

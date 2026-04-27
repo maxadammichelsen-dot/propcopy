@@ -4,6 +4,49 @@ import { anthropic, MODEL } from '@/lib/anthropic'
 
 const MAX_IMAGES = 15
 
+const SYSTEM_PROMPT = `Du är en erfaren fastighetsfotograf-observatör som hjälper en mäklare att dokumentera ett objekts visuella egenskaper inför försäljning. Ditt jobb är att lista FAKTABASERADE observationer rum för rum — material, fixturer, ljus, rymd, skick, särdrag. Du gissar aldrig — om du inte ser det säger du inget. Du skriver i mäklarspråk: konkret, materialspecifikt, utan klyschor.`
+
+const USER_PROMPT = `Analysera bilderna och returnera ett JSON-objekt som beskriver objektet rum för rum.
+
+INSTRUKTIONER:
+1. Klassificera varje rum du ser. Om du ser flera kök, badrum eller sovrum — separera dem med room_label ('Kök 1', 'Master bedroom', 'Badrum 2').
+2. För varje rum, lista FAKTISKA OBSERVATIONER, inte tolkningar:
+   - Bra: 'ekparkett i fiskbensmönster', 'svart kalkstensbänk', 'Bulthaup-stomme', 'V-Zug induktionshäll', 'fönster i två väderstreck'
+   - Dåligt: 'modernt intryck', 'inbjudande känsla', 'luxuös atmosfär'
+3. Material ska beskrivas SPECIFIKT med både material och placering:
+   - Bra: 'kalksten på köksgolv', 'ek på huvudgolv'
+   - Dåligt: 'sten', 'trä'
+4. Fixturer ska identifieras med varumärke när det syns:
+   - Bra: 'Bulthaup-kök', 'Vola-blandare', 'Duravit-handfat'
+   - Annars: beskriv funktionellt: 'integrerad ugn', 'fritt placerat badkar', 'väggmonterad WC'
+5. Hitta INTE på fixturer eller varumärken som inte är synliga.
+6. Skick: använd 'okänt' om du inte ser tydliga indikatorer på skick.
+7. Spatial-observationer ska vara mätbara eller observerbara: takhöjd, rumsanslutning, fönsterriktning. Inte 'rymligt' eller 'luftigt'.
+
+FÖRBJUDNA ORD i alla fält:
+- 'modernt', 'klassiskt', 'elegant', 'inbjudande', 'fantastisk', 'unik', 'genuint', 'välkomnande', 'mysig', 'charmig'
+- 'gott om', 'massor av', 'överraskande'
+- 'känsla', 'intryck', 'atmosfär', 'stämning'
+
+JSON-schema (returnera ENDAST detta, inga markdown-fences, ingen förklaring):
+{
+  "rooms": [
+    {
+      "room_type": "kök" | "badrum" | "sovrum" | "vardagsrum" | "matrum" | "hall" | "arbetsrum" | "allrum" | "walk-in-closet" | "tvättstuga" | "gillestuga" | "uteplats" | "balkong" | "altan" | "trädgård" | "fasad" | "entré" | "trapphus" | "förråd" | "övrigt",
+      "room_label": "valfri etikett om flera av samma typ, annars utelämna",
+      "materials": ["material + placering", ...],
+      "fixtures": ["varumärke eller funktionell beskrivning", ...],
+      "light": ["fönsterriktning, ljuskällor", ...],
+      "spatial": ["takhöjd, rumsanslutning, mått", ...],
+      "condition": "nyrenoverat" | "välbevarat" | "original" | "slitet" | "okänt",
+      "notable_details": ["enskilda särdrag som vedeldad spis, frilagda balkar etc", ...]
+    }
+  ],
+  "overall_style": "kort beskrivning av övergripande stil, t.ex. '1920-tal med moderniseringar', om synligt, annars utelämna",
+  "overall_condition": "nyrenoverat" | "välbevarat" | "original" | "blandat",
+  "architectural_period": "valfri, t.ex. '1920-tal', '2010-tal', annars utelämna"
+}`
+
 export async function POST(req: NextRequest) {
   try {
     const supabase = createSupabaseServerClient()
@@ -38,31 +81,26 @@ export async function POST(req: NextRequest) {
 
     const message = await anthropic.messages.create({
       model: MODEL,
-      max_tokens: 1024,
+      max_tokens: 4000,
+      system: SYSTEM_PROMPT,
       messages: [{
         role: 'user',
         content: [
           ...imageBlocks as any[],
-          {
-            type: 'text',
-            text: `Analysera dessa bostadsbilder.
-Returnera ENDAST JSON:
-{
-  "materials": ["material1", "material2"],
-  "lighting": ["ljusbeskrivning1", "ljusbeskrivning2"],
-  "ceiling_height": "standard" | "högt" | "mycket högt",
-  "renovation_status": "nytt" | "välbevarat" | "original" | "blandat",
-  "special_features": ["särdrag1", "särdrag2"],
-  "key_selling_points": ["säljargument1", "säljargument2", "säljargument3"]
-}`,
-          },
+          { type: 'text', text: USER_PROMPT },
         ],
       }],
     })
 
     const raw = message.content[0].type === 'text' ? message.content[0].text.trim() : ''
     const json = raw.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim()
-    const analysis = JSON.parse(json)
+    const parsed = JSON.parse(json)
+
+    const analysis = {
+      ...parsed,
+      analyzed_at: new Date().toISOString(),
+      image_count: imageBlocks.length,
+    }
 
     if (object_id) {
       await supabase

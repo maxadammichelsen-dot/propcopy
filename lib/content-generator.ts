@@ -97,6 +97,13 @@ Felaktig hallucination: 'söder om älven', 'vid havet' (om inte verifierat)
 Korrekt: 'i Långedrag', 'västra Göteborg' — men BARA om de finns i verifierad data.
 Om geografisk data saknas — referera till adress och område, inget mer.
 
+BILDOBSERVATIONS-REGEL:
+- Om VISUELLA OBSERVATIONER-blocket finns: använd ENDAST de material, fixturer och särdrag som står där när du beskriver rummen.
+- Om ett specifikt rum inte är observerat — skriv inte detaljerat om det. Skriv generellt eller utelämna.
+- Hitta aldrig på varumärken (Bulthaup, V-Zug, Duravit, Vola etc.) som inte uttryckligen finns i observationerna.
+- Om ett varumärke står i observationerna — använd det med rätt stavning.
+- Om VISUELLA OBSERVATIONER-blocket saknas helt — håll texten generell om interiören. Skriv 'modernt kök' inte 'kök i ek med Bulthaup'.
+
 KVALITETSKONTROLL INNAN DU SVARAR:
 Granska din text mot denna checklista:
 ✓ Öppnar med konkret unik detalj (inte generisk fras)
@@ -168,6 +175,37 @@ Returnera ENBART giltig JSON, inget annat:
 }
 
 function formatImageContext(analysis: ImageAnalysis): string {
+  if (!analysis.rooms || analysis.rooms.length === 0) {
+    return formatLegacyImageContext(analysis)
+  }
+
+  const parts: string[] = ['VISUELLA OBSERVATIONER FRÅN BILDERNA (rum för rum):']
+
+  for (const room of analysis.rooms) {
+    const label = room.room_label ? `${room.room_type} (${room.room_label})` : room.room_type
+    const lines: string[] = [`\n${label.toUpperCase()}:`]
+    if (room.materials?.length)        lines.push(`  Material: ${room.materials.join(', ')}`)
+    if (room.fixtures?.length)         lines.push(`  Fixturer: ${room.fixtures.join(', ')}`)
+    if (room.light?.length)            lines.push(`  Ljus: ${room.light.join(', ')}`)
+    if (room.spatial?.length)          lines.push(`  Rymd: ${room.spatial.join(', ')}`)
+    if (room.notable_details?.length)  lines.push(`  Särdrag: ${room.notable_details.join(', ')}`)
+    if (room.condition && room.condition !== 'okänt') lines.push(`  Skick: ${room.condition}`)
+    parts.push(lines.join('\n'))
+  }
+
+  if (analysis.overall_style)         parts.push(`\nÖVERGRIPANDE STIL: ${analysis.overall_style}`)
+  if (analysis.architectural_period)  parts.push(`PERIOD: ${analysis.architectural_period}`)
+
+  parts.push(
+    '\nVIKTIGT: Använd ENDAST dessa observationer när du beskriver rummen och materialen. ' +
+    'Hitta inte på material, varumärken eller särdrag som inte står här. ' +
+    'Om ett rum inte är observerat — skriv inte detaljerat om det.'
+  )
+
+  return '\n\n' + parts.join('\n')
+}
+
+function formatLegacyImageContext(analysis: ImageAnalysis): string {
   const parts: string[] = ['VISUELLA DETALJER FRÅN BILDERNA:']
   if (analysis.materials?.length)
     parts.push(`Material: ${analysis.materials.join(', ')}`)
@@ -181,6 +219,7 @@ function formatImageContext(analysis: ImageAnalysis): string {
     parts.push(`Särdrag: ${analysis.special_features.join(', ')}`)
   if (analysis.key_selling_points?.length)
     parts.push(`Säljande detaljer: ${analysis.key_selling_points.join(' · ')}`)
+  if (parts.length === 1) return ''
   return '\n\n' + parts.join('\n')
 }
 
