@@ -253,6 +253,10 @@ export function buildOSMContextString(osm: OSMData, agencyArea?: string): string
       .slice(0, 4)
       .map((p) => {
         if (cat === 'transport') {
+          // Minimalistisk format ("hållplats"/"station"/"brygga" + promenadtid) eftersom OSM-data
+          // inte tillförlitligt anger trafikslag — railway=tram_stop kan vara felklassad busshållplats.
+          // När Trafiklab GTFS är integrerat utökas formatet med linjenamn och konkret trafikslag,
+          // t.ex. "Hovås Nedre hållplats — expressbuss 760 mot Centralen (4 min promenad)".
           const suffix = p.vehicle_type === 'tåg' ? 'station' : p.vehicle_type === 'färja' ? 'brygga' : 'hållplats'
           const lower = p.name.toLowerCase()
           const hasKeyword = lower.includes('station') || lower.includes('hållplats') || lower.includes('brygga')
