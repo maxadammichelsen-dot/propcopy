@@ -5,6 +5,12 @@ import { buildBrainContext, buildStyleContext, getStyleDNA } from './brain-conte
 import { buildCompetitionContext } from './competition-analyzer'
 import { getChannelOptimization } from './channel-optimization'
 import { CATEGORY_LABELS } from './brand-registry'
+import {
+  buildOSMContextString,
+  filterOSMByEnabled,
+  getObjectCoordinates,
+  getOrFetchOSM,
+} from './openstreetmap'
 
 const MASTER_SYSTEM = `Du är Sveriges bästa copywriter för fastighetsmäklare.
 Du har skrivit texter som lett till budgivningar 15-30% över utgångspris för premiumobjekt.
@@ -202,11 +208,12 @@ export async function generateAllChannels(
   const toneString = agency.tone_profile?.tags?.join(', ') ?? 'professionell, varm'
   const channels: Channel[] = ['hemnet', 'meta', 'email', 'social_organic']
 
-  const [styleContext, brainContext, competitionContext, styleDNA] = await Promise.all([
+  const [styleContext, brainContext, competitionContext, styleDNA, osmContext] = await Promise.all([
     buildStyleContext(agency.id),
     buildBrainContext(agency.id),
     buildCompetitionContext(object.area, object.price, agency.id),
     getStyleDNA(agency.id),
+    buildOSMBlock(object, supabase),
   ])
   // System: MASTER_SYSTEM + style_dna + brain_context (positions 1-2, 4)
   const systemContext = styleContext + brainContext
@@ -232,7 +239,7 @@ export async function generateAllChannels(
     channels.map((channel) => generateChannel(
       channel, object, toneString, supabase, systemContext, imageContext,
       channel === 'hemnet' ? storyContext + hemnetSubheadingInstruction : storyContext,
-      competitionContext,
+      competitionContext, osmContext,
     ))
   )
 
@@ -307,6 +314,28 @@ Använd dessa exakt. Hitta inte på andra siffror eller årtal.
 Om ett fält inte är listat – nämn inte den uppgiften alls.`.trim()
 }
 
+async function buildOSMBlock(
+  object: PropertyObject,
+  supabase: SupabaseClient
+): Promise<string> {
+  try {
+    const coords = await getObjectCoordinates(supabase, object.id)
+    if (!coords) return ''
+    const { osm } = await getOrFetchOSM(supabase, object.id, coords.lat, coords.lng)
+    const filtered = filterOSMByEnabled(osm, object.enabled_enrichment_facts)
+    const block = buildOSMContextString(filtered, object.area)
+    if (!block) return ''
+    return (
+      '\n\nFAKTISK NÄRSERVICE — använd dessa namn och avstånd om relevant:\n' +
+      block +
+      '\n\nVIKTIGT: När du nämner närservice, kommunikationer eller läge — använd ENBART de platser och avstånd som listas i NÄRSERVICE-blocket. Hitta inte på namn på skolor, butiker eller hållplatser.'
+    )
+  } catch (err) {
+    console.error('[content-generator] OSM block error:', err)
+    return ''
+  }
+}
+
 async function generateChannel(
   channel: Channel,
   object: PropertyObject,
@@ -315,16 +344,17 @@ async function generateChannel(
   systemContext = '',
   imageContext = '',
   storyContext = '',
-  competitionContext = ''
+  competitionContext = '',
+  osmContext = ''
 ): Promise<GenerateResult> {
   const priceRange = getPriceRange(object.price)
   const refs = await fetchReferenceTexts(channel, object.type, priceRange, supabase)
 
-  // Prompt order: 3. channelOptimization → 3b. brands → 4. facts → 5. objektdata → 6. story → 7. bild → 8. konkurrens
+  // Prompt order: 3. channelOptimization → 3b. brands → 4. facts → 4b. OSM → 5. objektdata → 6. story → 7. bild → 8. konkurrens
   const channelOpt = getChannelOptimization(channel)
   const brandsContext = buildBrandsContext(object.brands, channel)
   const factsContext = buildFactsContext(object)
-  let prompt = channelOpt + brandsContext + (factsContext ? '\n\n' + factsContext : '') + '\n\n' + CHANNEL_PROMPTS[channel](object, tone)
+  let prompt = channelOpt + brandsContext + (factsContext ? '\n\n' + factsContext : '') + osmContext + '\n\n' + CHANNEL_PROMPTS[channel](object, tone)
   if (storyContext) prompt += storyContext
   if (imageContext) prompt += imageContext
   if (competitionContext) prompt += competitionContext

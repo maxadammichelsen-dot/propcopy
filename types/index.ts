@@ -163,6 +163,9 @@ export interface OSMData {
   restaurants: OSMPlace[]
   coast: OSMPlace[]
   healthcare: OSMPlace[]
+  culture: OSMPlace[]
+  transport: OSMPlace[]
+  service: OSMPlace[]
 }
 
 export interface GeneratedContent {

@@ -23,7 +23,11 @@ export async function PATCH(
     }
 
     const body = await req.json()
-    const { status, sold_price } = body as { status?: string; sold_price?: number }
+    const { status, sold_price, enabled_enrichment_facts } = body as {
+      status?: string
+      sold_price?: number
+      enabled_enrichment_facts?: string[]
+    }
 
     // Fetch object — RLS guarantees ownership
     const { data: object, error: objError } = await supabase
@@ -39,6 +43,9 @@ export async function PATCH(
     // Build update payload
     const update: Record<string, unknown> = {}
     if (status) update.status = status
+    if (Array.isArray(enabled_enrichment_facts)) {
+      update.enabled_enrichment_facts = enabled_enrichment_facts
+    }
 
     let bidPremiumPct: number | null = null
     if (status === 'sold' && sold_price) {

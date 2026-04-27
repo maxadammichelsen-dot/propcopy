@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Agency, Channel, GenerateResult, KeyInsights, PropertyObject } from '@/types'
 import ContentCard from './ContentCard'
+import EnrichmentCard from './EnrichmentCard'
 import InsightsCard from './InsightsCard'
 import MetaPublishView from './MetaPublishView'
 import RevisionView from './RevisionView'
@@ -210,6 +211,7 @@ export default function ObjectDetail({ object, agency, onNavigateToMarket }: Obj
             {object.brands && Object.values(object.brands).some(v => v.length > 0) && (
               <BrandsRow brands={object.brands} />
             )}
+            <EnrichmentCard objectId={object.id} initialEnabled={object.enabled_enrichment_facts} />
             {generating ? (
               <div className="flex flex-col items-center justify-center py-20 text-center">
                 <div className="w-5 h-5 border-[1.5px] border-line border-t-accent rounded-full animate-spin mb-4" />
