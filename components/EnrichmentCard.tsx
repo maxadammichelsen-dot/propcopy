@@ -178,7 +178,13 @@ export default function EnrichmentCard({ objectId, initialEnabled }: EnrichmentC
                   }}
                   title={active ? 'Klicka för att exkludera från text' : 'Klicka för att inkludera i text'}
                 >
-                  {p.name} · {formatDistance(p.distance)}
+                  {cat === 'transport' ? (() => {
+                    const suffix = p.vehicle_type === 'tåg' ? 'station' : p.vehicle_type === 'färja' ? 'brygga' : 'hållplats'
+                    const lower = p.name.toLowerCase()
+                    const hasKeyword = lower.includes('station') || lower.includes('hållplats') || lower.includes('brygga')
+                    const label = hasKeyword ? p.name : `${p.name} ${suffix}`
+                    return `${label} · ${Math.round(p.distance / 80)} min`
+                  })() : `${p.name} · ${formatDistance(p.distance)}`}
                 </button>
               )
             })}

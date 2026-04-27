@@ -342,14 +342,11 @@ async function buildOSMBlock(
       '\n\nFAKTISK NÄRSERVICE — använd dessa namn och avstånd om relevant:\n' +
       block +
       '\n\nVIKTIGT: När du nämner närservice, kommunikationer eller läge — använd ENBART de platser och avstånd som listas i NÄRSERVICE-blocket. Hitta inte på namn på skolor, butiker eller hållplatser.' +
-      '\n\nVIKTIGT om trafikslag:\n' +
-      '- Använd ENDAST det trafikslag som anges för varje transport-post.\n' +
-      "- Om det står 'busshållplats' — skriv 'buss' eller 'busshållplats', ALDRIG 'spårvagn' eller 'tunnelbana'.\n" +
-      "- Om det står 'spårvagnshållplats' — skriv 'spårvagn'.\n" +
-      "- Om det står 'tågstation' — skriv 'tåg' eller 'tågstation'.\n" +
-      "- Om det står 'tunnelbana' — skriv 'tunnelbana'.\n" +
-      "- Om det står 'färjeläge' — skriv 'färja'.\n" +
-      '- Hitta aldrig på trafikslag som inte står i listan.'
+      '\n\nTRANSPORT-REGEL: När du nämner kollektivtrafik eller hållplatser, skriv ENBART "hållplats" eller "närmaste hållplats".' +
+      ' Skriv ALDRIG buss, spårvagn, tåg, tunnelbana eller annat specifikt trafikslag i texten.' +
+      ' Använd promenadtid i minuter, aldrig meter.' +
+      '\nBra: "Närmaste hållplats ligger 4 minuters promenad bort."' +
+      '\nFel: "Busshållplatsen Hovås Nedre ligger 330 meter bort."'
     )
   } catch (err) {
     console.error('[content-generator] OSM block error:', err)

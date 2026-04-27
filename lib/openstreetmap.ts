@@ -252,8 +252,13 @@ export function buildOSMContextString(osm: OSMData, agencyArea?: string): string
     const formatted = items
       .slice(0, 4)
       .map((p) => {
-        if (cat === 'transport' && p.display_label) {
-          return `${p.name} ${p.display_label} (${formatDistance(p.distance)})`
+        if (cat === 'transport') {
+          const suffix = p.vehicle_type === 'tåg' ? 'station' : p.vehicle_type === 'färja' ? 'brygga' : 'hållplats'
+          const lower = p.name.toLowerCase()
+          const hasKeyword = lower.includes('station') || lower.includes('hållplats') || lower.includes('brygga')
+          const label = hasKeyword ? p.name : `${p.name} ${suffix}`
+          const mins = Math.round(p.distance / 80)
+          return `${label} (${mins} min promenad)`
         }
         return `${p.name} (${formatDistance(p.distance)})`
       })
