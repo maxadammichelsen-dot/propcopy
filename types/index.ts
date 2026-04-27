@@ -104,6 +104,21 @@ export interface PropertyObject {
   created_at: string
 }
 
+export interface AddressSuggestion {
+  text: string
+  reference_id: string
+  coordinates?: { lat: number; lng: number }
+}
+
+export interface AddressDetails {
+  adressomrade: string
+  adressplats: string
+  postnummer: string
+  postort: string
+  kommun: string
+  coordinates: { lat: number; lng: number }
+}
+
 export interface ObjectEnrichment {
   id: string
   object_id: string

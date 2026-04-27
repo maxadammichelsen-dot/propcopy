@@ -4,7 +4,8 @@ import { useRef, useState } from 'react'
 import LocationCard from './LocationCard'
 import BrandSelector from './BrandSelector'
 import FactsTechStep, { type RenovationEntry } from './FactsTechStep'
-import type { ImageAnalysis } from '@/types'
+import AddressAutocomplete from './AddressAutocomplete'
+import type { AddressSuggestion, ImageAnalysis } from '@/types'
 
 interface NewObjectFormProps {
   onCreated: (object: any) => void
@@ -51,6 +52,7 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
   const [error, setError]       = useState('')
   const detailsRef              = useRef<HTMLTextAreaElement>(null)
 
+  const [coordinates, setCoordinates]     = useState<{ lat: number; lng: number } | null>(null)
   const [brands, setBrands]               = useState<Record<string, string[]>>({})
 
   const [imageBase64s, setImageBase64s]   = useState<string[]>([])
@@ -233,17 +235,23 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
         {step === 1 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', flex: 1 }}>
             <div style={{ position: 'relative' }}>
-              <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', fontSize: '16px', pointerEvents: 'none', lineHeight: 1 }}>
+              <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', fontSize: '16px', pointerEvents: 'none', lineHeight: 1, zIndex: 1 }}>
                 📍
               </span>
-              <input
-                autoFocus
+              <AddressAutocomplete
                 value={form.address}
-                onChange={e => update('address', e.target.value)}
+                onChange={v => { update('address', v); setCoordinates(null) }}
+                onSelect={(s: AddressSuggestion) => {
+                  update('address', s.text)
+                  if (s.coordinates) setCoordinates(s.coordinates)
+                }}
                 placeholder="Storgatan 12, 3 tr"
-                style={{ width: '100%', padding: '14px 16px 14px 44px', fontSize: '16px', border: '1px solid var(--line)', borderRadius: '8px', outline: 'none', transition: 'border-color 0.15s', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'inherit' }}
-                onFocus={e => { e.currentTarget.style.borderColor = 'var(--ink)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(10,10,9,0.04)' }}
-                onBlur={e => { e.currentTarget.style.borderColor = 'var(--line)'; e.currentTarget.style.boxShadow = 'none' }}
+                inputStyle={{
+                  width: '100%', padding: '14px 16px 14px 44px', fontSize: '16px',
+                  border: '1px solid var(--line)', borderRadius: '8px', outline: 'none',
+                  transition: 'border-color 0.15s', background: 'var(--bg)', color: 'var(--ink)',
+                  fontFamily: 'inherit', boxSizing: 'border-box',
+                }}
               />
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
