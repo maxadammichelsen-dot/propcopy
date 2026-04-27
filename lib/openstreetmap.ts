@@ -1,4 +1,4 @@
-import type { OSMData, OSMPlace } from '@/types'
+import type { NominatimAddress, OSMData, OSMPlace } from '@/types'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { geocodeAndPersist } from './geocoder'
 
@@ -410,6 +410,51 @@ export async function getObjectCoordinates(
 
   console.log('[osm:coords] source: failed')
   return null
+}
+
+export async function getLocationAddress(
+  supabase: SupabaseClient,
+  objectId: string
+): Promise<NominatimAddress | null> {
+  const { data } = await supabase
+    .from('object_enrichment')
+    .select('data')
+    .eq('object_id', objectId)
+    .eq('source', 'nominatim')
+    .maybeSingle()
+  const d = data?.data as { address?: NominatimAddress } | null
+  return d?.address ?? null
+}
+
+export function buildLocationContext(addr: NominatimAddress): string {
+  const parts: string[] = []
+  if (addr.suburb) parts.push(`- Område: ${addr.suburb}`)
+  if (addr.borough) parts.push(`- Stadsdel: ${addr.borough}`)
+  if (addr.city_district) parts.push(`- Distrikt: ${addr.city_district}`)
+  if (addr.city) parts.push(`- Stad: ${addr.city}`)
+  if (addr.municipality && addr.municipality !== addr.city) parts.push(`- Kommun: ${addr.municipality}`)
+  if (parts.length === 0) return ''
+
+  const examples = [
+    addr.suburb ? `i ${addr.suburb}` : null,
+    addr.borough ? `i stadsdelen ${addr.borough}` : null,
+    addr.city_district ? `i ${addr.city_district.toLowerCase()}` : null,
+  ].filter((x): x is string => Boolean(x)).slice(0, 2)
+
+  return (
+    '\n\nOBJEKTETS GEOGRAFISKA POSITION (verifierad från adressdatabas):\n' +
+    parts.join('\n') +
+    '\n\nGEOGRAFISK REGEL: Använd ENBART de geografiska begrepp som anges ovan. ' +
+    'Hitta INTE på halvöar, stadsdelar, vattendrag eller geografiska namn som inte nämns ovan.\n' +
+    `Korrekt: ${examples.join(', ')}\n` +
+    'Fel: geografiska begrepp som inte finns i listan (t.ex. halvönamn, naturreservat, vattendrag)'
+  )
+}
+
+export function geoPositionLabel(addr: NominatimAddress): string {
+  return [addr.suburb, addr.borough, addr.city_district?.toLowerCase()]
+    .filter(Boolean)
+    .join(' · ')
 }
 
 export function filterOSMByEnabled(osm: OSMData, enabled?: string[] | null): OSMData {

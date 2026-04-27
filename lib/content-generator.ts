@@ -6,8 +6,10 @@ import { buildCompetitionContext } from './competition-analyzer'
 import { getChannelOptimization } from './channel-optimization'
 import { CATEGORY_LABELS } from './brand-registry'
 import {
+  buildLocationContext,
   buildOSMContextString,
   filterOSMByEnabled,
+  getLocationAddress,
   getObjectCoordinates,
   getOrFetchOSM,
 } from './openstreetmap'
@@ -87,6 +89,13 @@ REGEL: Beskriv konkret vad som finns. 'Köket har köksö med induktionshäll oc
 REGEL: Skriv inte mer än EN observerande/reflekterande mening per text. Resten ska vara konkreta sakuppgifter.
 
 UNDANTAG: Om style_dna.preferred_words eller style_dna.tone_markers innehåller en formulering, är den TILLÅTEN även om den finns i listan ovan.
+
+GEOGRAFISK REGEL – INGA PÅHITTADE PLATSNAMN:
+Skriv ALDRIG om geografiska begrepp (halvöar, stadsdelar, vattendrag, naturreservat) som inte uttryckligen nämns i OBJEKTETS GEOGRAFISKA POSITION-blocket eller FAKTISK NÄRSERVICE-blocket.
+Felaktig hallucination: 'Näset-halvöns västra sida' (om Näset inte nämns i datan)
+Felaktig hallucination: 'söder om älven', 'vid havet' (om inte verifierat)
+Korrekt: 'i Långedrag', 'västra Göteborg' — men BARA om de finns i verifierad data.
+Om geografisk data saknas — referera till adress och område, inget mer.
 
 KVALITETSKONTROLL INNAN DU SVARAR:
 Granska din text mot denna checklista:
@@ -208,12 +217,13 @@ export async function generateAllChannels(
   const toneString = agency.tone_profile?.tags?.join(', ') ?? 'professionell, varm'
   const channels: Channel[] = ['hemnet', 'meta', 'email', 'social_organic']
 
-  const [styleContext, brainContext, competitionContext, styleDNA, osmContext] = await Promise.all([
+  const [styleContext, brainContext, competitionContext, styleDNA, osmContext, geoContext] = await Promise.all([
     buildStyleContext(agency.id),
     buildBrainContext(agency.id),
     buildCompetitionContext(object.area, object.price, agency.id),
     getStyleDNA(agency.id),
     buildOSMBlock(object, supabase),
+    buildGeoBlock(object.id, supabase),
   ])
   // System: MASTER_SYSTEM + style_dna + brain_context (positions 1-2, 4)
   const systemContext = styleContext + brainContext
@@ -252,7 +262,7 @@ export async function generateAllChannels(
     channels.map((channel) => generateChannel(
       channel, object, toneString, supabase, systemContext, imageContext,
       channel === 'hemnet' ? storyContext + hemnetSubheadingInstruction + hemnetRubrikInstruction : storyContext,
-      competitionContext, osmContext,
+      competitionContext, osmContext, geoContext,
     ))
   )
 
@@ -355,6 +365,17 @@ async function buildOSMBlock(
   }
 }
 
+async function buildGeoBlock(objectId: string, supabase: SupabaseClient): Promise<string> {
+  try {
+    const addr = await getLocationAddress(supabase, objectId)
+    if (!addr) return ''
+    return buildLocationContext(addr)
+  } catch (err) {
+    console.error('[content-generator] geo block error:', err)
+    return ''
+  }
+}
+
 async function generateChannel(
   channel: Channel,
   object: PropertyObject,
@@ -364,16 +385,17 @@ async function generateChannel(
   imageContext = '',
   storyContext = '',
   competitionContext = '',
-  osmContext = ''
+  osmContext = '',
+  geoContext = ''
 ): Promise<GenerateResult> {
   const priceRange = getPriceRange(object.price)
   const refs = await fetchReferenceTexts(channel, object.type, priceRange, supabase)
 
-  // Prompt order: 3. channelOptimization → 3b. brands → 4. facts → 4b. OSM → 5. objektdata → 6. story → 7. bild → 8. konkurrens
+  // Prompt order: 3. channelOptimization → 3b. brands → 4. facts → 4c. geo → 4b. OSM → 5. objektdata → 6. story → 7. bild → 8. konkurrens
   const channelOpt = getChannelOptimization(channel)
   const brandsContext = buildBrandsContext(object.brands, channel)
   const factsContext = buildFactsContext(object)
-  let prompt = channelOpt + brandsContext + (factsContext ? '\n\n' + factsContext : '') + osmContext + '\n\n' + CHANNEL_PROMPTS[channel](object, tone)
+  let prompt = channelOpt + brandsContext + (factsContext ? '\n\n' + factsContext : '') + geoContext + osmContext + '\n\n' + CHANNEL_PROMPTS[channel](object, tone)
   if (storyContext) prompt += storyContext
   if (imageContext) prompt += imageContext
   if (competitionContext) prompt += competitionContext

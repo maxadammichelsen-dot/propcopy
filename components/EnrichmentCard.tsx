@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import type { OSMData, OSMPlace } from '@/types'
+import type { NominatimAddress, OSMData, OSMPlace } from '@/types'
 
 interface EnrichmentCardProps {
   objectId: string
@@ -36,6 +36,7 @@ function factId(category: keyof OSMData, name: string): string {
 
 export default function EnrichmentCard({ objectId, initialEnabled }: EnrichmentCardProps) {
   const [osm, setOsm]                 = useState<OSMData | null>(null)
+  const [geoPosition, setGeoPosition] = useState<NominatimAddress | null>(null)
   const [loading, setLoading]         = useState(true)
   const [error, setError]             = useState<string | null>(null)
   const [retrying, setRetrying]       = useState(false)
@@ -52,9 +53,10 @@ export default function EnrichmentCard({ objectId, initialEnabled }: EnrichmentC
       body: JSON.stringify({ object_id: objectId, ...(force ? { force: true } : {}) }),
     })
       .then((r) => r.json())
-      .then((d: { osm: OSMData; error?: string }) => {
+      .then((d: { osm: OSMData; error?: string; geoPosition?: NominatimAddress | null }) => {
         if (cancelled) return
         if (d.error) setError(d.error)
+        setGeoPosition(d.geoPosition ?? null)
         if (d.osm) {
           setOsm(d.osm)
           const ids: string[] = []
@@ -147,8 +149,30 @@ export default function EnrichmentCard({ objectId, initialEnabled }: EnrichmentC
     )
   }
 
+  const geoLabel = geoPosition
+    ? [geoPosition.suburb, geoPosition.borough, geoPosition.city_district?.toLowerCase()]
+        .filter(Boolean).join(' · ')
+    : null
+
   return (
     <div style={{ ...cardStyle, alignItems: 'flex-start', flexDirection: 'column', gap: '10px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
+        <span style={{ ...labelStyle, minWidth: '92px' }}>Position</span>
+        {geoLabel ? (
+          <span style={muteStyle}>{geoLabel}</span>
+        ) : (
+          <span style={{ ...muteStyle, opacity: 0.6 }}>
+            Geografisk position saknas —{' '}
+            <button
+              type="button"
+              onClick={() => { setRetrying(true); doFetch(true) }}
+              style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: "'Geist Mono', monospace", fontSize: 11, color: 'var(--mute)', textDecoration: 'underline', letterSpacing: '-0.01em' }}
+            >
+              uppdatera
+            </button>
+          </span>
+        )}
+      </div>
       <span style={labelStyle}>Närservice (klicka för att exkludera)</span>
       {CATEGORY_ORDER.map((cat) => {
         const items: OSMPlace[] = osm[cat] ?? []

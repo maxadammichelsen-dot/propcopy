@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase'
-import { getObjectCoordinates, getOrFetchOSM } from '@/lib/openstreetmap'
+import { getLocationAddress, getObjectCoordinates, getOrFetchOSM } from '@/lib/openstreetmap'
 import { geocodeAndPersist } from '@/lib/geocoder'
 
 const EMPTY_OSM = {
@@ -45,8 +45,11 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    const result = await getOrFetchOSM(supabase, object_id, coords.lat, coords.lng)
-    return NextResponse.json(result)
+    const [result, geoPosition] = await Promise.all([
+      getOrFetchOSM(supabase, object_id, coords.lat, coords.lng),
+      getLocationAddress(supabase, object_id),
+    ])
+    return NextResponse.json({ ...result, geoPosition })
   } catch (err) {
     console.error('[/api/enrich]', err)
     return NextResponse.json(

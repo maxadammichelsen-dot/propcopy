@@ -158,6 +158,18 @@ export interface OSMPlace {
   display_label?: string
 }
 
+export interface NominatimAddress {
+  road?: string
+  house_number?: string
+  suburb?: string
+  borough?: string
+  city_district?: string
+  city?: string
+  municipality?: string
+  county?: string
+  postcode?: string
+}
+
 export interface OSMData {
   groceries: OSMPlace[]
   schools: OSMPlace[]

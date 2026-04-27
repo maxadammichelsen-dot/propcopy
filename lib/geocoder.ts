@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import type { NominatimAddress } from '@/types'
 
 const NOMINATIM_URL = 'https://nominatim.openstreetmap.org/search'
 const CACHE_TTL_DAYS = 90
@@ -7,12 +8,14 @@ interface GeocodeResult {
   lat: number
   lng: number
   displayName: string
+  address?: NominatimAddress
 }
 
 interface NominatimHit {
   lat: string
   lon: string
   display_name: string
+  address?: NominatimAddress
 }
 
 export async function geocodeAddress(
@@ -50,7 +53,7 @@ export async function geocodeAddress(
     const lat = parseFloat(hit.lat)
     const lng = parseFloat(hit.lon)
     console.log('[geocoder] result:', lat, lng)
-    return { lat, lng, displayName: hit.display_name }
+    return { lat, lng, displayName: hit.display_name, address: hit.address }
   } catch (err) {
     console.error('[geocoder] error:', err)
     return null
@@ -92,7 +95,7 @@ export async function geocodeAndPersist(
   const result = await geocodeAddress(address, city)
   if (!result) return null
 
-  const payload = { lat: result.lat, lng: result.lng, displayName: result.displayName, queriedAddress }
+  const payload = { lat: result.lat, lng: result.lng, displayName: result.displayName, address: result.address, queriedAddress }
   await supabase.from('object_enrichment').upsert(
     { object_id: objectId, source: 'nominatim', data: payload, fetched_at: new Date().toISOString() },
     { onConflict: 'object_id,source' }
