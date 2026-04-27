@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase'
 import { createSupabaseAdminClient } from '@/lib/supabase-admin'
+import { geocodeAndPersist } from '@/lib/geocoder'
 
 export async function GET() {
   try {
@@ -110,6 +111,13 @@ export async function POST(req: NextRequest) {
       .single()
 
     if (error) throw new Error(error.message)
+
+    // Fire-and-forget: geocode in background so coords are ready before the first generate call
+    if (object) {
+      geocodeAndPersist(supabase, object.id, address, area ?? undefined)
+        .catch((err) => console.error('[objects POST] geocode error:', err))
+    }
+
     return NextResponse.json({ object }, { status: 201 })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Okänt fel'

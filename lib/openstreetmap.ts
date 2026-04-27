@@ -1,5 +1,6 @@
 import type { OSMData, OSMPlace } from '@/types'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { geocodeAndPersist } from './geocoder'
 
 const OVERPASS_URL = 'https://overpass-api.de/api/interpreter'
 const OVERPASS_TIMEOUT_S = 25
@@ -305,16 +306,54 @@ export async function getObjectCoordinates(
   supabase: SupabaseClient,
   objectId: string
 ): Promise<{ lat: number; lng: number } | null> {
-  const { data } = await supabase
+  // 1. Lantmäteriet — fastighetens exakta koordinat (primär)
+  const { data: lm } = await supabase
     .from('object_enrichment')
     .select('data')
     .eq('object_id', objectId)
     .eq('source', 'lantmateriet')
     .maybeSingle()
 
-  const c = (data?.data as { coordinates?: { lat: number; lng: number } } | null)?.coordinates
-  if (!c || typeof c.lat !== 'number' || typeof c.lng !== 'number') return null
-  return c
+  const lmCoords = (lm?.data as { coordinates?: { lat: number; lng: number } } | null)?.coordinates
+  if (lmCoords && typeof lmCoords.lat === 'number' && typeof lmCoords.lng === 'number') {
+    console.log('[osm:coords] source: lantmateriet')
+    return lmCoords
+  }
+
+  // 2. Nominatim cache för detta objekt (sekundär)
+  const { data: nom } = await supabase
+    .from('object_enrichment')
+    .select('data')
+    .eq('object_id', objectId)
+    .eq('source', 'nominatim')
+    .maybeSingle()
+
+  const nomData = nom?.data as { lat?: number; lng?: number } | null
+  if (nomData && typeof nomData.lat === 'number' && typeof nomData.lng === 'number') {
+    console.log('[osm:coords] source: nominatim')
+    return { lat: nomData.lat, lng: nomData.lng }
+  }
+
+  // 3. Live geocoding via Nominatim — hämta adress från objects-tabellen
+  const { data: obj } = await supabase
+    .from('objects')
+    .select('address, area')
+    .eq('id', objectId)
+    .maybeSingle()
+
+  if (!obj) {
+    console.log('[osm:coords] source: failed — object not found')
+    return null
+  }
+
+  const geocoded = await geocodeAndPersist(supabase, objectId, obj.address, obj.area ?? undefined)
+  if (geocoded) {
+    console.log('[osm:coords] source: nominatim (fresh geocode)')
+    return { lat: geocoded.lat, lng: geocoded.lng }
+  }
+
+  console.log('[osm:coords] source: failed')
+  return null
 }
 
 export function filterOSMByEnabled(osm: OSMData, enabled?: string[] | null): OSMData {

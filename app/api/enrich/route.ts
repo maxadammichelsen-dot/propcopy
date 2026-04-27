@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase'
 import { getObjectCoordinates, getOrFetchOSM } from '@/lib/openstreetmap'
+import { geocodeAndPersist } from '@/lib/geocoder'
 
 const EMPTY_OSM = {
   groceries: [], schools: [], parks: [], restaurants: [],
@@ -16,9 +17,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Ej autentiserad' }, { status: 401 })
     }
 
-    const { object_id } = await req.json()
+    const body = await req.json()
+    const { object_id, force } = body as { object_id: string; force?: boolean }
     if (!object_id) {
       return NextResponse.json({ error: 'object_id krävs' }, { status: 400 })
+    }
+
+    // On force: re-geocode even if nominatim cache exists, then re-fetch OSM
+    if (force) {
+      const { data: obj } = await supabase
+        .from('objects')
+        .select('address, area')
+        .eq('id', object_id)
+        .maybeSingle()
+
+      if (obj) {
+        await geocodeAndPersist(supabase, object_id, obj.address, obj.area ?? undefined)
+      }
     }
 
     const coords = await getObjectCoordinates(supabase, object_id)
@@ -26,7 +41,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         osm: EMPTY_OSM,
         cached: false,
-        error: 'Inga koordinater för objektet ännu',
+        error: 'Kunde inte bestämma koordinater för adressen',
       })
     }
 

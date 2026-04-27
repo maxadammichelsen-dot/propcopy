@@ -38,17 +38,18 @@ export default function EnrichmentCard({ objectId, initialEnabled }: EnrichmentC
   const [osm, setOsm]                 = useState<OSMData | null>(null)
   const [loading, setLoading]         = useState(true)
   const [error, setError]             = useState<string | null>(null)
+  const [retrying, setRetrying]       = useState(false)
   const [explicitList, setExplicitList] = useState<string[]>(initialEnabled ?? [])
   const [allFactIds, setAllFactIds]   = useState<string[]>([])
 
-  useEffect(() => {
+  function doFetch(force = false) {
     let cancelled = false
     setLoading(true)
     setError(null)
     fetch('/api/enrich', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ object_id: objectId }),
+      body: JSON.stringify({ object_id: objectId, ...(force ? { force: true } : {}) }),
     })
       .then((r) => r.json())
       .then((d: { osm: OSMData; error?: string }) => {
@@ -64,9 +65,11 @@ export default function EnrichmentCard({ objectId, initialEnabled }: EnrichmentC
         }
       })
       .catch((err) => { if (!cancelled) setError(String(err)) })
-      .finally(() => { if (!cancelled) setLoading(false) })
+      .finally(() => { if (!cancelled) { setLoading(false); setRetrying(false) } })
     return () => { cancelled = true }
-  }, [objectId])
+  }
+
+  useEffect(() => { doFetch() }, [objectId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Effective enabled-set: empty list = all enabled.
   const enabledSet = useMemo(() => {
@@ -107,9 +110,29 @@ export default function EnrichmentCard({ objectId, initialEnabled }: EnrichmentC
 
   if (error || !osm) {
     return (
-      <div style={cardStyle}>
+      <div style={{ ...cardStyle, gap: '10px' }}>
         <span style={labelStyle}>Närservice</span>
         <span style={muteStyle}>{error ?? 'Ingen data tillgänglig'}</span>
+        <button
+          type="button"
+          disabled={retrying}
+          onClick={() => { setRetrying(true); doFetch(true) }}
+          style={{
+            marginLeft: 'auto',
+            fontFamily: "'Geist Mono', monospace",
+            fontSize: 11,
+            letterSpacing: '-0.01em',
+            padding: '3px 10px',
+            borderRadius: 999,
+            border: '1px solid var(--line)',
+            background: 'transparent',
+            color: 'var(--mute)',
+            cursor: retrying ? 'default' : 'pointer',
+            opacity: retrying ? 0.5 : 1,
+          }}
+        >
+          {retrying ? 'Försöker…' : 'Försök igen'}
+        </button>
       </div>
     )
   }
