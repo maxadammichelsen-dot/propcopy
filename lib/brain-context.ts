@@ -112,6 +112,7 @@ export interface StyleDNAShape {
   avoided_words?: string[]
   example_sentences?: string[]
   tone_markers?: string[]
+  proximity_handling?: 'rubrik' | 'brödtext' | 'okänt'
 }
 
 export async function getStyleDNA(agency_id: string): Promise<StyleDNAShape | null> {

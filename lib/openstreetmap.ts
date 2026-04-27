@@ -65,8 +65,42 @@ function categorize(tags: Record<string, string>): Category | null {
   if (n === 'beach') return 'coast'
   if (l === 'park' || l === 'playground' || l === 'sports_centre' || l === 'fitness_centre' || l === 'swimming_pool') return 'parks'
   if (a === 'library' || a === 'cinema' || a === 'theatre' || t === 'museum') return 'culture'
-  if (h === 'bus_stop' || r === 'tram_stop' || r === 'station' || p === 'stop_position') return 'transport'
+  if (
+    h === 'bus_stop' ||
+    r === 'tram_stop' || r === 'station' || r === 'halt' || r === 'subway_entrance' ||
+    p === 'stop_position' ||
+    a === 'ferry_terminal'
+  ) return 'transport'
   if (a === 'bank' || a === 'post_office' || a === 'atm') return 'service'
+  return null
+}
+
+function classifyTransport(
+  tags: Record<string, string>
+): { vehicle_type: NonNullable<OSMPlace['vehicle_type']>; display_label: string } | null {
+  const a = tags.amenity
+  const r = tags.railway
+  const h = tags.highway
+  const p = tags.public_transport
+
+  // Specific railway types first
+  if (r === 'tram_stop') return { vehicle_type: 'spårvagn', display_label: 'spårvagnshållplats' }
+  if (r === 'subway_entrance') return { vehicle_type: 'tunnelbana', display_label: 'tunnelbana' }
+  if (r === 'station' || r === 'halt') return { vehicle_type: 'tåg', display_label: 'tågstation' }
+
+  // public_transport=stop_position has mode-specific sub-tags
+  if (p === 'stop_position') {
+    if (tags.subway === 'yes') return { vehicle_type: 'tunnelbana', display_label: 'tunnelbana' }
+    if (tags.tram === 'yes') return { vehicle_type: 'spårvagn', display_label: 'spårvagnshållplats' }
+    if (tags.train === 'yes') return { vehicle_type: 'tåg', display_label: 'tågstation' }
+    if (tags.ferry === 'yes') return { vehicle_type: 'färja', display_label: 'färjeläge' }
+    if (tags.bus === 'yes' || tags.trolleybus === 'yes') return { vehicle_type: 'buss', display_label: 'busshållplats' }
+    return { vehicle_type: 'buss', display_label: 'busshållplats' }
+  }
+
+  if (h === 'bus_stop') return { vehicle_type: 'buss', display_label: 'busshållplats' }
+  if (a === 'ferry_terminal') return { vehicle_type: 'färja', display_label: 'färjeläge' }
+
   return null
 }
 
@@ -82,13 +116,13 @@ function buildOverpassQuery(lat: number, lng: number, radiusMeters: number): str
   // Single combined query — Overpass returns one element list we sort by category.
   return `[out:json][timeout:${OVERPASS_TIMEOUT_S}];
 (
-  nwr["amenity"~"^(school|kindergarten|college|restaurant|cafe|bar|pub|pharmacy|hospital|clinic|doctors|dentist|library|cinema|theatre|bank|post_office|atm)$"]${around};
+  nwr["amenity"~"^(school|kindergarten|college|restaurant|cafe|bar|pub|pharmacy|hospital|clinic|doctors|dentist|library|cinema|theatre|bank|post_office|atm|ferry_terminal)$"]${around};
   nwr["shop"~"^(supermarket|convenience|greengrocer|bakery)$"]${around};
   nwr["leisure"~"^(park|playground|sports_centre|fitness_centre|swimming_pool)$"]${around};
   nwr["natural"="beach"]${around};
   nwr["tourism"="museum"]${around};
   nwr["highway"="bus_stop"]${around};
-  nwr["railway"~"^(tram_stop|station)$"]${around};
+  nwr["railway"~"^(tram_stop|station|halt|subway_entrance)$"]${around};
   nwr["public_transport"="stop_position"]${around};
 );
 out center tags;`
@@ -158,7 +192,15 @@ export async function fetchNearbyPlaces(
     if (typeof elLat !== 'number' || typeof elLng !== 'number') continue
 
     const distance = Math.round(haversineMeters(lat, lng, elLat, elLng))
-    buckets[cat].push({ name, distance, type: placeTypeLabel(tags) })
+    const place: OSMPlace = { name, distance, type: placeTypeLabel(tags) }
+    if (cat === 'transport') {
+      const tr = classifyTransport(tags)
+      if (tr) {
+        place.vehicle_type  = tr.vehicle_type
+        place.display_label = tr.display_label
+      }
+    }
+    buckets[cat].push(place)
   }
 
   for (const cat of Object.keys(buckets) as Category[]) {
@@ -209,7 +251,12 @@ export function buildOSMContextString(osm: OSMData, agencyArea?: string): string
     if (items.length === 0) continue
     const formatted = items
       .slice(0, 4)
-      .map((p) => `${p.name} (${formatDistance(p.distance)})`)
+      .map((p) => {
+        if (cat === 'transport' && p.display_label) {
+          return `${p.name} ${p.display_label} (${formatDistance(p.distance)})`
+        }
+        return `${p.name} (${formatDistance(p.distance)})`
+      })
       .join(', ')
     lines.push(`${CATEGORY_LABELS[cat]}: ${formatted}`)
   }

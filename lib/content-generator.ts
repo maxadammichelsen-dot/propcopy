@@ -235,10 +235,23 @@ export async function generateAllChannels(
       `\nVarje rubrik följs av detaljerad beskrivning av just den sektionen. Skriv INTE löptext för detta objekt.`
   }
 
+  // Hemnet rubrik-regel — applied unless byrån's style_dna explicitly uses närservice in headlines.
+  // Default (okänt eller saknat): behandla som "brödtext" och förhindra närservice som rubrikkrok.
+  const proximityHandling = styleDNA?.proximity_handling ?? 'okänt'
+  const hemnetRubrikInstruction = proximityHandling === 'rubrik' ? '' :
+    '\n\nRUBRIK-REGEL: Rubriken ska handla om objektets karaktär — material, plats-känsla, ' +
+    'arkitektur, sällsynthet, eller en enskild stark egenskap. Närservice (avstånd till ' +
+    'hållplatser, butiker, skolor) får ALDRIG vara huvudargument i rubriken. Närservice ' +
+    'nämns som detalj i brödtexten där det är relevant, inte som rubrikkrok.\n\n' +
+    "Bra rubriker: 'Arkitektritad villa i Hovås – 165 kvm med Bulthaup och golvhöga fönster', " +
+    "'Friköpt sjötomt med utsikt över Askimsfjorden', 'Lägenhet i Hovås – 85 kvm friköpt med ägarrätt'.\n\n" +
+    "Dåliga rubriker (gör INTE detta): 'Friköpt 85 kvm i Hovås – 330 m till spårvagn', " +
+    "'Villa nära ICA Maxi och spårvagn', 'Lägenhet 700m från havet'."
+
   const results = await Promise.all(
     channels.map((channel) => generateChannel(
       channel, object, toneString, supabase, systemContext, imageContext,
-      channel === 'hemnet' ? storyContext + hemnetSubheadingInstruction : storyContext,
+      channel === 'hemnet' ? storyContext + hemnetSubheadingInstruction + hemnetRubrikInstruction : storyContext,
       competitionContext, osmContext,
     ))
   )
@@ -328,7 +341,15 @@ async function buildOSMBlock(
     return (
       '\n\nFAKTISK NÄRSERVICE — använd dessa namn och avstånd om relevant:\n' +
       block +
-      '\n\nVIKTIGT: När du nämner närservice, kommunikationer eller läge — använd ENBART de platser och avstånd som listas i NÄRSERVICE-blocket. Hitta inte på namn på skolor, butiker eller hållplatser.'
+      '\n\nVIKTIGT: När du nämner närservice, kommunikationer eller läge — använd ENBART de platser och avstånd som listas i NÄRSERVICE-blocket. Hitta inte på namn på skolor, butiker eller hållplatser.' +
+      '\n\nVIKTIGT om trafikslag:\n' +
+      '- Använd ENDAST det trafikslag som anges för varje transport-post.\n' +
+      "- Om det står 'busshållplats' — skriv 'buss' eller 'busshållplats', ALDRIG 'spårvagn' eller 'tunnelbana'.\n" +
+      "- Om det står 'spårvagnshållplats' — skriv 'spårvagn'.\n" +
+      "- Om det står 'tågstation' — skriv 'tåg' eller 'tågstation'.\n" +
+      "- Om det står 'tunnelbana' — skriv 'tunnelbana'.\n" +
+      "- Om det står 'färjeläge' — skriv 'färja'.\n" +
+      '- Hitta aldrig på trafikslag som inte står i listan.'
     )
   } catch (err) {
     console.error('[content-generator] OSM block error:', err)

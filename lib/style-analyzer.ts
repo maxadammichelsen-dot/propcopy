@@ -15,6 +15,7 @@ interface StyleDNA {
   uses_structural_subheadings: boolean
   subheading_examples: string[]
   subheading_threshold_sqm: number
+  proximity_handling: 'rubrik' | 'brödtext' | 'okänt'
 }
 
 async function fetchPage(url: string): Promise<string> {
@@ -130,6 +131,8 @@ ${sample}
 
 Analysera även om byrån strukturerar texter med underrubriker per våning eller område (t.ex. "Entréplan:", "Mellanplan:", "Penthouse:", "Tomt och uteplatser:", "Garage och teknik:", "Området"). Om JA, returnera de exakta underrubriker du ser, samt vid vilken kvadratmeter de börjar användas (analysera bostäderna och se om underrubriker bara används för stora objekt).
 
+Analysera också om byrån använder närservicelogistik (avstånd till hållplatser, butiker, skolor) som rubrikkrok, eller om närservice alltid hanteras som detalj i brödtexten. Sätt proximity_handling till "rubrik" om byrån har rubriker som "5 min till spårvagn" eller "Granne med ICA Maxi". Sätt "brödtext" om närservice bara nämns i brödtexten, aldrig i rubriken. Sätt "okänt" om underlaget är för tunt för att avgöra.
+
 Returnera ENBART giltig JSON utan markdown:
 {
   "sentence_length": "kort" | "medel" | "lång",
@@ -144,7 +147,8 @@ Returnera ENBART giltig JSON utan markdown:
   "example_sentences": ["bästa exempelmening 1", "bästa exempelmening 2"],
   "uses_structural_subheadings": true | false,
   "subheading_examples": ["Entréplan:", "Mellanplan:", "Penthouse:"],
-  "subheading_threshold_sqm": 150
+  "subheading_threshold_sqm": 150,
+  "proximity_handling": "rubrik" | "brödtext" | "okänt"
 }`,
       }],
     })

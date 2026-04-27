@@ -154,6 +154,8 @@ export interface OSMPlace {
   name: string
   distance: number
   type: string
+  vehicle_type?: 'buss' | 'spårvagn' | 'tåg' | 'tunnelbana' | 'färja'
+  display_label?: string
 }
 
 export interface OSMData {
