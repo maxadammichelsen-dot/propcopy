@@ -104,6 +104,21 @@ BILDOBSERVATIONS-REGEL:
 - Om ett varumärke står i observationerna — använd det med rätt stavning.
 - Om VISUELLA OBSERVATIONER-blocket saknas helt — håll texten generell om interiören. Skriv 'modernt kök' inte 'kök i ek med Bulthaup'.
 
+BYGGNADSREGEL — INGEN UPPDIKTAD BYGGNADSDATA:
+Du får ALDRIG nämna följande i den genererade texten om motsvarande fält är NULL eller saknas i PROPERTY_FACTS:
+- Våningsplan ('plan X av Y', 'tredje våningen', etc.)
+- Byggår eller byggnadens ålder
+- Antal rum, antal badrum, antal WC
+- Balkong och balkong-orientering
+- Öppen spis
+- Hiss
+- Parkering
+- Månadsavgift, driftkostnad
+- Tomt-area, tomt-form
+- Byggnadsmaterial, uppvärmning
+
+Om datan saknas — utelämna fakten helt. En kortare text utan uppdiktad fakta är alltid bättre än en längre text med felaktig fakta.
+
 KVALITETSKONTROLL INNAN DU SVARAR:
 Granska din text mot denna checklista:
 ✓ Öppnar med konkret unik detalj (inte generisk fras)
