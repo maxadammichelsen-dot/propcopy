@@ -15,13 +15,14 @@ export async function analyzeLocation(
   address: string,
   area: string
 ): Promise<LocationArgument[]> {
-  const message = await anthropic.messages.create({
-    model: MODEL,
-    max_tokens: 768,
-    messages: [
-      {
-        role: 'user',
-        content: `Du är en svensk fastighetsmäklare med djup lokal kännedom om ${area}, Sverige.
+  const message = await anthropic.messages.create(
+    {
+      model: MODEL,
+      max_tokens: 768,
+      messages: [
+        {
+          role: 'user',
+          content: `Du är en svensk fastighetsmäklare med djup lokal kännedom om ${area}, Sverige.
 
 Skapa 6–8 konkreta säljargument för en bostad på adressen: ${address}, ${area}.
 
@@ -44,9 +45,11 @@ Returnera ENBART en JSON-array – inga kommentarer:
     "source": "AI-baserat på lokal kännedom"
   }
 ]`,
-      },
-    ],
-  })
+        },
+      ],
+    },
+    { signal: AbortSignal.timeout(8_000) }
+  )
 
   const raw = message.content[0].type === 'text' ? message.content[0].text : ''
   const jsonMatch = raw.match(/\[[\s\S]*\]/)

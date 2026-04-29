@@ -18,7 +18,9 @@ export async function POST(req: NextRequest) {
     const arguments_ = await analyzeLocation(address, area)
     return NextResponse.json({ arguments: arguments_ })
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Okänt fel'
-    return NextResponse.json({ error: message }, { status: 500 })
+    console.error('[/api/location]', err)
+    // Return empty list instead of 500 — location analysis is non-blocking;
+    // a timeout or API error must not prevent the object from being created.
+    return NextResponse.json({ arguments: [] })
   }
 }
