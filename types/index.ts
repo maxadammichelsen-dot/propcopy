@@ -123,6 +123,33 @@ export interface PropertyObject {
   ventilation: string | null
   parking: string | null
   enabled_enrichment_facts?: string[]
+  // Import fields (PR 1/3 — populated by PDF import in PR 2). Swedish snake_case
+  // matches PDF source vocabulary; some fields overlap with existing English
+  // columns (monthly_fee, operating_cost_yearly, parking, construction_year,
+  // plot_area, tenure, heating) and will be reconciled in a later PR.
+  vaning?: string
+  antal_vaningar?: number
+  lagenhetsnummer?: string
+  manadsavgift_kr?: number
+  driftkostnad_kr_ar?: number
+  balkong?: boolean
+  balkong_orientering?: string
+  oppen_spis?: boolean
+  antal_badrum?: number
+  antal_wc?: number
+  tvattstuga?: string
+  parkering?: string
+  hiss?: boolean
+  forrad?: string
+  fastighetsbeteckning?: string
+  byggar?: number
+  upplatelseform?: string
+  tomt_area?: number
+  tomt_form?: string
+  byggnadsmaterial?: string
+  uppvarmning?: string
+  import_source?: string
+  import_confidence?: Record<string, number>
   created_at: string
 }
 
