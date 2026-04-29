@@ -1,5 +1,5 @@
 import { anthropic, MODEL } from './anthropic'
-import { Agency, Channel, GenerateResult, ImageAnalysis, KeyInsights, LocationArgument, PropertyObject } from '@/types'
+import { Agency, Channel, GenerateResult, ImageAnalysis, ImageObservation, KeyInsights, LocationArgument, PropertyObject } from '@/types'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { buildBrainContext, buildStyleContext, getStyleDNA } from './brain-context'
 import { buildCompetitionContext } from './competition-analyzer'
@@ -118,6 +118,26 @@ Du får ALDRIG nämna följande i den genererade texten om motsvarande fält är
 - Byggnadsmaterial, uppvärmning
 
 Om datan saknas — utelämna fakten helt. En kortare text utan uppdiktad fakta är alltid bättre än en längre text med felaktig fakta.
+
+HARD CONSTRAINT — BEKRÄFTADE BILDOBSERVATIONER:
+
+Det är ABSOLUT FÖRBJUDET att skriva om material, ytmaterial, fasta inredningsdetaljer
+eller utmärkande visuella egenskaper som inte finns i CONFIRMED_OBSERVATIONS i PROPERTY_FACTS.
+
+KONKRETA REGLER:
+- Skriv ALDRIG specifika material som "ek-parkett", "marmor", "kalksten",
+  "rökt ek", "italiensk klinker", "kashmir-granit" om det inte är konfirmerat.
+- Skriv ALDRIG ursprungsbeteckningar ("italiensk", "skandinavisk", "dansk design")
+  oavsett confidence — det kräver dokumentation, inte bildanalys.
+- Om CONFIRMED_OBSERVATIONS är tom: skriv INGENTING om material eller
+  inredningsdetaljer alls. Generella rumsbeskrivningar tillåts utan material
+  ("ljust vardagsrum", "rymligt kök").
+- Använd EXAKT den term som finns i CONFIRMED_OBSERVATIONS — gör den inte mer
+  specifik (om "trägolv" är konfirmerat, skriv inte "ek-parkett").
+- Om mäklaren har skrivit material i story-input/keywords räknas det som
+  konfirmerat — det är mäklarens ord, inte AI:ns.
+
+Detta är en härdad regel mot hallucination. Bryts den, bryts hela produkten.
 
 KVALITETSKONTROLL INNAN DU SVARAR:
 Granska din text mot denna checklista:
@@ -271,13 +291,14 @@ export async function generateAllChannels(
   const toneString = agency.tone_profile?.tags?.join(', ') ?? 'professionell, varm'
   const channels: Channel[] = ['hemnet', 'meta', 'email', 'social_organic']
 
-  const [styleContext, brainContext, competitionContext, styleDNA, osmContext, geoContext] = await Promise.all([
+  const [styleContext, brainContext, competitionContext, styleDNA, osmContext, geoContext, confirmedObsContext] = await Promise.all([
     buildStyleContext(agency.id),
     buildBrainContext(agency.id),
     buildCompetitionContext(object.area, object.price, agency.id),
     getStyleDNA(agency.id),
     buildOSMBlock(object, supabase),
     buildGeoBlock(object.id, supabase),
+    buildConfirmedObservationsBlock(object.id, supabase),
   ])
   // System: MASTER_SYSTEM + style_dna + brain_context (positions 1-2, 4)
   const systemContext = styleContext + brainContext
@@ -316,7 +337,7 @@ export async function generateAllChannels(
     channels.map((channel) => generateChannel(
       channel, object, toneString, supabase, systemContext, imageContext,
       channel === 'hemnet' ? storyContext + hemnetSubheadingInstruction + hemnetRubrikInstruction : storyContext,
-      competitionContext, osmContext, geoContext,
+      competitionContext, osmContext, geoContext, confirmedObsContext,
     ))
   )
 
@@ -419,6 +440,59 @@ async function buildOSMBlock(
   }
 }
 
+const ROOM_LABELS: Record<string, string> = {
+  vardagsrum: 'Vardagsrum', kok: 'Kök', badrum: 'Badrum', sovrum: 'Sovrum',
+  hall: 'Hall', matplats: 'Matplats', uteplats: 'Uteplats', okand: 'Övrigt',
+}
+
+export async function buildConfirmedObservationsBlock(
+  objectId: string,
+  supabase: SupabaseClient
+): Promise<string> {
+  try {
+    const { data: confirmed, error } = await supabase
+      .from('image_observations')
+      .select('room_type, observation_type, value, confidence')
+      .eq('object_id', objectId)
+      .eq('status', 'confirmed')
+      .order('room_type')
+
+    if (error) {
+      console.error('[content-generator] confirmed obs query error:', error.message)
+      return '\n\nCONFIRMED_OBSERVATIONS: (inga bekräftade bildobservationer — skriv inget om material eller inredningsdetaljer)'
+    }
+
+    if (!confirmed || confirmed.length === 0) {
+      return '\n\nCONFIRMED_OBSERVATIONS: (inga bekräftade bildobservationer — skriv inget om material eller inredningsdetaljer)'
+    }
+
+    type Row = Pick<ImageObservation, 'room_type' | 'observation_type' | 'value' | 'confidence'>
+    const byRoom: Record<string, Row[]> = {}
+    for (const obs of confirmed as Row[]) {
+      const room = obs.room_type ?? 'okand'
+      if (!byRoom[room]) byRoom[room] = []
+      byRoom[room].push(obs)
+    }
+
+    const formatted = Object.entries(byRoom)
+      .map(([room, obs]) => {
+        const items = obs.map(o => `${o.value} (${o.observation_type})`).join(', ')
+        return `${ROOM_LABELS[room] ?? 'Övrigt'}: ${items}`
+      })
+      .join('\n')
+
+    return (
+      '\n\nCONFIRMED_OBSERVATIONS (mäklaren har sett bilderna och bekräftat dessa observationer):\n' +
+      formatted +
+      '\n\nVIKTIGT: Använd ENBART termerna ovan för material och inredningsdetaljer. ' +
+      'Gör dem INTE mer specifika. Hitta INTE på kompletterande material.'
+    )
+  } catch (err) {
+    console.error('[content-generator] confirmed obs block error:', err)
+    return '\n\nCONFIRMED_OBSERVATIONS: (inga bekräftade bildobservationer — skriv inget om material eller inredningsdetaljer)'
+  }
+}
+
 async function buildGeoBlock(objectId: string, supabase: SupabaseClient): Promise<string> {
   try {
     const addr = await getLocationAddress(supabase, objectId)
@@ -440,16 +514,17 @@ async function generateChannel(
   storyContext = '',
   competitionContext = '',
   osmContext = '',
-  geoContext = ''
+  geoContext = '',
+  confirmedObsContext = ''
 ): Promise<GenerateResult> {
   const priceRange = getPriceRange(object.price)
   const refs = await fetchReferenceTexts(channel, object.type, priceRange, supabase)
 
-  // Prompt order: 3. channelOptimization → 3b. brands → 4. facts → 4c. geo → 4b. OSM → 5. objektdata → 6. story → 7. bild → 8. konkurrens
+  // Prompt order: 3. channelOptimization → 3b. brands → 4. facts → 4c. confirmedObs → 4d. geo → 4e. OSM → 5. objektdata → 6. story → 7. bild → 8. konkurrens
   const channelOpt = getChannelOptimization(channel)
   const brandsContext = buildBrandsContext(object.brands, channel)
   const factsContext = buildFactsContext(object)
-  let prompt = channelOpt + brandsContext + (factsContext ? '\n\n' + factsContext : '') + geoContext + osmContext + '\n\n' + CHANNEL_PROMPTS[channel](object, tone)
+  let prompt = channelOpt + brandsContext + (factsContext ? '\n\n' + factsContext : '') + confirmedObsContext + geoContext + osmContext + '\n\n' + CHANNEL_PROMPTS[channel](object, tone)
   if (storyContext) prompt += storyContext
   if (imageContext) prompt += imageContext
   if (competitionContext) prompt += competitionContext
