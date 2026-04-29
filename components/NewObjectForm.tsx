@@ -5,7 +5,8 @@ import LocationCard from './LocationCard'
 import BrandSelector from './BrandSelector'
 import FactsTechStep, { type RenovationEntry } from './FactsTechStep'
 import AddressAutocomplete from './AddressAutocomplete'
-import type { AddressSuggestion, ImageAnalysis } from '@/types'
+import Step0SnabbImport, { type ImportPayload } from './Step0SnabbImport'
+import type { AddressSuggestion, ImageAnalysis, PropertyObject } from '@/types'
 
 const AUTO_ANALYZE_DEBOUNCE_MS = 1500
 type AnalysisStatus = 'idle' | 'fresh' | 'partially-stale'
@@ -38,13 +39,16 @@ function readFileAsDataURL(file: File): Promise<string> {
 }
 
 export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProps) {
-  const [step, setStep]         = useState(1)
+  const [step, setStep]         = useState(0)
   const [form, setForm]         = useState({
     address: '', area: '', type: 'Lägenhet', size: '', price: '', details: '', story: '',
     tenure: 'Friköpt', plot_area: '', construction_year: '', monthly_fee: '',
     operating_cost_yearly: '', energy_class: '', bedrooms: '',
     standard_class: 'Normal', heating: '', ventilation: '', parking: '',
   })
+  const [importSource, setImportSource] = useState<string | undefined>(undefined)
+  const [importConfidence, setImportConfidence] = useState<Record<string, number> | undefined>(undefined)
+  const [importedFields, setImportedFields] = useState<Partial<PropertyObject> | undefined>(undefined)
   const [renovations, setRenovations] = useState<Record<string, RenovationEntry>>({
     kitchen: { year: '', note: '' },
     bathroom: { year: '', note: '' },
@@ -71,6 +75,55 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
 
   function update(field: string, value: string) {
     setForm(f => ({ ...f, [field]: value }))
+  }
+
+  function applyImportedFields(fields: Partial<PropertyObject>) {
+    setForm(f => {
+      const next = { ...f }
+      if (typeof fields.address === 'string' && fields.address) next.address = fields.address
+      if (typeof fields.area === 'string' && fields.area) next.area = fields.area
+      if (typeof fields.type === 'string' && fields.type) next.type = fields.type
+      if (typeof fields.size === 'number' && Number.isFinite(fields.size)) next.size = String(fields.size)
+      if (typeof fields.price === 'number' && Number.isFinite(fields.price)) next.price = String(fields.price)
+      if (typeof fields.tenure === 'string' && fields.tenure) next.tenure = fields.tenure
+      if (typeof fields.plot_area === 'number' && Number.isFinite(fields.plot_area)) next.plot_area = String(fields.plot_area)
+      if (typeof fields.construction_year === 'number' && Number.isFinite(fields.construction_year)) next.construction_year = String(fields.construction_year)
+      if (typeof fields.monthly_fee === 'number' && Number.isFinite(fields.monthly_fee)) next.monthly_fee = String(fields.monthly_fee)
+      if (typeof fields.operating_cost_yearly === 'number' && Number.isFinite(fields.operating_cost_yearly)) next.operating_cost_yearly = String(fields.operating_cost_yearly)
+      if (typeof fields.energy_class === 'string' && fields.energy_class) next.energy_class = fields.energy_class
+      if (typeof fields.bedrooms === 'string' && fields.bedrooms) next.bedrooms = fields.bedrooms
+      if (typeof fields.standard_class === 'string' && fields.standard_class) next.standard_class = fields.standard_class
+      if (typeof fields.heating === 'string' && fields.heating) next.heating = fields.heating
+      if (typeof fields.ventilation === 'string' && fields.ventilation) next.ventilation = fields.ventilation
+      if (typeof fields.parking === 'string' && fields.parking) next.parking = fields.parking
+      if (typeof fields.story === 'string' && fields.story) next.story = fields.story
+      return next
+    })
+    if (fields.brands && typeof fields.brands === 'object') setBrands(fields.brands as Record<string, string[]>)
+  }
+
+  async function handleImportDone(payload: ImportPayload, droppedImages: File[]) {
+    setImportSource(payload.source)
+    setImportConfidence(payload.confidence)
+    setImportedFields(payload.fields)
+    applyImportedFields(payload.fields)
+    if (droppedImages.length > 0) {
+      const remaining = MAX_IMAGES - imageBase64s.length
+      if (remaining > 0) {
+        const dataUrls = await Promise.all(droppedImages.slice(0, remaining).map(readFileAsDataURL))
+        setImageBase64s(prev => [...prev, ...dataUrls])
+        setAnalysisStatus(prev => (imageAnalysis ? 'partially-stale' : prev))
+        scheduleAutoAnalyze()
+      }
+    }
+    setStep(1)
+  }
+
+  function handleSkipImport() {
+    setImportSource('manual')
+    setImportConfidence(undefined)
+    setImportedFields(undefined)
+    setStep(1)
   }
 
   function updateRenovation(section: string, field: 'year' | 'note', value: string) {
@@ -190,6 +243,8 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
         })(),
         brands: Object.fromEntries(Object.entries(brands).filter(([, v]) => v.length > 0)),
         ...(imageAnalysis ? { image_analysis: imageAnalysis } : {}),
+        ...(importSource ? { import_source: importSource } : {}),
+        ...(importConfidence ? { import_confidence: importConfidence } : {}),
       }),
     })
     const data = await res.json()
@@ -202,6 +257,16 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
   }
 
   const progressPct = (step / 6) * 100
+
+  if (step === 0) {
+    return (
+      <Step0SnabbImport
+        onImportDone={handleImportDone}
+        onSkip={handleSkipImport}
+        onCancel={onCancel}
+      />
+    )
+  }
 
   return (
     <div style={{ position: 'absolute', inset: 0, background: 'var(--bg)' }}>
