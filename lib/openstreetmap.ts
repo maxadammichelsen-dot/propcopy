@@ -1,5 +1,6 @@
 import type { NominatimAddress, OSMData, OSMPlace } from '@/types'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { createSupabaseAdminClient } from './supabase-admin'
 import { geocodeAndPersist } from './geocoder'
 
 const OVERPASS_URL = 'https://overpass-api.de/api/interpreter'
@@ -314,11 +315,15 @@ async function findCachedNearby(
 }
 
 async function persistEnrichment(
-  supabase: SupabaseClient,
+  _supabase: SupabaseClient,
   objectId: string,
   envelope: CachedEnvelope
 ): Promise<void> {
-  const { error } = await supabase
+  // Server-side write: use service-role client so it bypasses RLS policies on
+  // object_enrichment. The anon client (passed by callers) would be blocked by
+  // RLS when no matching INSERT policy exists.
+  const admin = createSupabaseAdminClient()
+  const { error } = await admin
     .from('object_enrichment')
     .upsert(
       {
@@ -329,7 +334,11 @@ async function persistEnrichment(
       },
       { onConflict: 'object_id,source' }
     )
-  if (error) console.error('[osm] persist error:', error.message)
+  if (error) {
+    console.error('[osm] persist error (service-role):', error.message)
+  } else {
+    console.log('[osm] persist ok (service-role), object:', objectId)
+  }
 }
 
 export async function getOrFetchOSM(
