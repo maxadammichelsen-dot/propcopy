@@ -339,14 +339,20 @@ export async function getOrFetchOSM(
   lng: number,
   radiusMeters: number = 1500
 ): Promise<{ osm: OSMData; cached: boolean }> {
-  // 1. Check cache (any object) within bbox + TTL
+  // 1. Check cache (any object) within bbox + TTL.
+  //    Skip if the cached data is all-empty — this happens when a previous
+  //    Overpass fetch failed and saved empty arrays. Treat it as stale.
   const hit = await findCachedNearby(supabase, lat, lng)
-  if (hit) {
+  const cacheIsUsable = hit && (Object.values(hit.envelope.osm) as OSMPlace[][]).some(
+    arr => Array.isArray(arr) && arr.length > 0
+  )
+  if (cacheIsUsable) {
     console.log('[osm] cache hit')
     // Also persist for THIS object so later calls are direct
-    await persistEnrichment(supabase, objectId, hit.envelope)
-    return { osm: hit.envelope.osm, cached: true }
+    await persistEnrichment(supabase, objectId, hit!.envelope)
+    return { osm: hit!.envelope.osm, cached: true }
   }
+  if (hit) console.log('[osm] cache hit was all-empty — doing fresh Overpass fetch')
 
   // 2. Fresh fetch
   const osm = await fetchNearbyPlaces(lat, lng, radiusMeters)

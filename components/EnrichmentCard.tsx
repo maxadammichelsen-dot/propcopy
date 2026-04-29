@@ -140,14 +140,6 @@ export default function EnrichmentCard({ objectId, initialEnabled }: EnrichmentC
   }
 
   const hasAny = CATEGORY_ORDER.some((c) => (osm[c]?.length ?? 0) > 0)
-  if (!hasAny) {
-    return (
-      <div style={cardStyle}>
-        <span style={labelStyle}>Närservice</span>
-        <span style={muteStyle}>Inga platser hittades inom 1,5 km.</span>
-      </div>
-    )
-  }
 
   const geoLabel = geoPosition
     ? [geoPosition.suburb, geoPosition.borough, geoPosition.city_district?.toLowerCase()]
@@ -173,6 +165,10 @@ export default function EnrichmentCard({ objectId, initialEnabled }: EnrichmentC
           </span>
         )}
       </div>
+      {!hasAny ? (
+        <span style={muteStyle}>Inga platser hittades inom 1,5 km.</span>
+      ) : (
+      <>
       <span style={labelStyle}>Närservice (klicka för att exkludera)</span>
       {CATEGORY_ORDER.map((cat) => {
         const items: OSMPlace[] = osm[cat] ?? []
@@ -215,6 +211,8 @@ export default function EnrichmentCard({ objectId, initialEnabled }: EnrichmentC
           </div>
         )
       })}
+      </>
+      )}
     </div>
   )
 }
