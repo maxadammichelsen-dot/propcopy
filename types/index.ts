@@ -61,6 +61,50 @@ export interface BrandColors {
   accent?: string
 }
 
+// ─── Image observations (confidence-arkitektur, PR 1/2) ─────────────────────
+
+export type RoomType =
+  | 'vardagsrum'
+  | 'kok'
+  | 'badrum'
+  | 'sovrum'
+  | 'hall'
+  | 'matplats'
+  | 'uteplats'
+  | 'okand'
+
+export type ObservationType =
+  | 'material_floor'
+  | 'material_counter'
+  | 'material_wall'
+  | 'fixture'
+  | 'feature'
+
+export type ObservationStatus = 'pending' | 'confirmed' | 'rejected'
+
+export interface ImageObservation {
+  id: string
+  object_id: string
+  image_url: string
+  room_type: RoomType | null
+  observation_type: ObservationType
+  value: string
+  confidence: number        // 0.00 – 1.00
+  status: ObservationStatus
+  confirmed_by: string | null
+  confirmed_at: string | null
+  created_at: string
+}
+
+export interface ImageObservationCandidate {
+  room_type: RoomType | null
+  observation_type: ObservationType
+  value: string
+  confidence: number
+}
+
+// ─── Room observations (legacy image_analysis path) ──────────────────────────
+
 export interface RoomObservation {
   room_type:
     | 'kök' | 'badrum' | 'sovrum' | 'vardagsrum' | 'matrum' | 'hall'
