@@ -493,7 +493,7 @@
 .vv-hd .wide-overlay {
   position: absolute; inset: 0;
   display: flex; align-items: flex-end;
-  padding: 48px 48px 120px;
+  padding: 48px 48px 64px;
   z-index: 2;
 }
 .vv-hd .wide-overlay h2 {
@@ -673,7 +673,7 @@
   .vv-hd .wide-band-inner { flex-direction: column; align-items: flex-start; gap: 10px; }
   .vv-hd .wide-band h3 { font-size: 20px; line-height: 1.35; flex: none; width: 100%; }
   .vv-hd .wide-band h3 .sep { margin: 0 8px; }
-  .vv-hd .wide-overlay { padding: 24px 24px 64px; }
+  .vv-hd .wide-overlay { padding: 20px 20px 32px; }
 
   .vv-hd .ex-tabs { gap: 20px; flex-wrap: wrap; }
   .vv-hd .marquee-track { font-size: 18px; }
@@ -837,9 +837,10 @@
 
   <!-- ===== Wide image with band ===== -->
   <section class="wide" aria-label="Översikt av hamnen 2025">
-    <div class="wide-img" style="background-image: url('https://www.vastvarv.se/wp-content/uploads/2026/05/3.png');" role="img" aria-label="Översikt av hamnen"></div>
-    <div class="wide-overlay">
-      <h2>Hela hamnen<br>öppen i en dag.</h2>
+    <div class="wide-img" style="background-image: url('https://www.vastvarv.se/wp-content/uploads/2026/05/3.png');" role="img" aria-label="Översikt av hamnen">
+      <div class="wide-overlay">
+        <h2>Hela hamnen<br>öppen i en dag.</h2>
+      </div>
     </div>
     <div class="wide-band">
       <div class="container">
