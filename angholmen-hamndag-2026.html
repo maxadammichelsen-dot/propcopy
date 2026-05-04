@@ -37,6 +37,15 @@
   line-height: 1.55;
   font-size: 17px;
   -webkit-font-smoothing: antialiased;
+
+  /* Full-bleed: spränger Elementors container och täcker hela sidbredden */
+  width: 100vw;
+  position: relative;
+  left: 50%;
+  right: 50%;
+  margin-left: -50vw;
+  margin-right: -50vw;
+  overflow-x: hidden;
 }
 .vv-hd *, .vv-hd *::before, .vv-hd *::after { box-sizing: border-box; }
 .vv-hd img { display: block; max-width: 100%; }
@@ -634,25 +643,6 @@
 
 <div class="vv-hd">
 
-  <!-- ===================== TOP BAR ===================== -->
-  <div class="topbar">
-    <div class="container topbar-inner">
-      <div class="brand">
-        <span class="vv-symbol" aria-hidden="true">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 245 315" aria-label="Västvarv symbol">
-            <path fill="currentColor" d="M122.5 20 C 70 20, 30 60, 30 110 C 30 145, 50 175, 80 195 L 80 280 L 165 280 L 165 195 C 195 175, 215 145, 215 110 C 215 60, 175 20, 122.5 20 Z M 100 240 L 145 240 M 100 260 L 145 260" fill-rule="nonzero"/>
-          </svg>
-        </span>
-        <span class="vv-wordmark" aria-label="Västvarv">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 910 185" aria-label="Västvarv">
-            <text x="0" y="140" font-family="Barlow Condensed, sans-serif" font-weight="800" font-size="160" fill="currentColor" letter-spacing="2">VÄSTVARV</text>
-          </svg>
-        </span>
-      </div>
-      <span class="topcoord">57°39'54"N · 11°50'37"E</span>
-    </div>
-  </div>
-
   <!-- ===================== HERO ===================== -->
   <section class="hero" aria-label="Hero med foto från Ängholmens Hamndag">
     <div class="hero-photo-bg" style="background-image: url('https://www.vastvarv.se/wp-content/uploads/2026/05/2.png');" role="img" aria-label="Båtar i Ängholmens hamn"></div>
@@ -663,11 +653,6 @@
           <div class="eyebrow">Ängholmens Varv · Långedrag</div>
           <div class="coord" style="color: var(--stone); margin-top: 8px;">57°39'54"N · 11°50'37"E</div>
         </div>
-        <span class="hero-corner-mark" aria-hidden="true">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 245 315" aria-label="Västvarv symbol">
-            <path fill="currentColor" d="M122.5 20 C 70 20, 30 60, 30 110 C 30 145, 50 175, 80 195 L 80 280 L 165 280 L 165 195 C 195 175, 215 145, 215 110 C 215 60, 175 20, 122.5 20 Z M 100 240 L 145 240 M 100 260 L 145 260" fill-rule="nonzero"/>
-          </svg>
-        </span>
       </div>
 
       <div class="hero-cluster">
@@ -940,52 +925,6 @@
   <div class="wide">
     <div class="wide-img" style="background-image: url('https://www.vastvarv.se/wp-content/uploads/2026/05/2.png');" role="img" aria-label="Stämningsbild från hamnen"></div>
   </div>
-
-  <!-- ===================== FOOTER ===================== -->
-  <section class="footer">
-    <div class="container">
-
-      <div class="footer-grid">
-        <span class="vv-symbol" aria-hidden="true">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 245 315" aria-label="Västvarv symbol">
-            <path fill="currentColor" d="M122.5 20 C 70 20, 30 60, 30 110 C 30 145, 50 175, 80 195 L 80 280 L 165 280 L 165 195 C 195 175, 215 145, 215 110 C 215 60, 175 20, 122.5 20 Z M 100 240 L 145 240 M 100 260 L 145 260" fill-rule="nonzero"/>
-          </svg>
-        </span>
-        <h2>Vi ses på <em>Ängholmen.</em></h2>
-      </div>
-
-      <div class="footer-cols">
-        <div>
-          <h4>Adress</h4>
-          <p>Ängholmen 5A<br>426 76 Västra Frölunda</p>
-          <p class="small" style="margin-top: 10px;">57°39'54"N · 11°50'37"E</p>
-        </div>
-        <div>
-          <h4>Hamnkapten</h4>
-          <p><a href="tel:0707810613">0707-81 06 13</a><br><a href="mailto:hamnkapten@vastvarv.se">hamnkapten@vastvarv.se</a></p>
-          <p class="small" style="margin-top: 8px;">Mån–fre 09:00–11:00</p>
-        </div>
-        <div>
-          <h4>Båtplatser &amp; admin</h4>
-          <p><a href="mailto:info@vastvarv.se">info@vastvarv.se</a></p>
-          <p class="small" style="margin-top: 8px;">Mån–fre 10:00–11:00</p>
-        </div>
-      </div>
-
-      <div class="footer-cta">
-        <a class="btn" href="https://www.facebook.com/vastvarv" target="_blank" rel="noopener">
-          Anmäl dig på Facebook
-          <svg class="arrow" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M1 7h12M8 2l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="square"/></svg>
-        </a>
-        <span class="vv-wordmark" aria-label="Västvarv">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 910 185" aria-label="Västvarv">
-            <text x="0" y="140" font-family="Barlow Condensed, sans-serif" font-weight="800" font-size="160" fill="currentColor" letter-spacing="2">VÄSTVARV</text>
-          </svg>
-        </span>
-      </div>
-
-    </div>
-  </section>
 
 </div>
 <!-- /Ängholmens Hamndag 2026 -->
