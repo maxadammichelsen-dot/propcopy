@@ -635,30 +635,50 @@
 
 /* ============ RESPONSIVE ============ */
 @media (max-width: 980px) {
+  .vv-hd { margin-top: -20px; margin-bottom: -20px; }
   .vv-hd .container { padding: 0 20px; }
-  .vv-hd .section { padding: 64px 0; }
+  .vv-hd .section { padding: 56px 0; }
   .vv-hd .section-header { grid-template-columns: 1fr; gap: 16px; margin-bottom: 40px; }
   .vv-hd .section-num { font-size: 72px; }
   .vv-hd .exhibitors { grid-template-columns: repeat(2, 1fr); }
-  .vv-hd .split { grid-template-columns: 1fr; padding: 0 20px; }
-  .vv-hd .split-pane .inner { padding: 40px 28px; }
-  .vv-hd .split-pane .pat-strip { margin: -40px -28px 28px; }
+  .vv-hd .split { grid-template-columns: 1fr; padding: 0; }
+  .vv-hd .split-pane .inner { padding: 40px 24px; }
+  .vv-hd .split-pane .pat-strip { margin: -40px -24px 28px; grid-template-columns: repeat(8, 1fr); }
   .vv-hd .image-strip { grid-template-columns: 1fr; }
-  .vv-hd .footer-grid { grid-template-columns: 1fr; gap: 16px; }
-  .vv-hd .footer-cols { grid-template-columns: 1fr; gap: 32px; }
   .vv-hd .faq-item { grid-template-columns: 1fr; gap: 12px; }
-  .vv-hd .wide-overlay { padding: 24px 24px 80px; }
-  .vv-hd .wide-band-inner { gap: 16px; }
-  .vv-hd .ex-tabs { gap: 20px; flex-wrap: wrap; }
+
+  /* Pattern band: 8 kolumner istället för 16, behåll 2 rader (visa endast 16 första) */
+  .vv-hd .pat { grid-template-columns: repeat(8, 1fr); }
+  .vv-hd .pat-cell:nth-child(n+17) { display: none; }
+
+  /* Hero: minska padding så texten inte trycks ner för mycket */
+  .vv-hd .hero-inner { padding: 40px 0 64px; min-height: clamp(480px, 70vh, 640px); }
+  .vv-hd .hero-cluster { padding-top: 40px; }
   .vv-hd .hero-meta .m { padding: 12px 16px 12px 0; flex-basis: 50%; }
   .vv-hd .hero-meta .m:nth-child(2) { border-right: 0; }
-  .vv-hd .hero-corner-mark { width: 44px !important; height: 52px !important; }
-  .vv-hd .hero-corner-mark svg { width: 44px !important; height: 52px !important; }
+
+  /* Wide-band: stapla labels + h3 vertikalt så inget överlappar */
+  .vv-hd .wide-band { padding: 32px 0; }
+  .vv-hd .wide-band-inner { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .vv-hd .wide-band h3 { font-size: 20px; line-height: 1.35; flex: none; width: 100%; }
+  .vv-hd .wide-band h3 .sep { margin: 0 8px; }
+  .vv-hd .wide-overlay { padding: 24px 24px 64px; }
+
+  .vv-hd .ex-tabs { gap: 20px; flex-wrap: wrap; }
+  .vv-hd .marquee-track { font-size: 18px; }
+  .vv-hd .marquee-track span { margin: 0 16px; }
+  .vv-hd .marquee-track .star { margin: 0 8px; }
 }
 
 @media (max-width: 480px) {
   .vv-hd .exhibitors { grid-template-columns: 1fr; }
-  .vv-hd .topbar .topcoord { display: none; }
+  .vv-hd .pat { grid-template-columns: repeat(4, 1fr); }
+  .vv-hd .pat-cell:nth-child(n+9) { display: none; }
+  .vv-hd .split-pane .pat-strip { grid-template-columns: repeat(4, 1fr); }
+  .vv-hd .hero h1 { font-size: 56px; }
+  .vv-hd .section-num { font-size: 60px; }
+  .vv-hd .section-title { font-size: 36px; }
+  .vv-hd .ex-card { padding: 24px 20px; }
 }
 </style>
 
