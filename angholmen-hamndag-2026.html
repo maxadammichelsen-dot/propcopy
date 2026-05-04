@@ -45,6 +45,8 @@
   right: 50%;
   margin-left: -50vw;
   margin-right: -50vw;
+  margin-top: -40px;
+  margin-bottom: -40px;
   overflow-x: hidden;
 }
 .vv-hd *, .vv-hd *::before, .vv-hd *::after { box-sizing: border-box; }
@@ -414,7 +416,11 @@
   padding: 14px 0;
   position: relative;
   color: var(--north-ocean);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
 }
+.vv-hd .ex-tab:hover { color: var(--guldockra); }
 .vv-hd .ex-tab.active::after {
   content:""; position: absolute;
   bottom: -1px; left: 0; right: 0;
@@ -756,27 +762,27 @@
       </div>
 
       <div class="ex-tabs" role="tablist" aria-label="Filtrera utställare">
-        <div class="ex-tab active">Alla</div>
-        <div class="ex-tab">I sjön</div>
-        <div class="ex-tab">På land</div>
+        <button type="button" class="ex-tab active" data-filter="all">Alla</button>
+        <button type="button" class="ex-tab" data-filter="sea">I sjön</button>
+        <button type="button" class="ex-tab" data-filter="land">På land</button>
       </div>
 
       <div class="exhibitors">
-        <div class="ex-card"><div class="ex-badge sea"><svg viewBox="0 0 24 24" fill="none"><path d="M3 17c2 0 2-2 5-2s5 2 8 2 2-2 5-2M5 14V6h6l3 4h5v4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></div><h3>West Coast Marine</h3><p>Sargo, Delta &amp; Navan</p><small>I sjön</small></div>
-        <div class="ex-card"><div class="ex-badge sea"><svg viewBox="0 0 24 24" fill="none"><path d="M3 17c2 0 2-2 5-2s5 2 8 2 2-2 5-2M5 14V6h6l3 4h5v4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></div><h3>Targa</h3><p>Robusta motorbåtar för nordiska förhållanden</p><small>I sjön</small></div>
-        <div class="ex-card"><div class="ex-badge sea"><svg viewBox="0 0 24 24" fill="none"><path d="M3 17c2 0 2-2 5-2s5 2 8 2 2-2 5-2M5 14V6h6l3 4h5v4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></div><h3>Hallberg-Rassy</h3><p>Visning av Hallberg-Rassy 37</p><small>I sjön</small></div>
-        <div class="ex-card"><div class="ex-badge sea"><svg viewBox="0 0 24 24" fill="none"><path d="M3 17c2 0 2-2 5-2s5 2 8 2 2-2 5-2M5 14V6h6l3 4h5v4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></div><h3>Princess Yachts</h3><p>Visning av Princess 65</p><small>I sjön</small></div>
-        <div class="ex-card"><div class="ex-badge sea"><svg viewBox="0 0 24 24" fill="none"><path d="M3 17c2 0 2-2 5-2s5 2 8 2 2-2 5-2M5 14V6h6l3 4h5v4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></div><h3>Nautus</h3><p>Moderna motorbåtar</p><small>I sjön</small></div>
-        <div class="ex-card"><div class="ex-badge sea"><svg viewBox="0 0 24 24" fill="none"><path d="M12 4l8 8-8 8M4 12h16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></div><h3>Sjöräddningen</h3><p>Räddningsbåtar och verksamhet på plats</p><small>I sjön</small></div>
-        <div class="ex-card"><div class="ex-badge land"><svg viewBox="0 0 24 24" fill="none"><path d="M4 20V8l8-4 8 4v12M9 20v-6h6v6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></div><h3>Wahlborgs Marina</h3><p>Marina tjänster och båtliv</p><small>På land</small></div>
-        <div class="ex-card"><div class="ex-badge land"><svg viewBox="0 0 24 24" fill="none"><path d="M4 20V8l8-4 8 4v12M9 20v-6h6v6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></div><h3>Calexico Wood</h3><p>Exklusiva träprodukter</p><small>På land</small></div>
-        <div class="ex-card"><div class="ex-badge land"><svg viewBox="0 0 24 24" fill="none"><path d="M4 20V8l8-4 8 4v12M9 20v-6h6v6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></div><h3>Ringens Varv</h3><p>Volvo Penta reparationsvarv</p><small>På land</small></div>
-        <div class="ex-card"><div class="ex-badge land"><svg viewBox="0 0 24 24" fill="none"><path d="M4 20V8l8-4 8 4v12M9 20v-6h6v6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></div><h3>Långedrags Konstrunda</h3><p>5 sjöbodar som konstgallerier</p><small>På land</small></div>
-        <div class="ex-card"><div class="ex-badge land"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.6"/><path d="M8 12l3 3 5-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></div><h3>Oden Tracking</h3><p>Spårning och säkerhet för båt</p><small>På land</small></div>
-        <div class="ex-card"><div class="ex-badge land"><svg viewBox="0 0 24 24" fill="none"><path d="M4 20V8l8-4 8 4v12M9 20v-6h6v6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></div><h3>Svärdegård Kullbo</h3><p>Sjöbodar och visning på plats</p><small>På land</small></div>
-        <div class="ex-card"><div class="ex-badge land"><svg viewBox="0 0 24 24" fill="none"><path d="M4 12c4 0 4-4 8-4s4 4 8 4M4 18c4 0 4-4 8-4s4 4 8 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></div><h3>Kom &amp; lek</h3><p>Hoppborg för barnen</p><small>På land</small></div>
-        <div class="ex-card"><div class="ex-badge land"><svg viewBox="0 0 24 24" fill="none"><path d="M4 20V8l8-4 8 4v12M9 20v-6h6v6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></div><h3>Båtplatser och sjöbodar</h3><p>Öppet för visning</p><small>På land</small></div>
-        <div class="ex-card gold"><div class="ex-badge"><svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div><h3>Fler tillkommer</h3><p>Programmet uppdateras löpande inför dagen.</p><small>Håll utkik</small></div>
+        <div class="ex-card" data-cat="sea"><div class="ex-badge sea"><svg viewBox="0 0 24 24" fill="none"><path d="M3 17c2 0 2-2 5-2s5 2 8 2 2-2 5-2M5 14V6h6l3 4h5v4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></div><h3>West Coast Marine</h3><p>Sargo, Delta &amp; Navan</p><small>I sjön</small></div>
+        <div class="ex-card" data-cat="sea"><div class="ex-badge sea"><svg viewBox="0 0 24 24" fill="none"><path d="M3 17c2 0 2-2 5-2s5 2 8 2 2-2 5-2M5 14V6h6l3 4h5v4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></div><h3>Targa</h3><p>Robusta motorbåtar för nordiska förhållanden</p><small>I sjön</small></div>
+        <div class="ex-card" data-cat="sea"><div class="ex-badge sea"><svg viewBox="0 0 24 24" fill="none"><path d="M3 17c2 0 2-2 5-2s5 2 8 2 2-2 5-2M5 14V6h6l3 4h5v4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></div><h3>Hallberg-Rassy</h3><p>Visning av Hallberg-Rassy 37</p><small>I sjön</small></div>
+        <div class="ex-card" data-cat="sea"><div class="ex-badge sea"><svg viewBox="0 0 24 24" fill="none"><path d="M3 17c2 0 2-2 5-2s5 2 8 2 2-2 5-2M5 14V6h6l3 4h5v4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></div><h3>Princess Yachts</h3><p>Visning av Princess 65</p><small>I sjön</small></div>
+        <div class="ex-card" data-cat="sea"><div class="ex-badge sea"><svg viewBox="0 0 24 24" fill="none"><path d="M3 17c2 0 2-2 5-2s5 2 8 2 2-2 5-2M5 14V6h6l3 4h5v4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></div><h3>Nautus</h3><p>Moderna motorbåtar</p><small>I sjön</small></div>
+        <div class="ex-card" data-cat="sea"><div class="ex-badge sea"><svg viewBox="0 0 24 24" fill="none"><path d="M12 4l8 8-8 8M4 12h16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></div><h3>Sjöräddningen</h3><p>Räddningsbåtar och verksamhet på plats</p><small>I sjön</small></div>
+        <div class="ex-card" data-cat="land"><div class="ex-badge land"><svg viewBox="0 0 24 24" fill="none"><path d="M4 20V8l8-4 8 4v12M9 20v-6h6v6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></div><h3>Wahlborgs Marina</h3><p>Marina tjänster och båtliv</p><small>På land</small></div>
+        <div class="ex-card" data-cat="land"><div class="ex-badge land"><svg viewBox="0 0 24 24" fill="none"><path d="M4 20V8l8-4 8 4v12M9 20v-6h6v6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></div><h3>Calexico Wood</h3><p>Exklusiva träprodukter</p><small>På land</small></div>
+        <div class="ex-card" data-cat="land"><div class="ex-badge land"><svg viewBox="0 0 24 24" fill="none"><path d="M4 20V8l8-4 8 4v12M9 20v-6h6v6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></div><h3>Ringens Varv</h3><p>Volvo Penta reparationsvarv</p><small>På land</small></div>
+        <div class="ex-card" data-cat="land"><div class="ex-badge land"><svg viewBox="0 0 24 24" fill="none"><path d="M4 20V8l8-4 8 4v12M9 20v-6h6v6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></div><h3>Långedrags Konstrunda</h3><p>5 sjöbodar som konstgallerier</p><small>På land</small></div>
+        <div class="ex-card" data-cat="land"><div class="ex-badge land"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.6"/><path d="M8 12l3 3 5-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></div><h3>Oden Tracking</h3><p>Spårning och säkerhet för båt</p><small>På land</small></div>
+        <div class="ex-card" data-cat="land"><div class="ex-badge land"><svg viewBox="0 0 24 24" fill="none"><path d="M4 20V8l8-4 8 4v12M9 20v-6h6v6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></div><h3>Svärdegård Kullbo</h3><p>Sjöbodar och visning på plats</p><small>På land</small></div>
+        <div class="ex-card" data-cat="land"><div class="ex-badge land"><svg viewBox="0 0 24 24" fill="none"><path d="M4 12c4 0 4-4 8-4s4 4 8 4M4 18c4 0 4-4 8-4s4 4 8 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></div><h3>Kom &amp; lek</h3><p>Hoppborg för barnen</p><small>På land</small></div>
+        <div class="ex-card" data-cat="land"><div class="ex-badge land"><svg viewBox="0 0 24 24" fill="none"><path d="M4 20V8l8-4 8 4v12M9 20v-6h6v6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></div><h3>Båtplatser och sjöbodar</h3><p>Öppet för visning</p><small>På land</small></div>
+        <div class="ex-card gold" data-cat="all"><div class="ex-badge"><svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div><h3>Fler tillkommer</h3><p>Programmet uppdateras löpande inför dagen.</p><small>Håll utkik</small></div>
       </div>
     </div>
   </section>
@@ -791,7 +797,7 @@
       <div class="container">
         <div class="wide-band-inner">
           <span class="label">FÖRRA ÅRET</span>
-          <h3>1 200+ besökare<span class="sep">·</span>17 utställare<span class="sep">·</span>6 sjöbodar öppna</h3>
+          <h3>600+ besökare<span class="sep">·</span>17 utställare<span class="sep">·</span>6 sjöbodar öppna</h3>
           <span class="label">2025</span>
         </div>
       </div>
@@ -892,4 +898,25 @@
   </div>
 
 </div>
+
+<script>
+(function () {
+  var root = document.querySelector('.vv-hd');
+  if (!root) return;
+  var tabs  = root.querySelectorAll('.ex-tab');
+  var cards = root.querySelectorAll('.ex-card');
+  tabs.forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      var filter = tab.getAttribute('data-filter');
+      tabs.forEach(function (t) { t.classList.remove('active'); });
+      tab.classList.add('active');
+      cards.forEach(function (card) {
+        var cat = card.getAttribute('data-cat');
+        var show = filter === 'all' || cat === filter || cat === 'all';
+        card.style.display = show ? '' : 'none';
+      });
+    });
+  });
+})();
+</script>
 <!-- /Ängholmens Hamndag 2026 -->
