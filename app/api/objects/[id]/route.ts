@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase'
+import { geocodeAndPersist } from '@/lib/geocoder'
 import { Channel } from '@/types'
 
 function getPriceRange(price: number): string {
@@ -94,6 +95,75 @@ export async function PATCH(
     return NextResponse.json({ object: updated, bid_premium_pct: bidPremiumPct })
   } catch (err) {
     console.error('[/api/objects/[id]]', err)
+    const message = err instanceof Error ? err.message : 'Okänt fel'
+    return NextResponse.json({ error: message }, { status: 500 })
+  }
+}
+
+export async function PUT(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const supabase = createSupabaseServerClient()
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Ej autentiserad' }, { status: 401 })
+    }
+
+    const body = await req.json()
+    const {
+      address, area, type, size, price, details, story, image_analysis, brands,
+      tenure, plot_area, construction_year, monthly_fee, operating_cost_yearly,
+      energy_class, bedrooms, standard_class, heating, ventilation, parking, renovations,
+      status,
+    } = body
+
+    if (!address || !area || !type || !size || !price) {
+      return NextResponse.json({ error: 'Obligatoriska fält saknas' }, { status: 400 })
+    }
+
+    const { data: object, error: updateError } = await supabase
+      .from('objects')
+      .update({
+        address,
+        area,
+        type,
+        size: Number(size),
+        price: Number(price),
+        details: details ?? '',
+        story: story ?? null,
+        status: status ?? 'active',
+        brands: brands && Object.keys(brands).length > 0 ? brands : {},
+        tenure: tenure || null,
+        plot_area: plot_area ?? null,
+        construction_year: construction_year ?? null,
+        monthly_fee: monthly_fee ?? null,
+        operating_cost_yearly: operating_cost_yearly ?? null,
+        energy_class: energy_class || null,
+        bedrooms: bedrooms || null,
+        standard_class: standard_class || null,
+        heating: heating || null,
+        ventilation: ventilation || null,
+        parking: parking || null,
+        renovations: renovations && Object.keys(renovations).length > 0 ? renovations : null,
+        ...(image_analysis ? { image_analysis } : {}),
+      })
+      .eq('id', params.id)
+      .select()
+      .single()
+
+    if (updateError) throw new Error(updateError.message)
+    if (!object) return NextResponse.json({ error: 'Objekt hittades inte' }, { status: 404 })
+
+    // Re-geocode if address changed
+    geocodeAndPersist(supabase, object.id, address, area ?? undefined)
+      .catch((err) => console.error('[objects PUT] geocode error:', err))
+
+    return NextResponse.json({ object })
+  } catch (err) {
+    console.error('[/api/objects/[id] PUT]', err)
     const message = err instanceof Error ? err.message : 'Okänt fel'
     return NextResponse.json({ error: message }, { status: 500 })
   }

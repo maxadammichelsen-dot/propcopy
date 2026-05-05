@@ -2,12 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase'
 import { createSupabaseAdminClient } from '@/lib/supabase-admin'
 import { anthropic, MODEL } from '@/lib/anthropic'
-import type { ImageObservation, ImageObservationCandidate, ObservationType, RoomType } from '@/types'
+import { uploadObjectImage } from '@/lib/storage'
+import type { ImageObservation, ImageObservationCandidate, ImageWithObservations, ObservationType, RoomType } from '@/types'
 
 const MAX_IMAGES = 15
 const MIN_CONFIDENCE = 0.65
 
-// Exact system prompt as specified — drives confidence-based observation extraction.
 const SYSTEM_PROMPT = `Du analyserar bilder från en bostadsannons. Din uppgift är att identifiera \
 KONKRETA material och inredningsdetaljer som syns i bilden — INTE att skriva beskrivande text.
 
@@ -52,7 +52,7 @@ interface PerImageRaw {
 }
 
 interface CandidateWithRef extends ImageObservationCandidate {
-  imageRef: string
+  imageRef: string  // storage_path or fallback "image-N"
 }
 
 async function analyzeOneImage(dataUrl: string, imageRef: string): Promise<CandidateWithRef[]> {
@@ -109,14 +109,31 @@ export async function POST(req: NextRequest) {
 
     const limited = images.slice(0, MAX_IMAGES)
 
-    // Analyze each image in parallel — one Claude call per image
-    const perImageCandidates = await Promise.all(
-      limited.map((dataUrl, i) => analyzeOneImage(dataUrl, `image-${i + 1}`))
-    )
-    const allCandidates = perImageCandidates.flat()
+    // Upload + analyze each image in parallel
+    const perImageResults = await Promise.all(
+      limited.map(async (dataUrl, i) => {
+        let storage_path: string | null = null
+        let signed_url: string | null = null
 
-    // Double-safety filter: confidence < MIN_CONFIDENCE should already be excluded
-    // by Claude per prompt, but we enforce it server-side too
+        if (object_id) {
+          try {
+            const uploaded = await uploadObjectImage(object_id, dataUrl)
+            storage_path = uploaded.storage_path
+            signed_url = uploaded.signed_url
+          } catch (err) {
+            console.error(`[image-analyzer] upload failed for image-${i + 1}:`, err)
+          }
+        }
+
+        const imageRef = storage_path ?? `image-${i + 1}`
+        const candidates = await analyzeOneImage(dataUrl, imageRef)
+
+        return { storage_path, signed_url, candidates }
+      })
+    )
+
+    // Flat list of all accepted candidates
+    const allCandidates = perImageResults.flatMap(r => r.candidates)
     const accepted: CandidateWithRef[] = []
     const filtered: CandidateWithRef[] = []
     for (const c of allCandidates) {
@@ -131,12 +148,11 @@ export async function POST(req: NextRequest) {
       console.info('[image-analyzer] filtered low-confidence:', filtered)
     }
 
-    // Persist pending observations via service-role (bypasses RLS — same pattern as openstreetmap.ts)
+    // Persist pending observations via service-role (bypasses RLS)
     let persistedRows: ImageObservation[] = []
     if (object_id && accepted.length > 0) {
       const admin = createSupabaseAdminClient()
 
-      // Clear stale pending observations from any previous analysis run for this object
       await admin
         .from('image_observations')
         .delete()
@@ -166,10 +182,24 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Build per-image response — group observations by storage_path / imageRef
+    const obsSource = persistedRows.length > 0 ? persistedRows : accepted
+    const imageGroups: ImageWithObservations[] = perImageResults.map((r, i) => {
+      const ref = r.storage_path ?? `image-${i + 1}`
+      const obs = obsSource.filter(o =>
+        'imageRef' in o ? (o as CandidateWithRef).imageRef === ref : o.image_url === ref
+      )
+      return {
+        storage_path: r.storage_path,
+        signed_url: r.signed_url,
+        observations: obs as ImageObservation[],
+      }
+    })
+
     return NextResponse.json({
       object_id: object_id ?? null,
       total_images: limited.length,
-      observations: persistedRows.length > 0 ? persistedRows : accepted,
+      images: imageGroups,
     })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Okänt fel'
