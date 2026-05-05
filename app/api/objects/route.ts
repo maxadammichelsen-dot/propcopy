@@ -94,10 +94,10 @@ export async function POST(req: NextRequest) {
         status: 'draft',
         brands: brands && Object.keys(brands).length > 0 ? brands : {},
         tenure: tenure || null,
-        plot_area: plot_area ?? null,
-        construction_year: construction_year ?? null,
-        monthly_fee: monthly_fee ?? null,
-        operating_cost_yearly: operating_cost_yearly ?? null,
+        plot_area: plot_area ? Number(plot_area) : null,
+        construction_year: construction_year ? Number(construction_year) : null,
+        monthly_fee: monthly_fee ? Number(monthly_fee) : null,
+        operating_cost_yearly: operating_cost_yearly ? Number(operating_cost_yearly) : null,
         energy_class: energy_class || null,
         bedrooms: bedrooms || null,
         standard_class: standard_class || null,
@@ -120,6 +120,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ object }, { status: 201 })
   } catch (err) {
+    console.error('[/api/objects POST]', err)
     const message = err instanceof Error ? err.message : 'Okänt fel'
     return NextResponse.json({ error: message }, { status: 500 })
   }
