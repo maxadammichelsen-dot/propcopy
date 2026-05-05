@@ -103,6 +103,19 @@ export interface ImageObservationCandidate {
   confidence: number
 }
 
+// Returned per image from /api/analyze-images after upload + analysis
+export interface ImageWithObservations {
+  storage_path: string | null    // <object_id>/<uuid>.jpg — null when no object_id
+  signed_url: string | null      // 1-hour signed URL for display; null when no object_id
+  observations: ImageObservation[]
+}
+
+// Body for PATCH /api/image-observations/[id]
+export interface ImageObservationUpdate {
+  status?: 'confirmed' | 'rejected'
+  value?: string                 // mäklaren kan redigera värde vid bekräftelse
+}
+
 // ─── Room observations (legacy image_analysis path) ──────────────────────────
 
 export interface RoomObservation {
