@@ -6,7 +6,8 @@ import BrandSelector from './BrandSelector'
 import FactsTechStep, { type RenovationEntry } from './FactsTechStep'
 import AddressAutocomplete from './AddressAutocomplete'
 import Step0SnabbImport, { type ImportPayload } from './Step0SnabbImport'
-import type { AddressSuggestion, ImageAnalysis, PropertyObject } from '@/types'
+import ImageObservationsReview from './ImageObservationsReview'
+import type { AddressSuggestion, ImageAnalysis, ImageWithObservations, PropertyObject } from '@/types'
 
 const AUTO_ANALYZE_DEBOUNCE_MS = 1500
 type AnalysisStatus = 'idle' | 'fresh' | 'partially-stale'
@@ -69,6 +70,9 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
   const [analyzeError, setAnalyzeError]   = useState('')
   const [dragOver, setDragOver]           = useState(false)
   const [showAnalysisWarning, setShowAnalysisWarning] = useState(false)
+  const [draftObjectId, setDraftObjectId] = useState<string | null>(null)
+  const [imageGroups, setImageGroups]     = useState<ImageWithObservations[]>([])
+  const [showObservationsReview, setShowObservationsReview] = useState(false)
   const fileInputRef                      = useRef<HTMLInputElement>(null)
   const debounceTimerRef                  = useRef<ReturnType<typeof setTimeout> | null>(null)
   const analyzeRef                        = useRef<() => Promise<void>>(async () => {})
@@ -168,6 +172,30 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
     scheduleAutoAnalyze()
   }
 
+  async function ensureDraftObject(): Promise<string | null> {
+    if (draftObjectId) return draftObjectId
+    if (!form.address || !form.area || !form.type || !form.size || !form.price) return null
+    try {
+      const res = await fetch('/api/objects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...form,
+          size: Number(form.size),
+          price: Number(form.price.replace(/\s/g, '')),
+          story: form.story.trim() || null,
+          status: 'draft',
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.object?.id) return null
+      setDraftObjectId(data.object.id)
+      return data.object.id
+    } catch {
+      return null
+    }
+  }
+
   async function handleAnalyzeImages() {
     if (imageBase64s.length === 0 || analyzing) return
     if (debounceTimerRef.current) {
@@ -177,14 +205,20 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
     setAnalyzing(true)
     setAnalyzeError('')
     try {
+      const objectId = await ensureDraftObject()
       const res = await fetch('/api/analyze-images', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ images: imageBase64s }),
+        body: JSON.stringify({ images: imageBase64s, ...(objectId ? { object_id: objectId } : {}) }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Analys misslyckades')
-      setImageAnalysis(data.image_analysis)
+      if (Array.isArray(data.images) && data.images.length > 0) {
+        setImageGroups(data.images as ImageWithObservations[])
+        setShowObservationsReview(true)
+      }
+      // Keep legacy imageAnalysis display if present (backwards compat)
+      if (data.image_analysis) setImageAnalysis(data.image_analysis)
       setAnalysisStatus('fresh')
     } catch (err) {
       setAnalyzeError(err instanceof Error ? err.message : 'Analys misslyckades')
@@ -211,42 +245,46 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
   }
 
   async function handleSubmit() {
-    if (imageBase64s.length > 0 && !imageAnalysis && !analyzing && !showAnalysisWarning) {
+    const analysisSkipped = imageBase64s.length > 0 && !imageAnalysis && imageGroups.length === 0
+    if (analysisSkipped && !analyzing && !showAnalysisWarning) {
       setShowAnalysisWarning(true)
       return
     }
     setShowAnalysisWarning(false)
     setLoading(true)
     setError('')
-    const res = await fetch('/api/objects', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ...form,
-        size: Number(form.size),
-        price: Number(form.price.replace(/\s/g, '')),
-        story: form.story.trim() || null,
-        tenure: form.tenure || null,
-        plot_area: form.plot_area ? Number(form.plot_area) : null,
-        construction_year: form.construction_year ? Number(form.construction_year) : null,
-        monthly_fee: form.monthly_fee ? Number(form.monthly_fee) : null,
-        operating_cost_yearly: form.operating_cost_yearly ? Number(form.operating_cost_yearly) : null,
-        energy_class: form.energy_class || null,
-        bedrooms: form.bedrooms.trim() || null,
-        standard_class: form.standard_class || null,
-        heating: form.heating || null,
-        ventilation: form.ventilation || null,
-        parking: form.parking.trim() || null,
-        renovations: (() => {
-          const filled = Object.fromEntries(Object.entries(renovations).filter(([, v]) => v.year || v.note))
-          return Object.keys(filled).length > 0 ? filled : null
-        })(),
-        brands: Object.fromEntries(Object.entries(brands).filter(([, v]) => v.length > 0)),
-        ...(imageAnalysis ? { image_analysis: imageAnalysis } : {}),
-        ...(importSource ? { import_source: importSource } : {}),
-        ...(importConfidence ? { import_confidence: importConfidence } : {}),
-      }),
+
+    const body = JSON.stringify({
+      ...form,
+      size: Number(form.size),
+      price: Number(form.price.replace(/\s/g, '')),
+      story: form.story.trim() || null,
+      tenure: form.tenure || null,
+      plot_area: form.plot_area ? Number(form.plot_area) : null,
+      construction_year: form.construction_year ? Number(form.construction_year) : null,
+      monthly_fee: form.monthly_fee ? Number(form.monthly_fee) : null,
+      operating_cost_yearly: form.operating_cost_yearly ? Number(form.operating_cost_yearly) : null,
+      energy_class: form.energy_class || null,
+      bedrooms: form.bedrooms.trim() || null,
+      standard_class: form.standard_class || null,
+      heating: form.heating || null,
+      ventilation: form.ventilation || null,
+      parking: form.parking.trim() || null,
+      renovations: (() => {
+        const filled = Object.fromEntries(Object.entries(renovations).filter(([, v]) => v.year || v.note))
+        return Object.keys(filled).length > 0 ? filled : null
+      })(),
+      brands: Object.fromEntries(Object.entries(brands).filter(([, v]) => v.length > 0)),
+      ...(imageAnalysis ? { image_analysis: imageAnalysis } : {}),
+      ...(importSource ? { import_source: importSource } : {}),
+      ...(importConfidence ? { import_confidence: importConfidence } : {}),
+      status: 'active',
     })
+
+    const res = draftObjectId
+      ? await fetch(`/api/objects/${draftObjectId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body })
+      : await fetch('/api/objects', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body })
+
     const data = await res.json()
     if (!res.ok) {
       setError(data.error ?? 'Något gick fel')
@@ -264,6 +302,18 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
         onImportDone={handleImportDone}
         onSkip={handleSkipImport}
         onCancel={onCancel}
+      />
+    )
+  }
+
+  if (showObservationsReview && imageGroups.length > 0) {
+    return (
+      <ImageObservationsReview
+        imageGroups={imageGroups}
+        onDone={confirmed => {
+          setImageGroups(confirmed)
+          setShowObservationsReview(false)
+        }}
       />
     )
   }
@@ -519,10 +569,27 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
                   <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11px', color: 'var(--mute)' }}>
                     {imageBase64s.length} av {MAX_IMAGES} bilder
                   </span>
-                  {imageAnalysis && !analyzing && analysisStatus === 'fresh' && (
+                  {analysisStatus === 'fresh' && !analyzing && (
                     <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11px', color: '#16a34a' }}>
-                      ✓ Analys klar{imageAnalysis.rooms?.length ? ` (${imageAnalysis.rooms.length} rum)` : ''}
+                      {imageGroups.length > 0
+                        ? `✓ ${imageGroups.flatMap(g => g.observations.filter(o => o.status === 'confirmed')).length} observationer bekräftade`
+                        : imageAnalysis?.rooms?.length
+                          ? `✓ Analys klar (${imageAnalysis.rooms.length} rum)`
+                          : '✓ Analys klar'}
                     </span>
+                  )}
+                  {imageGroups.length > 0 && !analyzing && (
+                    <button
+                      type="button"
+                      onClick={() => setShowObservationsReview(true)}
+                      style={{
+                        padding: '4px 10px', border: '1px solid var(--line)', borderRadius: '5px',
+                        fontSize: '12px', fontFamily: "'Geist Mono', monospace", color: 'var(--mute)',
+                        background: 'transparent', cursor: 'pointer', letterSpacing: '-0.01em',
+                      }}
+                    >
+                      Granska observationer
+                    </button>
                   )}
                   {imageAnalysis && !analyzing && analysisStatus === 'partially-stale' && (
                     <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11px', color: 'var(--mute)' }}>
