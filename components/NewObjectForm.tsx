@@ -7,7 +7,7 @@ import FactsTechStep, { type RenovationEntry } from './FactsTechStep'
 import AddressAutocomplete from './AddressAutocomplete'
 import Step0SnabbImport, { type ImportPayload } from './Step0SnabbImport'
 import ImageObservationsReview from './ImageObservationsReview'
-import type { AddressSuggestion, ImageAnalysis, ImageCategory, ImageWithObservations, PropertyObject } from '@/types'
+import type { AddressSuggestion, ImageAnalysis, ImageCategory, ImageWithObservations, MarketIntelligence, PropertyObject } from '@/types'
 
 const AUTO_ANALYZE_DEBOUNCE_MS = 1500
 type AnalysisStatus = 'idle' | 'fresh' | 'partially-stale'
@@ -74,9 +74,11 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
   const [draftObjectId, setDraftObjectId] = useState<string | null>(null)
   const [imageGroups, setImageGroups]     = useState<ImageWithObservations[]>([])
   const [showObservationsReview, setShowObservationsReview] = useState(false)
+  const [importedMarketIntelligence, setImportedMarketIntelligence] = useState<MarketIntelligence | null>(null)
   const fileInputRef                      = useRef<HTMLInputElement>(null)
   const debounceTimerRef                  = useRef<ReturnType<typeof setTimeout> | null>(null)
   const analyzeRef                        = useRef<() => Promise<void>>(async () => {})
+  const marketDataPersistedRef            = useRef(false)
 
   function update(field: string, value: string) {
     setForm(f => ({ ...f, [field]: value }))
@@ -112,6 +114,10 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
     setImportConfidence(payload.confidence)
     setImportedFields(payload.fields)
     applyImportedFields(payload.fields)
+    if (payload.marketIntelligence) {
+      setImportedMarketIntelligence(payload.marketIntelligence)
+      marketDataPersistedRef.current = false
+    }
     if (droppedImages.length > 0) {
       const remaining = MAX_IMAGES - imageBase64s.length
       if (remaining > 0) {
@@ -205,6 +211,20 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
     }
   }
 
+  async function persistMarketData(objectId: string) {
+    if (!importedMarketIntelligence || marketDataPersistedRef.current) return
+    marketDataPersistedRef.current = true
+    try {
+      await fetch(`/api/objects/${objectId}/market-data`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ marketIntelligence: importedMarketIntelligence }),
+      })
+    } catch {
+      marketDataPersistedRef.current = false
+    }
+  }
+
   async function handleAnalyzeImages() {
     if (imageBase64s.length === 0 || analyzing) return
     if (debounceTimerRef.current) {
@@ -215,6 +235,7 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
     setAnalyzeError('')
     try {
       const objectId = await ensureDraftObject()
+      if (objectId) await persistMarketData(objectId)
       const res = await fetch('/api/analyze-images', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -304,6 +325,7 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
       setLoading(false)
       return
     }
+    if (data.object?.id) await persistMarketData(data.object.id)
     onCreated(data.object)
   }
 

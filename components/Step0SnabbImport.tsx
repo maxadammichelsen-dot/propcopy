@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import type { PropertyObject } from '@/types'
+import type { ExtractionConfidence, MarketIntelligence, PropertyObject } from '@/types'
+import { formatMarketConfirmationCard } from '@/lib/market-intelligence-formatter'
 
 const PROGRESS_TEXTS = [
   'Läser objektsbeskrivning…',
@@ -16,6 +17,7 @@ export interface ImportPayload {
   fields: Partial<PropertyObject>
   confidence: Record<string, number>
   source: string
+  marketIntelligence?: MarketIntelligence
 }
 
 interface Step0SnabbImportProps {
@@ -38,7 +40,18 @@ function isAllowedImage(file: File): boolean {
   return file.type.startsWith('image/') || /\.(jpe?g|png|webp|heic)$/i.test(file.name)
 }
 
+async function fileToBase64(file: File): Promise<string> {
+  const arrayBuf = await file.arrayBuffer()
+  const bytes = new Uint8Array(arrayBuf)
+  let binary = ''
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i])
+  }
+  return btoa(binary)
+}
+
 export default function Step0SnabbImport({ onImportDone, onSkip, onCancel }: Step0SnabbImportProps) {
+  // Main import state
   const [pdf, setPdf] = useState<File | null>(null)
   const [images, setImages] = useState<File[]>([])
   const [pdfDrag, setPdfDrag] = useState(false)
@@ -48,6 +61,16 @@ export default function Step0SnabbImport({ onImportDone, onSkip, onCancel }: Ste
   const [error, setError] = useState('')
   const pdfInputRef = useRef<HTMLInputElement>(null)
   const imgInputRef = useRef<HTMLInputElement>(null)
+
+  // Intagsrapport state
+  const [intagsrapport, setIntagsrapport] = useState<File | null>(null)
+  const [intagDrag, setIntagDrag] = useState(false)
+  const [extractingIntag, setExtractingIntag] = useState(false)
+  const [marketIntelligence, setMarketIntelligence] = useState<MarketIntelligence | null>(null)
+  const [marketConfidence, setMarketConfidence] = useState<ExtractionConfidence | null>(null)
+  const [showMarketConfirm, setShowMarketConfirm] = useState(false)
+  const [intagError, setIntagError] = useState('')
+  const intagInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (!running) return
@@ -74,6 +97,48 @@ export default function Step0SnabbImport({ onImportDone, onSkip, onCancel }: Ste
     setImages(prev => prev.filter((_, i) => i !== idx))
   }
 
+  async function handleIntagFile(file: File) {
+    setIntagsrapport(file)
+    setIntagError('')
+    setShowMarketConfirm(false)
+    setMarketIntelligence(null)
+    setMarketConfidence(null)
+    setExtractingIntag(true)
+    try {
+      const base64 = await fileToBase64(file)
+      const res = await fetch('/api/extract-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pdf_type: 'intagsrapport', file_base64: base64 }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Extraktion misslyckades')
+      setMarketIntelligence(data.extracted)
+      setMarketConfidence(data.confidence ?? null)
+      setShowMarketConfirm(true)
+    } catch (err) {
+      setIntagError(err instanceof Error ? err.message : 'Extraktion misslyckades')
+    } finally {
+      setExtractingIntag(false)
+    }
+  }
+
+  function handleIntagFiles(list: FileList | File[]) {
+    const arr = Array.from(list).filter(isPdf)
+    if (arr.length > 0) handleIntagFile(arr[0])
+  }
+
+  function acceptMarketData() {
+    setShowMarketConfirm(false)
+  }
+
+  function skipMarketData() {
+    setMarketIntelligence(null)
+    setMarketConfidence(null)
+    setShowMarketConfirm(false)
+    setIntagsrapport(null)
+  }
+
   async function runImport() {
     if (!pdf || running) return
     setRunning(true)
@@ -89,7 +154,12 @@ export default function Step0SnabbImport({ onImportDone, onSkip, onCancel }: Ste
         throw new Error(data.error ?? 'Import misslyckades')
       }
       onImportDone(
-        { fields: data.fields ?? {}, confidence: data.confidence ?? {}, source: data.source ?? 'pdf' },
+        {
+          fields: data.fields ?? {},
+          confidence: data.confidence ?? {},
+          source: data.source ?? 'pdf',
+          marketIntelligence: marketIntelligence ?? undefined,
+        },
         images,
       )
     } catch (err) {
@@ -99,6 +169,12 @@ export default function Step0SnabbImport({ onImportDone, onSkip, onCancel }: Ste
   }
 
   const canRun = !!pdf && !running
+
+  const confidenceLabel: Record<string, string> = {
+    high: 'Hög',
+    medium: 'Normal',
+    low: 'Låg',
+  }
 
   return (
     <div style={{ position: 'absolute', inset: 0, background: 'var(--bg)' }}>
@@ -145,6 +221,10 @@ export default function Step0SnabbImport({ onImportDone, onSkip, onCancel }: Ste
         <input
           ref={imgInputRef} type="file" accept={IMAGE_ACCEPT} multiple style={{ display: 'none' }}
           onChange={e => { if (e.target.files) handleImageFiles(e.target.files); e.currentTarget.value = '' }}
+        />
+        <input
+          ref={intagInputRef} type="file" accept={PDF_ACCEPT} style={{ display: 'none' }}
+          onChange={e => { if (e.target.files) handleIntagFiles(e.target.files); e.currentTarget.value = '' }}
         />
 
         {/* PDF drop zone */}
@@ -281,6 +361,210 @@ export default function Step0SnabbImport({ onImportDone, onSkip, onCancel }: Ste
             ))}
           </div>
         )}
+
+        {/* ── Intagsrapport section ──────────────────── */}
+        <div style={{ marginTop: '24px' }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px',
+          }}>
+            <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11px', color: 'var(--mute)', letterSpacing: '0.03em', textTransform: 'uppercase' }}>
+              Marknadsdata — valfritt
+            </span>
+            <div style={{ flex: 1, height: '1px', background: 'var(--line)' }} />
+          </div>
+          <p style={{ fontSize: '13px', color: 'var(--mute)', letterSpacing: '-0.01em', marginBottom: '12px' }}>
+            Dra in Intagsrapporten (Värderingsdata via Vitec) så inkluderas marknadsdata automatiskt i texterna.
+          </p>
+
+          {/* Intagsrapport drop zone */}
+          {!intagsrapport && (
+            <div
+              onClick={() => !extractingIntag && !running && intagInputRef.current?.click()}
+              onDragOver={e => { e.preventDefault(); e.stopPropagation(); if (!extractingIntag && !running) setIntagDrag(true) }}
+              onDragLeave={() => setIntagDrag(false)}
+              onDrop={e => {
+                e.preventDefault(); e.stopPropagation(); setIntagDrag(false)
+                if (!extractingIntag && !running) handleIntagFiles(e.dataTransfer.files)
+              }}
+              style={{
+                border: `2px dashed ${intagDrag ? 'var(--ink)' : 'var(--line)'}`,
+                borderRadius: '10px',
+                padding: '20px 24px',
+                display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'center', gap: '8px',
+                cursor: extractingIntag || running ? 'default' : 'pointer',
+                background: intagDrag ? 'var(--tint)' : 'var(--bg)',
+                transition: 'border-color 0.15s, background 0.15s',
+                minHeight: '100px',
+              }}
+            >
+              <span style={{ fontSize: '20px', lineHeight: 1 }}>📊</span>
+              <span style={{ fontSize: '14px', color: 'var(--ink)', fontWeight: 500, letterSpacing: '-0.01em' }}>
+                {intagDrag ? 'Släpp Intagsrapporten här' : 'Dra hit Intagsrapport (PDF)'}
+              </span>
+              <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11px', color: 'var(--mute)' }}>
+                Värderingsdata · Vitec — klicka för att välja
+              </span>
+            </div>
+          )}
+
+          {/* Extracting spinner */}
+          {extractingIntag && (
+            <div style={{
+              padding: '16px 20px',
+              border: '1px solid var(--line)', borderRadius: '10px', background: 'var(--tint)',
+              display: 'flex', alignItems: 'center', gap: '12px',
+            }}>
+              <div style={{
+                width: '16px', height: '16px', borderRadius: '50%',
+                border: '2px solid var(--line)', borderTopColor: 'var(--ink)',
+                animation: 'step0IntagSpin 0.7s linear infinite', flexShrink: 0,
+              }} />
+              <span style={{ fontSize: '13px', color: 'var(--ink)', letterSpacing: '-0.01em' }}>
+                Läser Intagsrapport…
+              </span>
+              <style>{`@keyframes step0IntagSpin { to { transform: rotate(360deg); } }`}</style>
+            </div>
+          )}
+
+          {/* Intagsrapport error */}
+          {intagError && !extractingIntag && (
+            <div style={{
+              padding: '12px 14px',
+              border: '1px solid var(--accent)', borderRadius: '8px',
+              background: 'rgba(220,38,38,0.04)',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap',
+            }}>
+              <span style={{ fontSize: '13px', color: 'var(--accent)', letterSpacing: '-0.01em' }}>
+                {intagError}
+              </span>
+              <button
+                type="button"
+                onClick={() => { setIntagError(''); setIntagsrapport(null) }}
+                style={{
+                  padding: '5px 10px', borderRadius: '6px',
+                  border: '1px solid var(--line)', background: 'var(--bg)',
+                  fontSize: '12px', color: 'var(--mute)', cursor: 'pointer',
+                  fontFamily: 'inherit', letterSpacing: '-0.01em',
+                }}
+              >
+                Rensa
+              </button>
+            </div>
+          )}
+
+          {/* Confirmation card */}
+          {showMarketConfirm && marketIntelligence && (() => {
+            const card = formatMarketConfirmationCard(marketIntelligence)
+            return (
+              <div style={{
+                border: '1px solid var(--line-2)', borderRadius: '10px',
+                overflow: 'hidden',
+              }}>
+                <div style={{
+                  padding: '12px 16px',
+                  borderBottom: '1px solid var(--line)',
+                  background: 'var(--tint)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                }}>
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)', letterSpacing: '-0.01em' }}>
+                    {card.title}
+                  </span>
+                  {marketConfidence && (
+                    <span style={{
+                      fontFamily: "'Geist Mono', monospace", fontSize: '10px',
+                      color: marketConfidence === 'high' ? '#16a34a' : marketConfidence === 'medium' ? '#ca8a04' : 'var(--mute)',
+                      letterSpacing: '0.04em', textTransform: 'uppercase',
+                    }}>
+                      Tillförlitlighet: {confidenceLabel[marketConfidence] ?? marketConfidence}
+                    </span>
+                  )}
+                </div>
+                <div style={{ padding: '4px 0' }}>
+                  {card.rows.map(row => (
+                    <div
+                      key={row.label}
+                      style={{
+                        display: 'flex', alignItems: 'baseline',
+                        justifyContent: 'space-between', gap: '16px',
+                        padding: '8px 16px',
+                        borderBottom: '1px solid var(--tint)',
+                      }}
+                    >
+                      <span style={{ fontSize: '13px', color: 'var(--mute)', letterSpacing: '-0.01em', flexShrink: 0 }}>
+                        {row.label}
+                      </span>
+                      <span style={{ fontSize: '13px', color: 'var(--ink)', fontWeight: 500, letterSpacing: '-0.01em', textAlign: 'right' }}>
+                        {row.value}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <div style={{
+                  padding: '12px 16px', display: 'flex', gap: '10px', justifyContent: 'flex-end',
+                  borderTop: '1px solid var(--line)',
+                }}>
+                  <button
+                    type="button"
+                    onClick={skipMarketData}
+                    style={{
+                      padding: '7px 14px', borderRadius: '6px',
+                      border: '1px solid var(--line)', background: 'var(--bg)',
+                      fontSize: '13px', color: 'var(--mute)', cursor: 'pointer',
+                      fontFamily: 'inherit', letterSpacing: '-0.01em',
+                    }}
+                  >
+                    Hoppa över
+                  </button>
+                  <button
+                    type="button"
+                    onClick={acceptMarketData}
+                    style={{
+                      padding: '7px 14px', borderRadius: '6px',
+                      border: '1px solid var(--ink)', background: 'var(--ink)',
+                      fontSize: '13px', color: '#fff', cursor: 'pointer', fontWeight: 500,
+                      fontFamily: 'inherit', letterSpacing: '-0.01em',
+                    }}
+                  >
+                    Använd dessa data →
+                  </button>
+                </div>
+              </div>
+            )
+          })()}
+
+          {/* Accepted badge */}
+          {!showMarketConfirm && marketIntelligence && intagsrapport && (
+            <div style={{
+              padding: '10px 14px',
+              border: '1px solid var(--line-2)', borderRadius: '8px',
+              background: 'var(--tint)',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ fontSize: '14px', lineHeight: 1 }}>✓</span>
+                <span style={{ fontSize: '13px', color: 'var(--ink)', letterSpacing: '-0.01em' }}>
+                  Marknadsdata inkluderas
+                </span>
+                <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11px', color: 'var(--mute)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '200px' }}>
+                  {intagsrapport.name}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={skipMarketData}
+                style={{
+                  padding: '5px 10px', borderRadius: '6px',
+                  border: '1px solid var(--line)', background: 'var(--bg)',
+                  fontSize: '12px', color: 'var(--mute)', cursor: 'pointer',
+                  fontFamily: 'inherit', letterSpacing: '-0.01em', flexShrink: 0,
+                }}
+              >
+                Ta bort
+              </button>
+            </div>
+          )}
+        </div>
 
         {/* Progress overlay */}
         {running && (
