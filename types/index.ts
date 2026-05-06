@@ -65,6 +65,49 @@ export interface BrandColors {
 
 export type ImageCategory = 'property' | 'overview'
 
+// ─── Market intelligence (PR 2c-1 — Intagsrapport / Värderingsdata) ──────────
+
+export type StatisticalReliability = 'god' | 'normal' | 'lag'
+
+export interface ComparableSale {
+  id?: string
+  adress: string
+  forsaljningsdatum: string    // ISO date string YYYY-MM-DD
+  pris_kr: number
+  pris_idag_kr?: number
+  boyta?: number
+  biyta?: number
+  tomt_kvm?: number
+  byggar?: number
+  kr_per_kvm?: number
+  taxvarde_kr?: number
+  kt_faktor?: number
+}
+
+export interface ListingForSale {
+  id?: string
+  adress: string
+  utgangspris_kr: number
+  kr_per_kvm?: number
+  boyta?: number
+  antal_rum?: number
+}
+
+export interface MarketIntelligence {
+  bedomt_marknadsvarde?: number
+  bedomt_marknadsvarde_kr_per_kvm?: number
+  statistisk_tillforlitlighet?: StatisticalReliability
+  prisutveckling_3m?: number
+  prisutveckling_6m?: number
+  prisutveckling_12m?: number
+  prisutveckling_24m?: number
+  snitt_annonseringstid_dagar?: number
+  jamforbara_forsaljningar: ComparableSale[]
+  till_salu_i_omradet: ListingForSale[]
+}
+
+export type ExtractionConfidence = 'high' | 'medium' | 'low'
+
 export type RoomType =
   | 'vardagsrum'
   | 'kok'
@@ -202,6 +245,17 @@ export interface PropertyObject {
   byggnadsmaterial?: string
   import_source?: string
   import_confidence?: Record<string, number>
+  // Market intelligence (PR 2c-1)
+  bedomt_marknadsvarde?: number | null
+  bedomt_marknadsvarde_kr_per_kvm?: number | null
+  statistisk_tillforlitlighet?: StatisticalReliability | null
+  prisutveckling_3m?: number | null
+  prisutveckling_6m?: number | null
+  prisutveckling_12m?: number | null
+  prisutveckling_24m?: number | null
+  snitt_annonseringstid_dagar?: number | null
+  marknadsdata_kalla?: string | null
+  marknadsdata_extraherad_at?: string | null
   created_at: string
 }
 
