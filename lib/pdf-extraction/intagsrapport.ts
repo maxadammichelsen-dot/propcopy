@@ -218,7 +218,9 @@ function parseListingLine(line: string): ListingForSale | null {
 function extractListingsForSale(text: string): ListingForSale[] {
   const section = extractSection(
     text,
-    /Till\s+salu\s+i\s+omr[åa]det|Aktiva\s+objekt/i,
+    // Real Värderingsdata PDFs use "Till salu" alone on its own line (not "Till salu i området").
+    // Multiline ^ $ anchors match at line boundaries with the /m flag.
+    /^Till\s+salu\s*$/m,
     // Page break or separator are primary; "Copyright Värderingsdata" is the
     // footer line in Värderingsdata reports and terminates the listings section.
     /\f|---|Copyright\s+V[äa]rderingsdata/i
@@ -280,11 +282,13 @@ export async function extractIntagsrapport(
 
   // DEBUG: section boundary probes
   const comparablesStart = text.search(/S[åa]lts?\s+i\s+omr[åa]det|J[äa]mf[öo]rbara\s+f[öo]rs[äa]ljningar/i)
-  const listingsStart    = text.search(/Till\s+salu\s+i\s+omr[åa]det|Aktiva\s+objekt/i)
+  const listingsHeaderMatch = text.match(/^Till\s+salu\s*$/m)
+  const listingsStart = listingsHeaderMatch?.index ?? -1
   const tillforlitlighetMatch = text.match(/har\s+(god|normal|l[åa]g)\s+tillf[öo]rlitlighet/i)
   console.info('[intagsrapport] section probes:', {
     comparablesStart,
     listingsStart,
+    listingsHeaderRaw: listingsHeaderMatch ? listingsHeaderMatch[0] : null,
     tillforlitlighetRawMatch: tillforlitlighetMatch ? tillforlitlighetMatch[0] : null,
     tillforlitlighetValue:    tillforlitlighetMatch ? tillforlitlighetMatch[1] : null,
   })
@@ -298,7 +302,7 @@ export async function extractIntagsrapport(
 
   // DEBUG: extracted section slices (first 500 chars each)
   const comparablesSection = extractSection(text, /S[åa]lts?\s+i\s+omr[åa]det|J[äa]mf[öo]rbara\s+f[öo]rs[äa]ljningar/i, /Till\s+salu|Aktiva\s+objekt|\f/)
-  const listingsSection    = extractSection(text, /Till\s+salu\s+i\s+omr[åa]det|Aktiva\s+objekt/i, /\f|---|Copyright\s+V[äa]rderingsdata/i)
+  const listingsSection    = extractSection(text, /^Till\s+salu\s*$/m, /\f|---|Copyright\s+V[äa]rderingsdata/i)
   console.info('[intagsrapport] comparables section (first 500):', comparablesSection.slice(0, 500))
   console.info('[intagsrapport] listings section (first 500):', listingsSection.slice(0, 500))
 
