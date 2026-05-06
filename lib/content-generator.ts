@@ -1,6 +1,7 @@
 import { anthropic, MODEL } from './anthropic'
-import { Agency, Channel, GenerateResult, ImageAnalysis, ImageObservation, KeyInsights, LocationArgument, PropertyObject } from '@/types'
+import { Agency, Channel, GenerateResult, ImageAnalysis, ImageObservation, KeyInsights, LocationArgument, MarketIntelligence, PropertyObject } from '@/types'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { formatMarketIntelligenceForPrompt } from './market-intelligence-formatter'
 import { buildBrainContext, buildStyleContext, getStyleDNA } from './brain-context'
 import { buildCompetitionContext } from './competition-analyzer'
 import { getChannelOptimization } from './channel-optimization'
@@ -155,6 +156,17 @@ KONKRETA REGLER:
   konfirmerat — det är mäklarens ord, inte AI:ns.
 
 Detta är en härdad regel mot hallucination. Bryts den, bryts hela produkten.
+
+HARD CONSTRAINT — MARKNADSDATA:
+
+Om MARKNADSDATA-blocket finns i prompten:
+- Bedömt marknadsvärde: använd EXAKT det angivna beloppet. Skriv ALDRIG ett annat värde.
+- Prisutveckling: ange ALLTID tidsspann när det nämns ("senaste 24 månader", "senaste 12 månader").
+- Ange "Värderingsdata" som källa om bedömt marknadsvärde inkluderas i texten.
+- Om statistisk tillförlitlighet är låg: formulera värdet som "bedömt till" eller "värderat till" — ALDRIG "värt" eller "marknadsvärdet är X".
+- Siffrorna får ALDRIG avrundas eller parafraseras — 4 310 000 kr är 4 310 000 kr, inte "drygt 4,3 miljoner".
+
+Om MARKNADSDATA-blocket saknas: nämn INTE bedömt marknadsvärde, prisutveckling eller annonseringstid i texten.
 
 KVALITETSKONTROLL INNAN DU SVARAR:
 Granska din text mot denna checklista:
@@ -331,7 +343,7 @@ export async function generateAllChannels(
   const toneString = agency.tone_profile?.tags?.join(', ') ?? 'professionell, varm'
   const channels: Channel[] = ['hemnet', 'meta', 'email', 'social_organic']
 
-  const [styleContext, brainContext, competitionContext, styleDNA, osmContext, geoContext, confirmedObsContext] = await Promise.all([
+  const [styleContext, brainContext, competitionContext, styleDNA, osmContext, geoContext, confirmedObsContext, marketContext] = await Promise.all([
     buildStyleContext(agency.id),
     buildBrainContext(agency.id),
     buildCompetitionContext(object.area, object.price, agency.id),
@@ -339,6 +351,7 @@ export async function generateAllChannels(
     buildOSMBlock(object, supabase),
     buildGeoBlock(object.id, supabase),
     buildConfirmedObservationsBlock(object.id, supabase),
+    buildMarketBlock(object.id, supabase),
   ])
   // System: MASTER_SYSTEM + style_dna + brain_context (positions 1-2, 4)
   const systemContext = styleContext + brainContext
@@ -377,7 +390,7 @@ export async function generateAllChannels(
     channels.map((channel) => generateChannel(
       channel, object, toneString, supabase, systemContext, imageContext,
       channel === 'hemnet' ? storyContext + hemnetSubheadingInstruction + hemnetRubrikInstruction : storyContext,
-      competitionContext, osmContext, geoContext, confirmedObsContext,
+      competitionContext, osmContext, geoContext, confirmedObsContext, marketContext,
     ))
   )
 
@@ -544,6 +557,46 @@ async function buildGeoBlock(objectId: string, supabase: SupabaseClient): Promis
   }
 }
 
+async function buildMarketBlock(objectId: string, supabase: SupabaseClient): Promise<string> {
+  try {
+    const { data: obj } = await supabase
+      .from('objects')
+      .select('bedomt_marknadsvarde,bedomt_marknadsvarde_kr_per_kvm,statistisk_tillforlitlighet,prisutveckling_3m,prisutveckling_6m,prisutveckling_12m,prisutveckling_24m,snitt_annonseringstid_dagar')
+      .eq('id', objectId)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .single() as unknown as { data: any }
+
+    if (!obj || !obj.bedomt_marknadsvarde) return ''
+
+    const [{ data: comparables }, { data: listings }] = await Promise.all([
+      supabase.from('comparable_sales')
+        .select('adress,forsaljningsdatum,pris_kr,pris_idag_kr,boyta,biyta,tomt_kvm,byggar,kr_per_kvm,taxvarde_kr,kt_faktor')
+        .eq('object_id', objectId),
+      supabase.from('listings_for_sale_in_area')
+        .select('adress,utgangspris_kr,kr_per_kvm,boyta,antal_rum')
+        .eq('object_id', objectId),
+    ])
+
+    const intelligence: MarketIntelligence = {
+      bedomt_marknadsvarde: obj.bedomt_marknadsvarde ?? undefined,
+      bedomt_marknadsvarde_kr_per_kvm: obj.bedomt_marknadsvarde_kr_per_kvm ?? undefined,
+      statistisk_tillforlitlighet: obj.statistisk_tillforlitlighet ?? undefined,
+      prisutveckling_3m: obj.prisutveckling_3m ?? undefined,
+      prisutveckling_6m: obj.prisutveckling_6m ?? undefined,
+      prisutveckling_12m: obj.prisutveckling_12m ?? undefined,
+      prisutveckling_24m: obj.prisutveckling_24m ?? undefined,
+      snitt_annonseringstid_dagar: obj.snitt_annonseringstid_dagar ?? undefined,
+      jamforbara_forsaljningar: (comparables ?? []) as MarketIntelligence['jamforbara_forsaljningar'],
+      till_salu_i_omradet: (listings ?? []) as MarketIntelligence['till_salu_i_omradet'],
+    }
+
+    return formatMarketIntelligenceForPrompt(intelligence)
+  } catch (err) {
+    console.error('[content-generator] market block error:', err)
+    return ''
+  }
+}
+
 async function generateChannel(
   channel: Channel,
   object: PropertyObject,
@@ -555,16 +608,17 @@ async function generateChannel(
   competitionContext = '',
   osmContext = '',
   geoContext = '',
-  confirmedObsContext = ''
+  confirmedObsContext = '',
+  marketContext = ''
 ): Promise<GenerateResult> {
   const priceRange = getPriceRange(object.price)
   const refs = await fetchReferenceTexts(channel, object.type, priceRange, supabase)
 
-  // Prompt order: 3. channelOptimization → 3b. brands → 4. facts → 4c. confirmedObs → 4d. geo → 4e. OSM → 5. objektdata → 6. story → 7. bild → 8. konkurrens
+  // Prompt order: 3. channelOptimization → 3b. brands → 4. facts → 4c. confirmedObs → 4d. geo → 4e. OSM → 4f. marknadsdata → 5. objektdata → 6. story → 7. bild → 8. konkurrens
   const channelOpt = getChannelOptimization(channel)
   const brandsContext = buildBrandsContext(object.brands, channel)
   const factsContext = buildFactsContext(object)
-  let prompt = channelOpt + brandsContext + (factsContext ? '\n\n' + factsContext : '') + confirmedObsContext + geoContext + osmContext + '\n\n' + CHANNEL_PROMPTS[channel](object, tone)
+  let prompt = channelOpt + brandsContext + (factsContext ? '\n\n' + factsContext : '') + confirmedObsContext + geoContext + osmContext + (marketContext || '') + '\n\n' + CHANNEL_PROMPTS[channel](object, tone)
   if (storyContext) prompt += storyContext
   if (imageContext) prompt += imageContext
   if (competitionContext) prompt += competitionContext
