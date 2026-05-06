@@ -54,7 +54,8 @@ Husviksvägen 67, Brännö 3:172
 Bedömt marknadsvärde    4 310 000 kr
 83 000 kr/kvm
 
-Statistisk tillförlitlighet: Låg
+Statistisk tillförlitlighet
+Det värderade objektets värde har låg tillförlitlighet, vilket innebär att det är lägre underbyggt.
 
 Prisutveckling
 3 mån: +3%

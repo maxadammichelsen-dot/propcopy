@@ -87,12 +87,14 @@ function extractMarknadsvarde(text: string): { varde?: number; krPerKvm?: number
 }
 
 function extractTillforlitlighet(text: string): StatisticalReliability | undefined {
-  const m = text.match(/Statistisk\s+tillf[öo]rlitlighet[\s:]*([A-Za-zÀ-ÿ]+)/i)
+  // Real PDF text: "Det värderade objektets värde har låg tillförlitlighet, vilket innebär..."
+  // Match the prose pattern "har (god|normal|låg) tillförlitlighet" anywhere in the text.
+  const m = text.match(/har\s+(god|normal|l[åa]g)\s+tillf[öo]rlitlighet/i)
   if (!m) return undefined
   const raw = m[1].toLowerCase()
-  if (raw.startsWith('god')) return 'god'
-  if (raw.startsWith('norm')) return 'normal'
-  if (raw.startsWith('l')) return 'lag'
+  if (raw === 'god') return 'god'
+  if (raw === 'normal') return 'normal'
+  if (raw === 'lag' || raw === 'låg') return 'lag'
   return undefined
 }
 
@@ -279,7 +281,7 @@ export async function extractIntagsrapport(
   // DEBUG: section boundary probes
   const comparablesStart = text.search(/S[åa]lts?\s+i\s+omr[åa]det|J[äa]mf[öo]rbara\s+f[öo]rs[äa]ljningar/i)
   const listingsStart    = text.search(/Till\s+salu\s+i\s+omr[åa]det|Aktiva\s+objekt/i)
-  const tillforlitlighetMatch = text.match(/Statistisk\s+tillf[öo]rlitlighet[\s:]*([A-Za-zÀ-ÿ]+)/i)
+  const tillforlitlighetMatch = text.match(/har\s+(god|normal|l[åa]g)\s+tillf[öo]rlitlighet/i)
   console.info('[intagsrapport] section probes:', {
     comparablesStart,
     listingsStart,
