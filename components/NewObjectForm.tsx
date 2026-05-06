@@ -7,7 +7,7 @@ import FactsTechStep, { type RenovationEntry } from './FactsTechStep'
 import AddressAutocomplete from './AddressAutocomplete'
 import Step0SnabbImport, { type ImportPayload } from './Step0SnabbImport'
 import ImageObservationsReview from './ImageObservationsReview'
-import type { AddressSuggestion, ImageAnalysis, ImageWithObservations, PropertyObject } from '@/types'
+import type { AddressSuggestion, ImageAnalysis, ImageCategory, ImageWithObservations, PropertyObject } from '@/types'
 
 const AUTO_ANALYZE_DEBOUNCE_MS = 1500
 type AnalysisStatus = 'idle' | 'fresh' | 'partially-stale'
@@ -63,8 +63,9 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
   const [, setCoordinates]                = useState<{ lat: number; lng: number } | null>(null)
   const [brands, setBrands]               = useState<Record<string, string[]>>({})
 
-  const [imageBase64s, setImageBase64s]   = useState<string[]>([])
-  const [imageAnalysis, setImageAnalysis] = useState<ImageAnalysis | null>(null)
+  const [imageBase64s, setImageBase64s]     = useState<string[]>([])
+  const [imageCategories, setImageCategories] = useState<ImageCategory[]>([])
+  const [imageAnalysis, setImageAnalysis]   = useState<ImageAnalysis | null>(null)
   const [analysisStatus, setAnalysisStatus] = useState<AnalysisStatus>('idle')
   const [analyzing, setAnalyzing]         = useState(false)
   const [analyzeError, setAnalyzeError]   = useState('')
@@ -161,6 +162,7 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
     if (remaining <= 0) return
     const dataUrls = await Promise.all(arr.slice(0, remaining).map(readFileAsDataURL))
     setImageBase64s(prev => [...prev, ...dataUrls])
+    setImageCategories(prev => [...prev, ...dataUrls.map((): ImageCategory => 'property')])
     setAnalyzeError('')
     setAnalysisStatus(prev => (imageAnalysis ? 'partially-stale' : prev))
     scheduleAutoAnalyze()
@@ -168,8 +170,15 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
 
   function removeImage(idx: number) {
     setImageBase64s(prev => prev.filter((_, i) => i !== idx))
+    setImageCategories(prev => prev.filter((_, i) => i !== idx))
     setAnalysisStatus(prev => (imageAnalysis ? 'partially-stale' : prev))
     scheduleAutoAnalyze()
+  }
+
+  function toggleImageCategory(idx: number) {
+    setImageCategories(prev =>
+      prev.map((cat, i) => i === idx ? (cat === 'property' ? 'overview' : 'property') : cat)
+    )
   }
 
   async function ensureDraftObject(): Promise<string | null> {
@@ -209,7 +218,11 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
       const res = await fetch('/api/analyze-images', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ images: imageBase64s, ...(objectId ? { object_id: objectId } : {}) }),
+        body: JSON.stringify({
+          images: imageBase64s,
+          categories: imageCategories,
+          ...(objectId ? { object_id: objectId } : {}),
+        }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Analys misslyckades')
@@ -527,24 +540,56 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
             {imageBase64s.length > 0 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px' }}>
-                  {imageBase64s.map((src, idx) => (
-                    <div key={idx} style={{ position: 'relative', aspectRatio: '1', overflow: 'hidden', borderRadius: '6px', border: '1px solid var(--line)' }}>
-                      <img src={src} alt={`Bild ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                      <button
-                        type="button"
-                        onClick={e => { e.stopPropagation(); removeImage(idx) }}
-                        style={{
-                          position: 'absolute', top: '4px', right: '4px',
-                          width: '20px', height: '20px', borderRadius: '50%',
-                          background: 'rgba(0,0,0,0.55)', border: 'none',
-                          cursor: 'pointer', color: '#fff', fontSize: '12px',
-                          lineHeight: '20px', padding: 0, textAlign: 'center',
-                        }}
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
+                  {imageBase64s.map((src, idx) => {
+                    const cat = imageCategories[idx] ?? 'property'
+                    const isOverview = cat === 'overview'
+                    return (
+                      <div key={idx} style={{ position: 'relative', aspectRatio: '1', overflow: 'hidden', borderRadius: '6px', border: `1px solid ${isOverview ? 'var(--mute)' : 'var(--line)'}` }}>
+                        <img src={src} alt={`Bild ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', opacity: isOverview ? 0.55 : 1 }} />
+                        {/* Overview badge */}
+                        {isOverview && (
+                          <span style={{
+                            position: 'absolute', bottom: '24px', left: 0, right: 0,
+                            textAlign: 'center', fontFamily: "'Geist Mono', monospace",
+                            fontSize: '9px', letterSpacing: '0.04em', textTransform: 'uppercase',
+                            color: '#fff', background: 'rgba(0,0,0,0.6)', padding: '2px 0',
+                          }}>
+                            Översikt
+                          </span>
+                        )}
+                        {/* Category toggle */}
+                        <button
+                          type="button"
+                          onClick={e => { e.stopPropagation(); toggleImageCategory(idx) }}
+                          title={isOverview ? 'Markera som bostad' : 'Markera som översiktsbild'}
+                          style={{
+                            position: 'absolute', bottom: '4px', left: '4px',
+                            padding: '2px 5px', borderRadius: '3px', border: 'none',
+                            background: isOverview ? 'rgba(0,0,0,0.55)' : 'rgba(0,0,0,0.35)',
+                            cursor: 'pointer', color: '#fff', fontSize: '10px',
+                            fontFamily: "'Geist Mono', monospace', lineHeight: 1.4",
+                            letterSpacing: '0.02em',
+                          }}
+                        >
+                          {isOverview ? '🛸' : '🏠'}
+                        </button>
+                        {/* Remove button */}
+                        <button
+                          type="button"
+                          onClick={e => { e.stopPropagation(); removeImage(idx) }}
+                          style={{
+                            position: 'absolute', top: '4px', right: '4px',
+                            width: '20px', height: '20px', borderRadius: '50%',
+                            background: 'rgba(0,0,0,0.55)', border: 'none',
+                            cursor: 'pointer', color: '#fff', fontSize: '12px',
+                            lineHeight: '20px', padding: 0, textAlign: 'center',
+                          }}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    )
+                  })}
                 </div>
 
                 {/* Analyze row */}

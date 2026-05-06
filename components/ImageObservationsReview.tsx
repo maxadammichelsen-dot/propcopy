@@ -36,11 +36,13 @@ function confidenceColor(confidence: number): string {
 export default function ImageObservationsReview({ imageGroups, onDone }: Props) {
   const [currentIdx, setCurrentIdx] = useState(0)
   const [groups, setGroups] = useState<ImageWithObservations[]>(() =>
-    // Default-confirmed: all observations start as confirmed
-    imageGroups.map(g => ({
-      ...g,
-      observations: g.observations.map(o => ({ ...o, status: 'confirmed' as const })),
-    }))
+    // Filter out overview images (0 observations) — only show images with something to review
+    imageGroups
+      .filter(g => g.observations.length > 0)
+      .map(g => ({
+        ...g,
+        observations: g.observations.map(o => ({ ...o, status: 'confirmed' as const })),
+      }))
   )
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editValue, setEditValue] = useState('')

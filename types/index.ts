@@ -63,6 +63,8 @@ export interface BrandColors {
 
 // ─── Image observations (confidence-arkitektur, PR 1/2) ─────────────────────
 
+export type ImageCategory = 'property' | 'overview'
+
 export type RoomType =
   | 'vardagsrum'
   | 'kok'

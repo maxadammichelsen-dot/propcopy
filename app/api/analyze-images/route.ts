@@ -3,7 +3,7 @@ import { createSupabaseServerClient } from '@/lib/supabase'
 import { createSupabaseAdminClient } from '@/lib/supabase-admin'
 import { anthropic, MODEL } from '@/lib/anthropic'
 import { uploadObjectImage } from '@/lib/storage'
-import type { ImageObservation, ImageObservationCandidate, ImageWithObservations, ObservationType, RoomType } from '@/types'
+import type { ImageCategory, ImageObservation, ImageObservationCandidate, ImageWithObservations, ObservationType, RoomType } from '@/types'
 
 const MAX_IMAGES = 15
 const MIN_CONFIDENCE = 0.65
@@ -101,17 +101,23 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const { images, object_id } = body as { images: string[]; object_id?: string }
+    const { images, object_id, categories } = body as {
+      images: string[]
+      object_id?: string
+      categories?: ImageCategory[]
+    }
 
     if (!Array.isArray(images) || images.length === 0) {
       return NextResponse.json({ error: 'images krävs' }, { status: 400 })
     }
 
     const limited = images.slice(0, MAX_IMAGES)
+    const limitedCategories = (categories ?? []).slice(0, MAX_IMAGES)
 
     // Upload + analyze each image in parallel
     const perImageResults = await Promise.all(
       limited.map(async (dataUrl, i) => {
+        const category: ImageCategory = limitedCategories[i] ?? 'property'
         let storage_path: string | null = null
         let signed_url: string | null = null
 
@@ -126,9 +132,14 @@ export async function POST(req: NextRequest) {
         }
 
         const imageRef = storage_path ?? `image-${i + 1}`
-        const candidates = await analyzeOneImage(dataUrl, imageRef)
 
-        return { storage_path, signed_url, candidates }
+        if (category === 'overview') {
+          console.info('[image-analyzer] skipped overview image:', imageRef)
+          return { storage_path, signed_url, candidates: [], category }
+        }
+
+        const candidates = await analyzeOneImage(dataUrl, imageRef)
+        return { storage_path, signed_url, candidates, category }
       })
     )
 
