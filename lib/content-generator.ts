@@ -182,7 +182,13 @@ Objekt:
 
 Skriv:
 1. RUBRIK (max 75 tecken) – säljande och specifik
-2. SÄLJTEXT (max 1800 tecken) – strukturerad med korta stycken per plan/rum. Börja med en poetisk ingress, beskriv sedan bostaden rum för rum, avsluta med läge och livsstil.
+2. SÄLJTEXT – strukturerad med korta stycken per rum/plan
+
+HÅRDA TECKENMÅL FÖR SÄLJTEXT — bryts inte:
+- Total längd: 800–1100 tecken
+- De första 250 tecknen: det starkaste säljargumentet direkt — storlek, läge, eller unik egenskap. Ingen poetisk inledning som leder fram till poängen. Hemnet visar bara 250 tecken i listvyn; köparen bestämmer om de klickar på de orden.
+- Om du når 1100 tecken: korta från slutet, aldrig från säljargumentet.
+- Räkna tecknen i din text innan du svarar. Om texten är utanför 800–1100 — skriv om.
 
 Returnera ENBART giltig JSON, inget annat:
 {"rubrik": "rubrik här", "saljtext": "säljtext här"}`,
@@ -194,9 +200,13 @@ Objekt: ${obj.type}, ${obj.size} kvm, ${obj.address}, ${obj.area}, ${formatPrice
 Detaljer: ${obj.details}
 
 Skriv:
-1. HOOK (max 90 tecken) – stopper i flödet
-2. PRIMARY TEXT (max 250 tecken) – engagerande brödtext
+1. HOOK (max 90 tecken) – scroll-stopper i flödet
+2. PRIMARY TEXT – EN säljpunkt + tydlig CTA
 3. HEADLINE – kort rubrik under bild (max 40 tecken)
+
+HÅRDA TECKENMÅL — bryts inte:
+- PRIMARY TEXT: 130–180 tecken. En säljpunkt, ett budskap. Inget mer.
+- Räkna tecknen i primary_text innan du svarar.
 
 Returnera ENBART giltig JSON, inget annat:
 {"hook": "hook här", "primary_text": "brödtext här", "headline": "rubrik här"}`,
@@ -209,7 +219,14 @@ Detaljer: ${obj.details}
 
 Skriv:
 1. ÄMNESRAD – nyfiken och personlig (max 60 tecken)
-2. BRÖDTEXT (max 150 ord) – personlig hälsning, presentera objektet, avsluta med visningsinbjudan
+2. BRÖDTEXT – direkt, personlig, konkret
+
+HÅRDA TECKENMÅL FÖR BRÖDTEXT — bryts inte:
+- Total längd: 350–500 tecken
+- Första meningen: hook — en konkret egenskap eller observation, inte en generisk hälsning
+- Skriv INTE "jag tänkte på dig när det här objektet kom in" utan konkret anledning
+- Avsluta med ett enkelt handlingsval (boka visning eller fråga)
+- Räkna tecknen i body innan du svarar.
 
 Returnera ENBART giltig JSON, inget annat:
 {"subject": "ämnesrad här", "body": "brödtext här"}`,
@@ -220,7 +237,13 @@ Du skriver ett organiskt Instagram/Facebook-inlägg om denna fastighet på svens
 Objekt: ${obj.type}, ${obj.size} kvm, ${obj.address}, ${obj.area}, ${formatPrice(obj.price)} kr
 Detaljer: ${obj.details}
 
-Skriv ett organiskt inlägg (max 2200 tecken) – personlig ton, behind-the-scenes känsla, berätta varför du personligen tycker om objektet, avsluta med hashtags.
+Skriv ett organiskt inlägg – personlig ton, behind-the-scenes känsla, berätta varför du personligen tycker om objektet, avsluta med hashtags.
+
+HÅRDA TECKENMÅL — bryts inte:
+- Total längd: 800–1100 tecken
+- De första två raderna avgör om läsaren stannar — gör dem skarpa, konkreta och specifika för just detta objekt
+- Korta från slutet om du når 1100 tecken
+- Räkna tecknen i post innan du svarar.
 
 Returnera ENBART giltig JSON, inget annat:
 {"post": "hela inlägget med hashtags här"}`,
@@ -570,6 +593,7 @@ async function generateChannel(
       charCount = Object.values(JSON.parse(match[0]) as Record<string, string>).join('').length
     } catch {}
   }
+  console.info(`[content-generator] ${channel} length: ${charCount}`)
   return { channel, content, char_count: charCount }
 }
 
