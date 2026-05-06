@@ -1,3 +1,6 @@
+// NOTE: Endast för framtida mäklar-vy.
+// Får ALDRIG injekteras i content-generator-prompten.
+// Marknadsdata är mäklarens beslutsstöd, inte köparens information.
 import type { MarketIntelligence } from '@/types'
 
 function fmt(n: number): string {
