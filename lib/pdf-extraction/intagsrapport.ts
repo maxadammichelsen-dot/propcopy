@@ -1,7 +1,14 @@
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const pdfParse = require('pdf-parse') as (buffer: Buffer) => Promise<{ text: string; numpages: number }>
-
 import type { ComparableSale, ExtractionConfidence, ListingForSale, MarketIntelligence, StatisticalReliability } from '@/types'
+
+// pdf-parse@1.1.1 has a top-level side-effect that reads a test PDF relative to
+// its package directory. On Windows (and some serverless runtimes) that read fails
+// at require()-time, crashing the Next.js route module before any handler runs.
+// Importing the internal implementation file directly bypasses that side-effect.
+async function getPdfParser(): Promise<(buffer: Buffer) => Promise<{ text: string; numpages: number }>> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const mod = await import('pdf-parse/lib/pdf-parse.js' as any)
+  return mod.default
+}
 
 // ─── PII filter ───────────────────────────────────────────────────────────────
 // Any row containing these patterns is DROPPED in full — never partially sanitised.
@@ -251,6 +258,7 @@ export async function extractIntagsrapport(
 ): Promise<{ data: MarketIntelligence; confidence: ExtractionConfidence } | null> {
   let text: string
   try {
+    const pdfParse = await getPdfParser()
     const parsed = await pdfParse(pdfBuffer)
     text = parsed.text
   } catch (err) {

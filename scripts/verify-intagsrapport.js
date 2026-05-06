@@ -16,10 +16,16 @@ register({
 // ── 2. Monkey-patch pdf-parse before any import resolves it ─────────────────
 const Module = require('module')
 const _original = Module._load
+const MOCK_PDF_FN = async (buffer) => ({ text: buffer.toString('utf8'), numpages: 5 })
 Module._load = function(request, parent, isMain) {
-  if (request === 'pdf-parse') {
-    return async (buffer) => ({ text: buffer.toString('utf8'), numpages: 5 })
-  }
+  // Intercept both the package entry and the internal path used by the lazy loader.
+  // The internal path is accessed via dynamic import() which expects a module with
+  // a .default export; the package entry is accessed via require() which expects
+  // the function directly.
+  if (request === 'pdf-parse') return MOCK_PDF_FN
+  // __esModule: true prevents TypeScript's __importStar from wrapping the module
+  // again (which would make mod.default an object instead of the function).
+  if (request === 'pdf-parse/lib/pdf-parse.js') return { __esModule: true, default: MOCK_PDF_FN }
   return _original.apply(this, arguments)
 }
 
