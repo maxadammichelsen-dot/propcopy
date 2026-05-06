@@ -18,13 +18,11 @@ export function formatMarketIntelligenceForPrompt(data: MarketIntelligence): str
 
   if (data.bedomt_marknadsvarde) {
     const kr = data.bedomt_marknadsvarde
-    const millions = kr >= 1_000_000
-      ? `${(kr / 1_000_000).toFixed(kr % 1_000_000 === 0 ? 0 : 1).replace('.', ',')} miljoner kronor`
-      : `${fmt(kr)} kr`
     const perKvm = data.bedomt_marknadsvarde_kr_per_kvm
       ? ` (${fmt(data.bedomt_marknadsvarde_kr_per_kvm)} kr/kvm)`
       : ''
-    lines.push(`- Bedömt marknadsvärde: ${millions}${perKvm}`)
+    // Use exact figure — the HARD CONSTRAINT forbids rounding ("4 310 000 kr", not "4,3 miljoner")
+    lines.push(`- Bedömt marknadsvärde: ${fmt(kr)} kr${perKvm}`)
   }
 
   if (data.statistisk_tillforlitlighet) {

@@ -30,13 +30,13 @@ function execAll(re: RegExp, text: string): RegExpExecArray[] {
 // ─── Number parsing helpers ───────────────────────────────────────────────────
 
 function parseSwedishInt(raw: string): number | undefined {
-  const cleaned = raw.replace(/[\s ]/g, '').replace(/,/g, '')
+  const cleaned = raw.replace(/[\s    ]/g, '').replace(/,/g, '')
   const n = parseInt(cleaned, 10)
   return isNaN(n) ? undefined : n
 }
 
 function extractInts(text: string): number[] {
-  return execAll(/([\d][\d\s ]{0,8}[\d])/g, text)
+  return execAll(/([\d][\d\s ]{0,8}[\d])/g, text)
     .map(m => parseSwedishInt(m[1]))
     .filter((n): n is number => n !== undefined && n > 0)
 }
@@ -69,11 +69,11 @@ function extractSection(text: string, startMarker: RegExp, endMarker: RegExp): s
 function extractMarknadsvarde(text: string): { varde?: number; krPerKvm?: number } {
   const result: { varde?: number; krPerKvm?: number } = {}
 
-  const mvMatch = text.match(/Bed[öo]mt\s+marknadsv[äa]rde[\s\S]{0,120}?([\d][\d\s ]{3,12})\s*kr/i)
+  const mvMatch = text.match(/Bed[öo]mt\s+marknadsv[äa]rde[\s\S]{0,120}?([\d][\d\s ]{3,12})\s*kr/i)
   if (mvMatch) result.varde = parseSwedishInt(mvMatch[1])
 
-  const kvmMatch = text.match(/([\d][\d\s ]{2,8})\s*kr\s*\/\s*kvm/i)
-    ?? text.match(/kr\s*\/\s*kvm\s+([\d][\d\s ]{2,8})/i)
+  const kvmMatch = text.match(/([\d][\d\s ]{2,8})\s*kr\s*\/\s*kvm/i)
+    ?? text.match(/kr\s*\/\s*kvm\s+([\d][\d\s ]{2,8})/i)
   if (kvmMatch) result.krPerKvm = parseSwedishInt(kvmMatch[1])
 
   return result
@@ -162,8 +162,11 @@ function parseComparableLine(line: string): ComparableSale | null {
 function extractComparableSales(text: string): ComparableSale[] {
   const section = extractSection(
     text,
-    /S[åa]lt\s+i\s+omr[åa]det|J[äa]mf[öo]rbara\s+f[öo]rs[äa]ljningar/i,
-    /Till\s+salu|Aktiva\s+objekt|^\s*\n\s*\n/im
+    // Accept both "Sålts i området" (passive plural) and "Sålt i området" (past participle)
+    /S[åa]lts?\s+i\s+omr[åa]det|J[äa]mf[öo]rbara\s+f[öo]rs[äa]ljningar/i,
+    // End at the next section header or a page break; no blank-line fallback since
+    // comparables and listings are always adjacent sections in Värderingsdata reports.
+    /Till\s+salu|Aktiva\s+objekt|\f/
   )
   if (!section) return []
 
@@ -182,14 +185,22 @@ function extractComparableSales(text: string): ComparableSale[] {
 function parseListingLine(line: string): ListingForSale | null {
   if (containsPII(line)) return null
 
-  const nums = extractInts(line)
-  if (nums.length < 1) return null
+  // PDF tables use 2+ spaces as column separators, so split there.
+  // This preserves the full address "Skogsgapet 11" rather than splitting on
+  // the house number "11" which would otherwise be confused with price digits.
+  const cols = line.split(/\s{2,}/).map(c => c.trim()).filter(Boolean)
+  if (cols.length < 2) return null
 
-  const firstNumMatch = line.match(/([\d][\d\s ]{2,})/)
-  if (!firstNumMatch) return null
-  const adress = line.slice(0, line.indexOf(firstNumMatch[0])).trim()
+  const adress = cols[0]
   if (!adress || adress.length < 3) return null
   if (containsPII(adress)) return null
+
+  // Parse each remaining column as a single number (handles spaces within "11 750 000")
+  const nums = cols.slice(1).flatMap(col => {
+    const n = parseSwedishInt(col.replace(/\s/g, ''))
+    return n !== undefined && n > 0 ? [n] : []
+  })
+  if (nums.length < 1) return null
 
   const [utgangspris_kr, kr_per_kvm, boyta, antal_rum] = nums
   return { adress, utgangspris_kr, kr_per_kvm, boyta, antal_rum }
@@ -199,7 +210,9 @@ function extractListingsForSale(text: string): ListingForSale[] {
   const section = extractSection(
     text,
     /Till\s+salu\s+i\s+omr[åa]det|Aktiva\s+objekt/i,
-    /^\s*\n\s*\n|\f|---/m
+    // Page break or separator are primary; "Copyright Värderingsdata" is the
+    // footer line in Värderingsdata reports and terminates the listings section.
+    /\f|---|Copyright\s+V[äa]rderingsdata/i
   )
   if (!section) return []
 
