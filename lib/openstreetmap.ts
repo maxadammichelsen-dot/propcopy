@@ -443,7 +443,9 @@ export async function getLocationAddress(
 
 export function buildLocationContext(addr: NominatimAddress): string {
   const parts: string[] = []
-  if (addr.suburb) parts.push(`- Område: ${addr.suburb}`)
+  // addr.suburb is intentionally excluded: it reflects geocoded postal suburb (e.g. "Åkered"),
+  // which often differs from the mäklare's chosen area name ("Näset"). The mäklare's
+  // objects.area field is the only authoritative source for area name in generated text.
   if (addr.borough) parts.push(`- Stadsdel: ${addr.borough}`)
   if (addr.city_district) parts.push(`- Distrikt: ${addr.city_district}`)
   if (addr.city) parts.push(`- Stad: ${addr.city}`)
@@ -451,7 +453,6 @@ export function buildLocationContext(addr: NominatimAddress): string {
   if (parts.length === 0) return ''
 
   const examples = [
-    addr.suburb ? `i ${addr.suburb}` : null,
     addr.borough ? `i stadsdelen ${addr.borough}` : null,
     addr.city_district ? `i ${addr.city_district.toLowerCase()}` : null,
   ].filter((x): x is string => Boolean(x)).slice(0, 2)
@@ -460,8 +461,8 @@ export function buildLocationContext(addr: NominatimAddress): string {
     '\n\nOBJEKTETS GEOGRAFISKA POSITION (verifierad från adressdatabas):\n' +
     parts.join('\n') +
     '\n\nGEOGRAFISK REGEL: Använd ENBART de geografiska begrepp som anges ovan. ' +
-    'Hitta INTE på halvöar, stadsdelar, vattendrag eller geografiska namn som inte nämns ovan.\n' +
-    `Korrekt: ${examples.join(', ')}\n` +
+    'Hitta INTE på halvöar, stadsdelar, vattendrag eller geografiska namn som inte nämns ovan.' +
+    (examples.length > 0 ? `\nKorrekt: ${examples.join(', ')}\n` : '\n') +
     'Fel: geografiska begrepp som inte finns i listan (t.ex. halvönamn, naturreservat, vattendrag)'
   )
 }

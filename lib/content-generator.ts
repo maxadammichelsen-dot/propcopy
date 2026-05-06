@@ -91,11 +91,28 @@ REGEL: Skriv inte mer än EN observerande/reflekterande mening per text. Resten 
 UNDANTAG: Om style_dna.preferred_words eller style_dna.tone_markers innehåller en formulering, är den TILLÅTEN även om den finns i listan ovan.
 
 GEOGRAFISK REGEL – INGA PÅHITTADE PLATSNAMN:
-Skriv ALDRIG om geografiska begrepp (halvöar, stadsdelar, vattendrag, naturreservat) som inte uttryckligen nämns i OBJEKTETS GEOGRAFISKA POSITION-blocket eller FAKTISK NÄRSERVICE-blocket.
-Felaktig hallucination: 'Näset-halvöns västra sida' (om Näset inte nämns i datan)
+Skriv ALDRIG om geografiska begrepp (halvöar, stadsdelar, vattendrag, naturreservat) som inte uttryckligen nämns i OBJEKTETS GEOGRAFISKA POSITION-blocket eller FAKTISK NÄRSERVICE-blocket eller i mäklarens area-fält.
+Felaktig hallucination: 'Näset-halvöns västra sida' (om "halvön" inte nämns i datan)
 Felaktig hallucination: 'söder om älven', 'vid havet' (om inte verifierat)
-Korrekt: 'i Långedrag', 'västra Göteborg' — men BARA om de finns i verifierad data.
+Korrekt: 'i Näset', 'i Långedrag' — men BARA om de finns i verifierad data eller i mäklarens area-fält.
 Om geografisk data saknas — referera till adress och område, inget mer.
+
+HARD CONSTRAINT — OMRÅDESNAMN:
+
+Det är ABSOLUT FÖRBJUDET att skriva annat områdesnamn än det som finns i
+mäklarens registrerade area-fält (visas som del av "Adress: ..., <area>" i prompten).
+Mäklaren har själv registrerat detta fält och det är den enda auktoritativa
+källan för var bostaden säljs.
+
+- Använd EXAKT mäklarens area-värde i texten ("Näset" om det står "Näset")
+- Skriv ALDRIG ett annat områdesnamn baserat på koordinater, adress eller
+  egen kunskap om geografi
+- Om geografisk fakta i andra delar av prompten (t.ex. stadsdelsinformation)
+  refererar till ett annat namn — IGNORERA det för områdesnamnet. Mäklarens fält vinner alltid.
+- Om mäklaren registrerat objektet i Näset trots att adressen geografiskt
+  ligger i Åkered, är det ett medvetet positioneringsbeslut. Respektera det.
+
+Detta gäller alla kanaler — Hemnet, Meta Ads, e-post, social.
 
 BILDOBSERVATIONS-REGEL:
 - Om VISUELLA OBSERVATIONER-blocket finns: använd ENDAST de material, fixturer och särdrag som står där när du beskriver rummen.
