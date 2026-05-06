@@ -22,7 +22,7 @@ export interface ImportPayload {
 
 interface Step0SnabbImportProps {
   onImportDone: (payload: ImportPayload, images: File[]) => void
-  onSkip: () => void
+  onSkip: (mi?: MarketIntelligence) => void
   onCancel: () => void
 }
 
@@ -129,6 +129,7 @@ export default function Step0SnabbImport({ onImportDone, onSkip, onCancel }: Ste
   }
 
   function acceptMarketData() {
+    console.info('[Step0] acceptMarketData — marketIntelligence accepted:', marketIntelligence)
     setShowMarketConfirm(false)
   }
 
@@ -153,15 +154,14 @@ export default function Step0SnabbImport({ onImportDone, onSkip, onCancel }: Ste
       if (!res.ok || !data.success) {
         throw new Error(data.error ?? 'Import misslyckades')
       }
-      onImportDone(
-        {
-          fields: data.fields ?? {},
-          confidence: data.confidence ?? {},
-          source: data.source ?? 'pdf',
-          marketIntelligence: marketIntelligence ?? undefined,
-        },
-        images,
-      )
+      const payload: ImportPayload = {
+        fields: data.fields ?? {},
+        confidence: data.confidence ?? {},
+        source: data.source ?? 'pdf',
+        marketIntelligence: marketIntelligence ?? undefined,
+      }
+      console.info('[Step0] calling onImportDone, marketIntelligence present:', !!payload.marketIntelligence)
+      onImportDone(payload, images)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Import misslyckades')
       setRunning(false)
@@ -611,7 +611,7 @@ export default function Step0SnabbImport({ onImportDone, onSkip, onCancel }: Ste
             <div style={{ display: 'flex', gap: '8px' }}>
               <button
                 type="button"
-                onClick={onSkip}
+                onClick={() => { console.info('[Step0] onSkip (error banner), marketIntelligence:', !!marketIntelligence); onSkip(marketIntelligence ?? undefined) }}
                 style={{
                   padding: '6px 12px', borderRadius: '6px',
                   border: '1px solid var(--line)', background: 'var(--bg)',
@@ -641,7 +641,7 @@ export default function Step0SnabbImport({ onImportDone, onSkip, onCancel }: Ste
         <div style={{ marginTop: 'auto', paddingTop: '24px', display: 'flex', justifyContent: 'center' }}>
           <button
             type="button"
-            onClick={onSkip}
+            onClick={() => { console.info('[Step0] onSkip (skip link), marketIntelligence:', !!marketIntelligence); onSkip(marketIntelligence ?? undefined) }}
             disabled={running}
             style={{
               background: 'transparent', border: 'none',

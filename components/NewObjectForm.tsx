@@ -110,6 +110,7 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
   }
 
   async function handleImportDone(payload: ImportPayload, droppedImages: File[]) {
+    console.info('[NewObjectForm] handleImportDone — marketIntelligence present:', !!payload.marketIntelligence)
     setImportSource(payload.source)
     setImportConfidence(payload.confidence)
     setImportedFields(payload.fields)
@@ -130,7 +131,12 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
     setStep(1)
   }
 
-  function handleSkipImport() {
+  function handleSkipImport(mi?: MarketIntelligence) {
+    console.info('[NewObjectForm] handleSkipImport — marketIntelligence present:', !!mi)
+    if (mi) {
+      setImportedMarketIntelligence(mi)
+      marketDataPersistedRef.current = false
+    }
     setImportSource('manual')
     setImportConfidence(undefined)
     setImportedFields(undefined)
@@ -212,15 +218,18 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
   }
 
   async function persistMarketData(objectId: string) {
+    console.info('[NewObjectForm] persistMarketData called — objectId:', objectId, 'hasData:', !!importedMarketIntelligence, 'alreadyPersisted:', marketDataPersistedRef.current)
     if (!importedMarketIntelligence || marketDataPersistedRef.current) return
     marketDataPersistedRef.current = true
     try {
-      await fetch(`/api/objects/${objectId}/market-data`, {
+      const res = await fetch(`/api/objects/${objectId}/market-data`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ marketIntelligence: importedMarketIntelligence }),
       })
-    } catch {
+      console.info('[NewObjectForm] persistMarketData response status:', res.status)
+    } catch (err) {
+      console.error('[NewObjectForm] persistMarketData fetch error:', err)
       marketDataPersistedRef.current = false
     }
   }
@@ -325,7 +334,10 @@ export default function NewObjectForm({ onCreated, onCancel }: NewObjectFormProp
       setLoading(false)
       return
     }
-    if (data.object?.id) await persistMarketData(data.object.id)
+    if (data.object?.id) {
+      console.info('[NewObjectForm] handleSubmit — calling persistMarketData for id:', data.object.id)
+      await persistMarketData(data.object.id)
+    }
     onCreated(data.object)
   }
 

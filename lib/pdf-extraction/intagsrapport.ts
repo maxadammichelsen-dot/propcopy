@@ -266,11 +266,26 @@ export async function extractIntagsrapport(
     return null
   }
 
+  // DEBUG: raw text dump (remove after diagnosis)
+  console.info('[intagsrapport] raw text length:', text.length)
+  console.info('[intagsrapport] first 2000 chars:', text.slice(0, 2000))
+
   // Verify copyright marker
   if (!/V[äa]rderingsdata/i.test(text)) {
     console.info('[intagsrapport] missing Värderingsdata marker — not an Intagsrapport')
     return null
   }
+
+  // DEBUG: section boundary probes
+  const comparablesStart = text.search(/S[åa]lts?\s+i\s+omr[åa]det|J[äa]mf[öo]rbara\s+f[öo]rs[äa]ljningar/i)
+  const listingsStart    = text.search(/Till\s+salu\s+i\s+omr[åa]det|Aktiva\s+objekt/i)
+  const tillforlitlighetMatch = text.match(/Statistisk\s+tillf[öo]rlitlighet[\s:]*([A-Za-zÀ-ÿ]+)/i)
+  console.info('[intagsrapport] section probes:', {
+    comparablesStart,
+    listingsStart,
+    tillforlitlighetRawMatch: tillforlitlighetMatch ? tillforlitlighetMatch[0] : null,
+    tillforlitlighetValue:    tillforlitlighetMatch ? tillforlitlighetMatch[1] : null,
+  })
 
   const { varde, krPerKvm } = extractMarknadsvarde(text)
   const tillforlitlighet = extractTillforlitlighet(text)
@@ -278,6 +293,12 @@ export async function extractIntagsrapport(
   const annonseringstid = extractAnnonseringstid(text)
   const comparables = extractComparableSales(text)
   const listings = extractListingsForSale(text)
+
+  // DEBUG: extracted section slices (first 500 chars each)
+  const comparablesSection = extractSection(text, /S[åa]lts?\s+i\s+omr[åa]det|J[äa]mf[öo]rbara\s+f[öo]rs[äa]ljningar/i, /Till\s+salu|Aktiva\s+objekt|\f/)
+  const listingsSection    = extractSection(text, /Till\s+salu\s+i\s+omr[åa]det|Aktiva\s+objekt/i, /\f|---|Copyright\s+V[äa]rderingsdata/i)
+  console.info('[intagsrapport] comparables section (first 500):', comparablesSection.slice(0, 500))
+  console.info('[intagsrapport] listings section (first 500):', listingsSection.slice(0, 500))
 
   const data: MarketIntelligence = {
     bedomt_marknadsvarde: varde,
@@ -292,7 +313,6 @@ export async function extractIntagsrapport(
     till_salu_i_omradet: listings,
   }
 
-  // Log only whitelisted fields — NEVER raw PDF text
   console.info('[intagsrapport] extracted:', {
     bedomt_marknadsvarde: data.bedomt_marknadsvarde,
     kr_per_kvm: data.bedomt_marknadsvarde_kr_per_kvm,
